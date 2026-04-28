@@ -260,7 +260,8 @@ planos
 
 ## 📚 Documentação detalhada
 
-- 📘 [`docs/INSTALACAO.md`](docs/INSTALACAO.md) — Instalação passo a passo (XAMPP, Composer, banco, troubleshooting)
+- 📘 [`docs/INSTALACAO.md`](docs/INSTALACAO.md) — Instalação local (XAMPP, Composer, banco, troubleshooting)
+- 🚀 [`docs/DEPLOY-CYBERPANEL.md`](docs/DEPLOY-CYBERPANEL.md) — Deploy em VPS com CyberPanel + OpenLiteSpeed
 - 🔌 [`docs/INTEGRACOES.md`](docs/INTEGRACOES.md) — Configurar WhatsApp, Asaas, PDV externo, cron
 - 🌐 [`docs/API.md`](docs/API.md) — Reference completa da API REST
 
