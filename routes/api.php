@@ -1,0 +1,56 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ClienteController;
+use App\Http\Controllers\Api\RecompensaController;
+use App\Http\Controllers\Api\ResgateController;
+use App\Http\Controllers\Api\IndicacaoController;
+use App\Http\Controllers\Api\PesquisaController;
+use App\Http\Controllers\Api\EmpresaController;
+use App\Http\Controllers\Api\PdvController;
+use App\Http\Controllers\Api\OtpController;
+use App\Http\Controllers\Api\BeneficioController;
+
+// Públicas
+Route::prefix('v1')->group(function () {
+    Route::get('empresas', [EmpresaController::class, 'publicas']);
+
+    // Auth com throttle (anti brute-force): max 10 tentativas/minuto por IP
+    Route::middleware('throttle:10,1')->group(function () {
+        Route::post('auth/login', [AuthController::class, 'login']);
+        Route::post('auth/registrar', [AuthController::class, 'registrar']);
+        Route::post('auth/otp/solicitar', [OtpController::class, 'solicitar']);
+        Route::post('auth/otp/validar', [OtpController::class, 'validar']);
+    });
+
+    // PDV externo (autenticado por X-Pdv-Secret) — throttle 60/min
+    Route::middleware('throttle:60,1')->group(function () {
+        Route::post('pdv/{slug}/compras', [PdvController::class, 'lancarCompra']);
+    });
+});
+
+// Autenticadas (Sanctum)
+Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
+    Route::get('auth/me', [AuthController::class, 'me']);
+    Route::post('auth/logout', [AuthController::class, 'logout']);
+
+    Route::get('cliente/dashboard', [ClienteController::class, 'dashboard']);
+    Route::get('cliente/compras', [ClienteController::class, 'historicoCompras']);
+    Route::get('cliente/extrato', [ClienteController::class, 'extrato']);
+    Route::put('cliente/perfil', [ClienteController::class, 'atualizarPerfil']);
+
+    Route::get('recompensas', [RecompensaController::class, 'catalogo']);
+
+    Route::get('resgates', [ResgateController::class, 'index']);
+    Route::post('resgates', [ResgateController::class, 'solicitar']);
+
+    Route::get('indicacoes', [IndicacaoController::class, 'index']);
+    Route::post('indicacoes', [IndicacaoController::class, 'indicar']);
+
+    Route::post('pesquisas', [PesquisaController::class, 'responder']);
+
+    Route::get('parceiros', [BeneficioController::class, 'listar']);
+    Route::post('parceiros/cupons', [BeneficioController::class, 'gerarCupom']);
+    Route::get('parceiros/meus-cupons', [BeneficioController::class, 'meusCupons']);
+});

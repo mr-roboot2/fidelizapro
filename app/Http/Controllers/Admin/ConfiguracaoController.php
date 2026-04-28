@@ -1,0 +1,44 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+
+class ConfiguracaoController extends Controller
+{
+    public function edit()
+    {
+        $empresa = Auth::user()->empresa;
+        return view('admin.configuracoes.edit', compact('empresa'));
+    }
+
+    public function update(Request $request)
+    {
+        $empresa = Auth::user()->empresa;
+        $dados = $request->validate([
+            'nome' => 'required|string|max:255',
+            'cnpj' => 'nullable|string|max:18',
+            'telefone' => 'nullable|string|max:20',
+            'email' => 'nullable|email|max:255',
+            'endereco' => 'nullable|string|max:255',
+            'cor_primaria' => 'required|string|max:7',
+            'cor_secundaria' => 'required|string|max:7',
+            'pontos_por_real' => 'required|numeric|min:0',
+            'cashback_percentual' => 'required|numeric|min:0|max:100',
+            'dias_liberar_cashback' => 'required|integer|min:0|max:365',
+            'validade_pontos_dias' => 'required|integer|min:30',
+            'logo' => 'nullable|image|max:1024',
+        ]);
+
+        if ($request->hasFile('logo')) {
+            if ($empresa->logo) Storage::disk('public')->delete($empresa->logo);
+            $dados['logo'] = $request->file('logo')->store('logos', 'public');
+        }
+
+        $empresa->update($dados);
+        return back()->with('success', 'Configurações salvas!');
+    }
+}

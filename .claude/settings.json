@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\"/e/xampp/php/php.exe\" *)",
+      "Bash(/e/xampp/php/php.exe *)",
+      "Bash(\"E:/xampp/php/php.exe\" *)",
+      "Bash(E:/xampp/php/php.exe *)",
+      "Bash(\"/e/xampp/mysql/bin/mysql.exe\" *)",
+      "Bash(/e/xampp/mysql/bin/mysql.exe *)",
+      "Bash(\"E:/xampp/mysql/bin/mysql.exe\" *)",
+      "Bash(E:/xampp/mysql/bin/mysql.exe *)",
+      "Bash(curl -s http://localhost*)",
+      "Bash(curl -sS http://localhost*)",
+      "Bash(curl -sb * http://localhost*)",
+      "Bash(curl -sc * http://localhost*)",
+      "Bash(curl -s -o /dev/null *)",
+      "Bash(curl -s -X POST http://localhost*)",
+      "Bash(curl -s -X PUT http://localhost*)"
+    ]
+  }
+}

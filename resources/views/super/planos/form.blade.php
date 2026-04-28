@@ -1,0 +1,99 @@
+@extends('layouts.super')
+@section('title', $plano->exists ? 'Editar plano' : 'Novo plano')
+@section('content')
+<div class="bg-white rounded-xl shadow-sm p-6 max-w-3xl">
+    <form method="POST" action="{{ $plano->exists ? route('super.planos.update', $plano) : route('super.planos.store') }}">
+        @csrf
+        @if ($plano->exists) @method('PUT') @endif
+
+        <h3 class="font-semibold mb-4">Dados do plano</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label class="text-sm font-medium">Nome *</label>
+                <input type="text" name="nome" required value="{{ old('nome', $plano->nome) }}"
+                       class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg">
+            </div>
+            <div>
+                <label class="text-sm font-medium">Preço mensal (R$) *</label>
+                <input type="number" name="preco_mensal" required step="0.01" min="0" value="{{ old('preco_mensal', $plano->preco_mensal) }}"
+                       class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg">
+            </div>
+            <div class="sm:col-span-2">
+                <label class="text-sm font-medium">Descrição</label>
+                <textarea name="descricao" rows="2" class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg">{{ old('descricao', $plano->descricao) }}</textarea>
+            </div>
+        </div>
+
+        <h3 class="font-semibold mt-6 mb-4">Limites (vazio = ilimitado)</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+                <label class="text-sm font-medium">Clientes</label>
+                <input type="number" name="limite_clientes" min="1" value="{{ old('limite_clientes', $plano->limite_clientes) }}"
+                       class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg">
+            </div>
+            <div>
+                <label class="text-sm font-medium">Compras/mês</label>
+                <input type="number" name="limite_compras_mes" min="1" value="{{ old('limite_compras_mes', $plano->limite_compras_mes) }}"
+                       class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg">
+            </div>
+            <div>
+                <label class="text-sm font-medium">Recompensas ativas</label>
+                <input type="number" name="limite_recompensas" min="1" value="{{ old('limite_recompensas', $plano->limite_recompensas) }}"
+                       class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg">
+            </div>
+            <div>
+                <label class="text-sm font-medium">Parceiros</label>
+                <input type="number" name="limite_parceiros" min="1" value="{{ old('limite_parceiros', $plano->limite_parceiros) }}"
+                       class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg">
+            </div>
+            <div>
+                <label class="text-sm font-medium">Usuários admin</label>
+                <input type="number" name="limite_users" min="1" value="{{ old('limite_users', $plano->limite_users) }}"
+                       class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg">
+            </div>
+            <div>
+                <label class="text-sm font-medium">Campanhas/mês</label>
+                <input type="number" name="limite_campanhas_mes" min="1" value="{{ old('limite_campanhas_mes', $plano->limite_campanhas_mes) }}"
+                       class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg">
+            </div>
+        </div>
+
+        <h3 class="font-semibold mt-6 mb-4">Recursos disponíveis</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label class="flex items-center gap-2 p-3 bg-slate-50 rounded">
+                <input type="checkbox" name="automacoes_disponivel" value="1" {{ old('automacoes_disponivel', $plano->automacoes_disponivel ?? true) ? 'checked':'' }}>
+                <span class="text-sm">Automações WhatsApp</span>
+            </label>
+            <label class="flex items-center gap-2 p-3 bg-slate-50 rounded">
+                <input type="checkbox" name="parceiros_disponivel" value="1" {{ old('parceiros_disponivel', $plano->parceiros_disponivel ?? true) ? 'checked':'' }}>
+                <span class="text-sm">Área de parceiros</span>
+            </label>
+            <label class="flex items-center gap-2 p-3 bg-slate-50 rounded">
+                <input type="checkbox" name="white_label_disponivel" value="1" {{ old('white_label_disponivel', $plano->white_label_disponivel) ? 'checked':'' }}>
+                <span class="text-sm">White label PWA</span>
+            </label>
+            <label class="flex items-center gap-2 p-3 bg-slate-50 rounded">
+                <input type="checkbox" name="whatsapp_ilimitado" value="1" {{ old('whatsapp_ilimitado', $plano->whatsapp_ilimitado) ? 'checked':'' }}>
+                <span class="text-sm">WhatsApp ilimitado</span>
+            </label>
+        </div>
+
+        <div class="mt-4 flex items-center gap-4">
+            <label class="flex items-center gap-2">
+                <input type="checkbox" name="ativo" value="1" {{ old('ativo', $plano->ativo ?? true) ? 'checked':'' }}>
+                <span class="text-sm font-medium">Plano ativo</span>
+            </label>
+            <div>
+                <label class="text-sm font-medium">Ordem</label>
+                <input type="number" name="ordem" value="{{ old('ordem', $plano->ordem ?? 0) }}"
+                       class="ml-2 w-20 px-2 py-1 border border-slate-300 rounded text-sm">
+            </div>
+        </div>
+
+        <div class="flex gap-2 mt-6">
+            <button class="px-5 py-2 bg-rose-600 text-white rounded-lg">Salvar</button>
+            <a href="{{ route('super.planos.index') }}" class="px-5 py-2 bg-slate-200 rounded-lg">Cancelar</a>
+        </div>
+    </form>
+</div>
+@endsection
