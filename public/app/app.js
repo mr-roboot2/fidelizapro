@@ -474,6 +474,7 @@ window.solicitarResgate = async (id, nome, custo) => {
 
 // Tela 6: QR Code
 async function telaQrCode() {
+    const codigo = encodeURIComponent(STATE.cliente.codigo_qr);
     screenContainer.innerHTML = `
     <div class="fade-in flex-1 flex flex-col overflow-y-auto">
         <div class="p-5 text-white" style="background:linear-gradient(135deg,${STATE.empresa.cor_primaria},${STATE.empresa.cor_secundaria})">
@@ -482,22 +483,13 @@ async function telaQrCode() {
         </div>
         <div class="p-6 flex flex-col items-center">
             <div class="bg-white p-4 rounded-2xl shadow-lg border border-slate-200">
-                <canvas id="qr-canvas"></canvas>
+                <img src="${API}/qr/${codigo}" width="240" height="240" alt="QR Code" class="block">
             </div>
             <p class="mt-4 font-mono text-lg">${STATE.cliente.codigo_qr}</p>
             <p class="text-sm text-slate-500 mt-1">${STATE.cliente.nome}</p>
             <p class="text-xs text-slate-400">${STATE.cliente.telefone}</p>
         </div>
     </div>`;
-    if (typeof QRious === 'undefined') {
-        toast('Biblioteca de QR não carregou (script CDN bloqueado?).', 'error');
-        return;
-    }
-    try {
-        new QRious({ element: $('#qr-canvas'), value: STATE.cliente.codigo_qr, size: 240 });
-    } catch (err) {
-        toast('Erro ao gerar QR: ' + err.message, 'error');
-    }
 }
 
 // Tela 7: Perfil

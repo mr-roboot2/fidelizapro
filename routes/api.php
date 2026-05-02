@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\BeneficioController;
 // Públicas
 Route::prefix('v1')->group(function () {
     Route::get('empresas', [EmpresaController::class, 'publicas']);
+    Route::get('qr/{codigo}', [ClienteController::class, 'qr'])->where('codigo', '[A-Za-z0-9-]+');
 
     // Auth com throttle (anti brute-force): max 10 tentativas/minuto por IP
     Route::middleware('throttle:10,1')->group(function () {

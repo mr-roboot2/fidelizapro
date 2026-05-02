@@ -1,4 +1,4 @@
-const CACHE = 'fidelizapro-v5';
+const CACHE = 'fidelizapro-v6';
 
 // Caminhos relativos ao escopo do SW (a própria pasta /app/)
 const ASSETS = [

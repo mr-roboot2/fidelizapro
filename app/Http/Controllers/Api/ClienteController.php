@@ -3,10 +3,25 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Cliente;
 use Illuminate\Http\Request;
+use SimpleSoftwareIO\QrCode\Generator as QrGenerator;
 
 class ClienteController extends Controller
 {
+    /**
+     * SVG do QR de um cliente (público — codigo_qr é visualmente público).
+     */
+    public function qr(string $codigo)
+    {
+        abort_unless(Cliente::where('codigo_qr', $codigo)->exists(), 404);
+        $svg = (new QrGenerator())->format('svg')->size(240)->margin(1)->generate($codigo);
+        return response($svg, 200, [
+            'Content-Type' => 'image/svg+xml',
+            'Cache-Control' => 'public, max-age=86400',
+        ]);
+    }
+
     public function dashboard(Request $request)
     {
         $cliente = $request->user();

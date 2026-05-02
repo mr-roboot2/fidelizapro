@@ -74,7 +74,7 @@ class PwaController extends Controller
         $appBase = parse_url(url('/app'), PHP_URL_PATH);
 
         $js = <<<JS
-const CACHE = 'fidelizapro-{$slug}-v4';
+const CACHE = 'fidelizapro-{$slug}-v5';
 const ASSETS = [
     '{$base}/',
     '{$appBase}/style.css',
