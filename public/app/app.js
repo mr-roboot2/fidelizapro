@@ -494,7 +494,7 @@ async function telaQrCode() {
         return;
     }
     try {
-        new QRious({ element: $('#qr-canvas'), value: STATE.cliente.codigo_qr, size: 240, level: 'M' });
+        new QRious({ element: $('#qr-canvas'), value: STATE.cliente.codigo_qr, size: 240 });
     } catch (err) {
         toast('Erro ao gerar QR: ' + err.message, 'error');
     }
