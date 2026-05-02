@@ -1,6 +1,16 @@
 html, body { height: 100%; margin: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-.nav-btn.active { color: #6366f1; }
+.nav-btn { transition: color 0.15s ease, background-color 0.15s ease; }
+.nav-btn.active { color: var(--cor-primaria, #6366f1); position: relative; }
+.nav-btn.active::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 32px; height: 3px;
+    border-radius: 0 0 6px 6px;
+    background: var(--cor-primaria, #6366f1);
+}
 .fade-in { animation: fadeIn 0.25s ease-out; }
 @keyframes fadeIn { from {opacity:0; transform: translateY(8px);} to {opacity:1; transform:translateY(0);} }
 .gradient-card { background: linear-gradient(135deg, var(--cor-primaria, #6366f1), var(--cor-secundaria, #8b5cf6)); }

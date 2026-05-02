@@ -442,72 +442,105 @@ async function telaHome() {
     Object.assign(STATE.cliente, { pontos_atual: data.pontos, cashback_atual: data.cashback });
     persistir();
     const c = STATE.cliente, e = STATE.empresa;
+    const cor = e.cor_primaria, corSec = e.cor_secundaria;
     screenContainer.innerHTML = `
-    <div class="fade-in flex-1 flex flex-col overflow-y-auto">
-        <div class="p-5 text-white" style="background:linear-gradient(135deg,${e.cor_primaria},${e.cor_secundaria})">
+    <div class="fade-in flex-1 flex flex-col overflow-y-auto bg-slate-50">
+        <div class="px-5 pt-6 pb-12 text-white relative" style="background:linear-gradient(135deg,${cor},${corSec})">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-white/80 text-sm">Olá,</p>
-                    <h1 class="text-xl font-bold">${c.nome.split(' ')[0]} 👋</h1>
+                    <p class="text-white/70 text-xs uppercase tracking-wider">Olá,</p>
+                    <h1 class="text-2xl font-bold mt-0.5">${c.nome.split(' ')[0]} 👋</h1>
                 </div>
-                <button onclick="showScreen('perfil')" class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center font-bold">
+                <button onclick="showScreen('perfil')" class="w-11 h-11 rounded-full bg-white/20 backdrop-blur flex items-center justify-center font-bold text-lg hover:bg-white/30 transition">
                     ${c.nome.charAt(0).toUpperCase()}
                 </button>
             </div>
-            <div class="mt-5 bg-white/15 backdrop-blur rounded-2xl p-4">
-                <p class="text-xs text-white/80">Saldo de pontos</p>
-                <p class="text-3xl font-bold">${fmtNum(data.pontos)}</p>
-                <div class="flex items-center justify-between mt-3 pt-3 border-t border-white/20">
+        </div>
+
+        <div class="px-4 -mt-8">
+            <div class="bg-white rounded-2xl shadow-lg p-5 border border-slate-100">
+                <div class="grid grid-cols-2 gap-4 mb-4">
                     <div>
-                        <p class="text-xs text-white/80">Cashback disponível</p>
-                        <p class="font-semibold">${fmtBRL(data.cashback)}</p>
-                        ${data.cashback_pendente > 0 ? `<p class="text-[10px] text-white/70 mt-0.5"><i class="ri-time-line"></i> ${fmtBRL(data.cashback_pendente)} pendente</p>` : ''}
+                        <p class="text-xs text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1">
+                            <i class="ri-coin-line" style="color:${cor}"></i> Pontos
+                        </p>
+                        <p class="text-2xl font-bold text-slate-800">${fmtNum(data.pontos)}</p>
                     </div>
-                    <button onclick="showScreen('qrcode')" class="bg-white/20 px-3 py-1.5 rounded-full text-xs">
-                        <i class="ri-qr-code-line"></i> Meu QR
-                    </button>
+                    <div>
+                        <p class="text-xs text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1">
+                            <i class="ri-money-dollar-circle-line text-emerald-500"></i> Cashback
+                        </p>
+                        <p class="text-2xl font-bold text-emerald-600">${fmtBRL(data.cashback)}</p>
+                        ${data.cashback_pendente > 0 ? `<p class="text-[10px] text-amber-600 mt-0.5"><i class="ri-time-line"></i> ${fmtBRL(data.cashback_pendente)} liberando</p>` : ''}
+                    </div>
                 </div>
+                <button onclick="showScreen('qrcode')"
+                        class="w-full py-3 rounded-xl text-white font-semibold flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition"
+                        style="background:linear-gradient(135deg,${cor},${corSec})">
+                    <i class="ri-qr-code-line text-xl"></i> Mostrar meu QR Code
+                </button>
             </div>
         </div>
 
-        <div class="p-4 grid grid-cols-2 gap-3">
-            <button onclick="showScreen('catalogo')" class="bg-white border border-slate-200 rounded-xl p-4 text-left hover:shadow">
-                <i class="ri-gift-line text-2xl" style="color:${e.cor_primaria}"></i>
-                <p class="font-semibold mt-2">Prêmios</p>
-                <p class="text-xs text-slate-500">Trocar pontos</p>
-            </button>
-            <button onclick="showScreen('compras')" class="bg-white border border-slate-200 rounded-xl p-4 text-left hover:shadow">
-                <i class="ri-shopping-bag-line text-2xl" style="color:${e.cor_primaria}"></i>
-                <p class="font-semibold mt-2">Compras</p>
-                <p class="text-xs text-slate-500">${data.total_compras || 0} compras</p>
-            </button>
-            <button onclick="showScreen('parceiros')" class="bg-white border border-slate-200 rounded-xl p-4 text-left hover:shadow">
-                <i class="ri-handshake-line text-2xl" style="color:${e.cor_primaria}"></i>
-                <p class="font-semibold mt-2">Parceiros</p>
-                <p class="text-xs text-slate-500">Cupons exclusivos</p>
-            </button>
-            <button onclick="showScreen('indicacoes')" class="bg-white border border-slate-200 rounded-xl p-4 text-left hover:shadow">
-                <i class="ri-share-line text-2xl" style="color:${e.cor_primaria}"></i>
-                <p class="font-semibold mt-2">Indicar</p>
-                <p class="text-xs text-slate-500">Ganhe pontos</p>
-            </button>
-            <button onclick="showScreen('pesquisa')" class="bg-white border border-slate-200 rounded-xl p-4 text-left hover:shadow">
-                <i class="ri-emotion-happy-line text-2xl" style="color:${e.cor_primaria}"></i>
-                <p class="font-semibold mt-2">Avaliar</p>
-                <p class="text-xs text-slate-500">Sua opinião</p>
-            </button>
-            <button onclick="showScreen('meusCupons')" class="bg-white border border-slate-200 rounded-xl p-4 text-left hover:shadow">
-                <i class="ri-coupon-3-line text-2xl" style="color:${e.cor_primaria}"></i>
-                <p class="font-semibold mt-2">Meus cupons</p>
-                <p class="text-xs text-slate-500">Parceiros</p>
-            </button>
+        <div class="p-4 mt-2">
+            <h3 class="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-3 px-1">Acessar</h3>
+            <div class="grid grid-cols-3 gap-3">
+                <button onclick="showScreen('catalogo')" class="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col items-center gap-2 hover:shadow-md hover:border-slate-300 transition">
+                    <div class="w-11 h-11 rounded-xl flex items-center justify-center" style="background:${cor}15">
+                        <i class="ri-gift-line text-2xl" style="color:${cor}"></i>
+                    </div>
+                    <p class="text-sm font-semibold text-slate-700">Prêmios</p>
+                </button>
+                <button onclick="showScreen('compras')" class="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col items-center gap-2 hover:shadow-md hover:border-slate-300 transition">
+                    <div class="w-11 h-11 rounded-xl bg-amber-50 flex items-center justify-center">
+                        <i class="ri-shopping-bag-line text-2xl text-amber-600"></i>
+                    </div>
+                    <p class="text-sm font-semibold text-slate-700">Compras</p>
+                </button>
+                <button onclick="showScreen('parceiros')" class="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col items-center gap-2 hover:shadow-md hover:border-slate-300 transition">
+                    <div class="w-11 h-11 rounded-xl bg-purple-50 flex items-center justify-center">
+                        <i class="ri-handshake-line text-2xl text-purple-600"></i>
+                    </div>
+                    <p class="text-sm font-semibold text-slate-700">Parceiros</p>
+                </button>
+                <button onclick="showScreen('indicacoes')" class="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col items-center gap-2 hover:shadow-md hover:border-slate-300 transition">
+                    <div class="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center">
+                        <i class="ri-share-line text-2xl text-emerald-600"></i>
+                    </div>
+                    <p class="text-sm font-semibold text-slate-700">Indicar</p>
+                </button>
+                <button onclick="showScreen('pesquisa')" class="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col items-center gap-2 hover:shadow-md hover:border-slate-300 transition">
+                    <div class="w-11 h-11 rounded-xl bg-pink-50 flex items-center justify-center">
+                        <i class="ri-emotion-happy-line text-2xl text-pink-600"></i>
+                    </div>
+                    <p class="text-sm font-semibold text-slate-700">Avaliar</p>
+                </button>
+                <button onclick="showScreen('meusCupons')" class="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col items-center gap-2 hover:shadow-md hover:border-slate-300 transition">
+                    <div class="w-11 h-11 rounded-xl bg-indigo-50 flex items-center justify-center">
+                        <i class="ri-coupon-3-line text-2xl text-indigo-600"></i>
+                    </div>
+                    <p class="text-sm font-semibold text-slate-700">Cupons</p>
+                </button>
+            </div>
         </div>
 
-        <div class="px-4 pb-4">
-            <h3 class="font-semibold mb-3">Total gasto</h3>
-            <div class="bg-emerald-50 rounded-xl p-4">
-                <p class="text-2xl font-bold text-emerald-700">${fmtBRL(data.total_gasto)}</p>
-                <p class="text-sm text-emerald-600">em ${data.total_compras || 0} compras</p>
+        <div class="px-4 pb-6">
+            <h3 class="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-3 px-1">Resumo</h3>
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-white rounded-2xl p-4 border border-slate-200">
+                    <div class="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center mb-2">
+                        <i class="ri-wallet-3-line text-emerald-600"></i>
+                    </div>
+                    <p class="text-xs text-slate-500">Total gasto</p>
+                    <p class="text-lg font-bold text-slate-800">${fmtBRL(data.total_gasto)}</p>
+                </div>
+                <div class="bg-white rounded-2xl p-4 border border-slate-200">
+                    <div class="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center mb-2">
+                        <i class="ri-shopping-cart-line text-amber-600"></i>
+                    </div>
+                    <p class="text-xs text-slate-500">Compras</p>
+                    <p class="text-lg font-bold text-slate-800">${data.total_compras || 0}</p>
+                </div>
             </div>
         </div>
     </div>`;
@@ -516,25 +549,60 @@ async function telaHome() {
 // Tela 4: Compras
 async function telaCompras() {
     const data = await api('/cliente/compras');
+    const e = STATE.empresa;
+    const totalGasto = data.compras.reduce((s, c) => s + Number(c.valor || 0), 0);
+    const totalPontos = data.compras.reduce((s, c) => s + Number(c.pontos_gerados || 0), 0);
     screenContainer.innerHTML = `
-    <div class="fade-in flex-1 flex flex-col overflow-y-auto">
-        <div class="p-5 text-white" style="background:linear-gradient(135deg,${STATE.empresa.cor_primaria},${STATE.empresa.cor_secundaria})">
-            <h1 class="text-xl font-bold">Minhas compras</h1>
-            <p class="text-white/80 text-sm">${data.compras.length} registros</p>
+    <div class="fade-in flex-1 flex flex-col overflow-y-auto bg-slate-50">
+        <div class="px-5 pt-6 pb-10 text-white" style="background:linear-gradient(135deg,${e.cor_primaria},${e.cor_secundaria})">
+            <h1 class="text-2xl font-bold">Minhas compras</h1>
+            <p class="text-white/80 text-sm">${data.compras.length} ${data.compras.length === 1 ? 'registro' : 'registros'}</p>
         </div>
-        <div class="p-4 space-y-2">
-            ${data.compras.length === 0 ? `<p class="text-center text-slate-400 py-10">Nenhuma compra ainda.</p>` : ''}
+
+        ${data.compras.length > 0 ? `
+        <div class="px-4 -mt-6">
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+                    <p class="text-xs text-slate-500 uppercase tracking-wider">Total gasto</p>
+                    <p class="text-xl font-bold text-emerald-600 mt-1">${fmtBRL(totalGasto)}</p>
+                </div>
+                <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+                    <p class="text-xs text-slate-500 uppercase tracking-wider">Pontos ganhos</p>
+                    <p class="text-xl font-bold text-amber-600 mt-1">${fmtNum(totalPontos)}</p>
+                </div>
+            </div>
+        </div>` : ''}
+
+        <div class="p-4 space-y-2 mt-2">
+            ${data.compras.length === 0 ? `
+                <div class="text-center py-12">
+                    <div class="w-16 h-16 mx-auto rounded-full bg-slate-100 flex items-center justify-center mb-3">
+                        <i class="ri-shopping-bag-line text-3xl text-slate-400"></i>
+                    </div>
+                    <p class="text-slate-500 font-medium">Nenhuma compra ainda</p>
+                    <p class="text-sm text-slate-400 mt-1">Suas compras aparecerão aqui</p>
+                </div>
+            ` : ''}
             ${data.compras.map(c => `
-                <div class="bg-white border border-slate-200 rounded-xl p-3 flex justify-between">
-                    <div>
-                        <p class="font-medium">${c.descricao || 'Compra'}</p>
-                        <p class="text-xs text-slate-500">${c.data_formatada}</p>
+                <div class="bg-white border border-slate-200 rounded-2xl p-4 flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                        <i class="ri-shopping-bag-line text-emerald-600"></i>
                     </div>
-                    <div class="text-right">
-                        <p class="font-bold text-emerald-600">${fmtBRL(c.valor)}</p>
-                        <p class="text-xs text-amber-600">+${fmtNum(c.pontos_gerados)} pts</p>
-                        ${c.cashback_gerado > 0 ? `<p class="text-xs text-teal-600">+${fmtBRL(c.cashback_gerado)} cashback</p>` : ''}
+                    <div class="flex-1 min-w-0">
+                        <p class="font-semibold text-slate-800 truncate">${c.descricao || 'Compra'}</p>
+                        <p class="text-xs text-slate-500 mt-0.5">${c.data_formatada}</p>
+                        <div class="flex flex-wrap gap-x-3 gap-y-1 mt-2">
+                            <span class="text-xs text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
+                                <i class="ri-coin-line"></i> +${fmtNum(c.pontos_gerados)} pts
+                            </span>
+                            ${c.cashback_gerado > 0 ? `
+                                <span class="text-xs text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full">
+                                    <i class="ri-money-dollar-circle-line"></i> +${fmtBRL(c.cashback_gerado)}
+                                </span>
+                            ` : ''}
+                        </div>
                     </div>
+                    <p class="font-bold text-slate-800 whitespace-nowrap">${fmtBRL(c.valor)}</p>
                 </div>
             `).join('')}
         </div>
@@ -544,31 +612,63 @@ async function telaCompras() {
 // Tela 5: Catálogo recompensas
 async function telaCatalogo() {
     const data = await api('/recompensas');
+    const e = STATE.empresa;
+    const cor = e.cor_primaria, corSec = e.cor_secundaria;
     screenContainer.innerHTML = `
-    <div class="fade-in flex-1 flex flex-col overflow-y-auto">
-        <div class="p-5 text-white" style="background:linear-gradient(135deg,${STATE.empresa.cor_primaria},${STATE.empresa.cor_secundaria})">
-            <h1 class="text-xl font-bold">Catálogo de prêmios</h1>
-            <p class="text-white/80 text-sm">Você tem <strong>${fmtNum(STATE.cliente.pontos_atual)} pontos</strong></p>
+    <div class="fade-in flex-1 flex flex-col overflow-y-auto bg-slate-50">
+        <div class="px-5 pt-6 pb-10 text-white" style="background:linear-gradient(135deg,${cor},${corSec})">
+            <h1 class="text-2xl font-bold">Prêmios</h1>
+            <p class="text-white/80 text-sm">Troque seus pontos por recompensas</p>
         </div>
-        <div class="p-4 grid grid-cols-2 gap-3">
-            ${data.recompensas.map(r => `
-                <div class="bg-white border border-slate-200 rounded-xl overflow-hidden ${!r.pode_resgatar ? 'opacity-60' : ''}">
-                    <div class="aspect-square flex items-center justify-center text-white text-4xl"
-                         style="background:linear-gradient(135deg,${STATE.empresa.cor_primaria},${STATE.empresa.cor_secundaria})">
-                        ${r.imagem ? `<img src="${r.imagem}" class="w-full h-full object-cover">` : '<i class="ri-gift-line"></i>'}
-                    </div>
-                    <div class="p-3">
-                        <p class="font-semibold text-sm line-clamp-2">${r.nome}</p>
-                        <p class="text-amber-600 font-bold text-sm mt-1">${fmtNum(r.custo_pontos)} pts</p>
-                        <button onclick="solicitarResgate(${r.id}, '${r.nome.replace(/'/g, "\\'")}', ${r.custo_pontos})"
-                                ${!r.pode_resgatar ? 'disabled' : ''}
-                                class="mt-2 w-full text-xs py-1.5 text-white rounded-lg disabled:bg-slate-300"
-                                style="background:${r.pode_resgatar ? STATE.empresa.cor_primaria : ''}">
-                            ${r.pode_resgatar ? 'Resgatar' : 'Insuficiente'}
-                        </button>
-                    </div>
+
+        <div class="px-4 -mt-6">
+            <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-md flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background:${cor}15">
+                    <i class="ri-coin-line text-2xl" style="color:${cor}"></i>
                 </div>
-            `).join('')}
+                <div class="flex-1">
+                    <p class="text-xs text-slate-500 uppercase tracking-wider">Saldo disponível</p>
+                    <p class="text-2xl font-bold text-slate-800">${fmtNum(STATE.cliente.pontos_atual)} <span class="text-sm text-slate-500 font-normal">pontos</span></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-4 mt-2">
+            ${data.recompensas.length === 0 ? `
+                <div class="text-center py-12">
+                    <div class="w-16 h-16 mx-auto rounded-full bg-slate-100 flex items-center justify-center mb-3">
+                        <i class="ri-gift-line text-3xl text-slate-400"></i>
+                    </div>
+                    <p class="text-slate-500 font-medium">Nenhuma recompensa cadastrada</p>
+                </div>
+            ` : `
+            <div class="grid grid-cols-2 gap-3">
+                ${data.recompensas.map(r => `
+                    <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden ${!r.pode_resgatar ? 'opacity-60' : ''} hover:shadow-md transition">
+                        <div class="aspect-square flex items-center justify-center text-white text-5xl relative"
+                             style="background:linear-gradient(135deg,${cor},${corSec})">
+                            ${r.imagem ? `<img src="${r.imagem}" class="w-full h-full object-cover">` : '<i class="ri-gift-line"></i>'}
+                            ${!r.pode_resgatar ? `
+                                <div class="absolute top-2 right-2 bg-black/40 backdrop-blur text-white text-[10px] px-2 py-0.5 rounded-full">
+                                    Faltam ${fmtNum(r.custo_pontos - STATE.cliente.pontos_atual)} pts
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div class="p-3">
+                            <p class="font-semibold text-sm text-slate-800 line-clamp-2 min-h-[2.5em]">${r.nome}</p>
+                            <p class="font-bold text-sm mt-2 flex items-center gap-1" style="color:${cor}">
+                                <i class="ri-coin-line"></i> ${fmtNum(r.custo_pontos)} pts
+                            </p>
+                            <button onclick="solicitarResgate(${r.id}, '${r.nome.replace(/'/g, "\\'")}', ${r.custo_pontos})"
+                                    ${!r.pode_resgatar ? 'disabled' : ''}
+                                    class="mt-3 w-full text-xs font-semibold py-2 text-white rounded-lg disabled:bg-slate-200 disabled:text-slate-400 transition"
+                                    style="${r.pode_resgatar ? `background:linear-gradient(135deg,${cor},${corSec})` : ''}">
+                                ${r.pode_resgatar ? 'Resgatar' : 'Indisponível'}
+                            </button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>`}
         </div>
     </div>`;
 }
@@ -587,19 +687,33 @@ window.solicitarResgate = async (id, nome, custo) => {
 // Tela 6: QR Code
 async function telaQrCode() {
     const codigo = encodeURIComponent(STATE.cliente.codigo_qr);
+    const e = STATE.empresa;
     screenContainer.innerHTML = `
-    <div class="fade-in flex-1 flex flex-col overflow-y-auto">
-        <div class="p-5 text-white" style="background:linear-gradient(135deg,${STATE.empresa.cor_primaria},${STATE.empresa.cor_secundaria})">
-            <h1 class="text-xl font-bold">Meu QR Code</h1>
-            <p class="text-white/80 text-sm">Apresente no caixa para acumular pontos</p>
+    <div class="fade-in flex-1 flex flex-col overflow-y-auto bg-slate-50">
+        <div class="px-5 pt-6 pb-12 text-white text-center" style="background:linear-gradient(135deg,${e.cor_primaria},${e.cor_secundaria})">
+            <h1 class="text-2xl font-bold">Meu QR Code</h1>
+            <p class="text-white/80 text-sm mt-1">Apresente no caixa para acumular pontos</p>
         </div>
-        <div class="p-6 flex flex-col items-center">
-            <div class="bg-white p-4 rounded-2xl shadow-lg border border-slate-200">
-                <img src="${API}/qr/${codigo}" width="240" height="240" alt="QR Code" class="block">
+
+        <div class="px-4 -mt-8 pb-6">
+            <div class="bg-white rounded-3xl shadow-xl border border-slate-100 p-6 text-center">
+                <div class="bg-white p-3 rounded-2xl border-2 border-slate-100 inline-block">
+                    <img src="${API}/qr/${codigo}" width="240" height="240" alt="QR Code" class="block">
+                </div>
+                <p class="mt-4 font-mono text-base font-semibold text-slate-700 tracking-wider">${STATE.cliente.codigo_qr}</p>
+                <div class="mt-4 pt-4 border-t border-slate-100">
+                    <p class="font-semibold text-slate-800">${STATE.cliente.nome}</p>
+                    <p class="text-sm text-slate-500">${STATE.cliente.telefone}</p>
+                </div>
             </div>
-            <p class="mt-4 font-mono text-lg">${STATE.cliente.codigo_qr}</p>
-            <p class="text-sm text-slate-500 mt-1">${STATE.cliente.nome}</p>
-            <p class="text-xs text-slate-400">${STATE.cliente.telefone}</p>
+
+            <div class="mt-4 bg-amber-50 border border-amber-100 rounded-2xl p-4 flex gap-3">
+                <i class="ri-information-line text-amber-600 text-xl flex-shrink-0"></i>
+                <div>
+                    <p class="text-sm font-semibold text-amber-900">Como usar</p>
+                    <p class="text-xs text-amber-800 mt-1">Mostre este código ao atendente para acumular pontos a cada compra.</p>
+                </div>
+            </div>
         </div>
     </div>`;
 }
@@ -607,37 +721,85 @@ async function telaQrCode() {
 // Tela 7: Perfil
 async function telaPerfil() {
     const c = STATE.cliente;
+    const e = STATE.empresa;
     screenContainer.innerHTML = `
-    <div class="fade-in flex-1 flex flex-col overflow-y-auto">
-        <div class="p-5 text-white text-center" style="background:linear-gradient(135deg,${STATE.empresa.cor_primaria},${STATE.empresa.cor_secundaria})">
-            <div class="w-20 h-20 mx-auto rounded-full bg-white/20 flex items-center justify-center text-3xl font-bold">${c.nome.charAt(0)}</div>
-            <h1 class="text-xl font-bold mt-3">${c.nome}</h1>
+    <div class="fade-in flex-1 flex flex-col overflow-y-auto bg-slate-50">
+        <div class="px-5 pt-8 pb-12 text-white text-center" style="background:linear-gradient(135deg,${e.cor_primaria},${e.cor_secundaria})">
+            <div class="w-24 h-24 mx-auto rounded-full bg-white/20 backdrop-blur border-4 border-white/30 flex items-center justify-center text-4xl font-bold shadow-lg">
+                ${c.nome.charAt(0).toUpperCase()}
+            </div>
+            <h1 class="text-2xl font-bold mt-4">${c.nome}</h1>
             <p class="text-white/80 text-sm">${c.telefone}</p>
+            ${c.email ? `<p class="text-white/70 text-xs mt-1">${c.email}</p>` : ''}
         </div>
-        <div class="p-4 space-y-2">
-            <button onclick="showScreen('resgates')" class="w-full p-3 bg-white border border-slate-200 rounded-xl flex items-center gap-3">
-                <i class="ri-coupon-line text-xl text-slate-600"></i>
-                <span class="flex-1 text-left">Meus resgates</span>
-                <i class="ri-arrow-right-s-line text-slate-400"></i>
-            </button>
-            <button onclick="showScreen('indicacoes')" class="w-full p-3 bg-white border border-slate-200 rounded-xl flex items-center gap-3">
-                <i class="ri-share-line text-xl text-slate-600"></i>
-                <span class="flex-1 text-left">Indicar amigos</span>
-                <i class="ri-arrow-right-s-line text-slate-400"></i>
-            </button>
-            <button onclick="showScreen('pesquisa')" class="w-full p-3 bg-white border border-slate-200 rounded-xl flex items-center gap-3">
-                <i class="ri-emotion-happy-line text-xl text-slate-600"></i>
-                <span class="flex-1 text-left">Avaliar atendimento</span>
-                <i class="ri-arrow-right-s-line text-slate-400"></i>
-            </button>
-            <button onclick="editarPerfil()" class="w-full p-3 bg-white border border-slate-200 rounded-xl flex items-center gap-3">
-                <i class="ri-edit-line text-xl text-slate-600"></i>
-                <span class="flex-1 text-left">Editar dados</span>
-                <i class="ri-arrow-right-s-line text-slate-400"></i>
-            </button>
-            <button onclick="logout()" class="w-full p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl flex items-center gap-3">
-                <i class="ri-logout-box-line text-xl"></i>
-                <span class="flex-1 text-left">Sair</span>
+
+        <div class="px-4 -mt-8">
+            <div class="bg-white rounded-2xl shadow-md border border-slate-100 p-4 grid grid-cols-3 gap-2 text-center">
+                <div>
+                    <p class="text-lg font-bold text-slate-800">${fmtNum(c.pontos_atual || 0)}</p>
+                    <p class="text-[10px] text-slate-500 uppercase tracking-wider">Pontos</p>
+                </div>
+                <div class="border-x border-slate-100">
+                    <p class="text-lg font-bold text-emerald-600">${fmtBRL(c.cashback_atual || 0)}</p>
+                    <p class="text-[10px] text-slate-500 uppercase tracking-wider">Cashback</p>
+                </div>
+                <div>
+                    <p class="text-lg font-bold text-slate-800">${c.total_compras || 0}</p>
+                    <p class="text-[10px] text-slate-500 uppercase tracking-wider">Compras</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="px-4 mt-4">
+            <h3 class="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-2 px-1">Minha conta</h3>
+            <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden divide-y divide-slate-100">
+                <button onclick="showScreen('resgates')" class="w-full p-4 flex items-center gap-3 hover:bg-slate-50 transition">
+                    <div class="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center">
+                        <i class="ri-coupon-line text-amber-600"></i>
+                    </div>
+                    <span class="flex-1 text-left font-medium text-slate-700">Meus resgates</span>
+                    <i class="ri-arrow-right-s-line text-slate-400 text-xl"></i>
+                </button>
+                <button onclick="showScreen('meusCupons')" class="w-full p-4 flex items-center gap-3 hover:bg-slate-50 transition">
+                    <div class="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center">
+                        <i class="ri-coupon-3-line text-indigo-600"></i>
+                    </div>
+                    <span class="flex-1 text-left font-medium text-slate-700">Meus cupons</span>
+                    <i class="ri-arrow-right-s-line text-slate-400 text-xl"></i>
+                </button>
+                <button onclick="editarPerfil()" class="w-full p-4 flex items-center gap-3 hover:bg-slate-50 transition">
+                    <div class="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center">
+                        <i class="ri-edit-line text-slate-600"></i>
+                    </div>
+                    <span class="flex-1 text-left font-medium text-slate-700">Editar dados</span>
+                    <i class="ri-arrow-right-s-line text-slate-400 text-xl"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="px-4 mt-4">
+            <h3 class="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-2 px-1">Engajamento</h3>
+            <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden divide-y divide-slate-100">
+                <button onclick="showScreen('indicacoes')" class="w-full p-4 flex items-center gap-3 hover:bg-slate-50 transition">
+                    <div class="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center">
+                        <i class="ri-share-line text-emerald-600"></i>
+                    </div>
+                    <span class="flex-1 text-left font-medium text-slate-700">Indicar amigos</span>
+                    <i class="ri-arrow-right-s-line text-slate-400 text-xl"></i>
+                </button>
+                <button onclick="showScreen('pesquisa')" class="w-full p-4 flex items-center gap-3 hover:bg-slate-50 transition">
+                    <div class="w-9 h-9 rounded-lg bg-pink-50 flex items-center justify-center">
+                        <i class="ri-emotion-happy-line text-pink-600"></i>
+                    </div>
+                    <span class="flex-1 text-left font-medium text-slate-700">Avaliar atendimento</span>
+                    <i class="ri-arrow-right-s-line text-slate-400 text-xl"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="px-4 mt-4 pb-6">
+            <button onclick="logout()" class="w-full py-3.5 bg-white border border-rose-200 text-rose-600 rounded-2xl font-semibold flex items-center justify-center gap-2 hover:bg-rose-50 transition">
+                <i class="ri-logout-box-line text-xl"></i> Sair da conta
             </button>
         </div>
     </div>`;
