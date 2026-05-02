@@ -489,7 +489,15 @@ async function telaQrCode() {
             <p class="text-xs text-slate-400">${STATE.cliente.telefone}</p>
         </div>
     </div>`;
-    new QRious({ element: $('#qr-canvas'), value: STATE.cliente.codigo_qr, size: 240, padding: 4 });
+    if (typeof QRious === 'undefined') {
+        toast('Biblioteca de QR não carregou (script CDN bloqueado?).', 'error');
+        return;
+    }
+    try {
+        new QRious({ element: $('#qr-canvas'), value: STATE.cliente.codigo_qr, size: 240, level: 'M' });
+    } catch (err) {
+        toast('Erro ao gerar QR: ' + err.message, 'error');
+    }
 }
 
 // Tela 7: Perfil
