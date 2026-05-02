@@ -21,7 +21,7 @@ class AuthController extends Controller
             'empresa_slug' => 'nullable|string',
         ]);
 
-        $query = Cliente::where('telefone', $dados['telefone'])->where('ativo', true);
+        $query = Cliente::whereTelefone($dados['telefone'])->where('ativo', true);
 
         if (!empty($dados['empresa_slug'])) {
             $empresa = Empresa::where('slug', $dados['empresa_slug'])->first();
@@ -59,7 +59,7 @@ class AuthController extends Controller
 
         $empresa = Empresa::where('slug', $dados['empresa_slug'])->where('ativo', true)->firstOrFail();
 
-        if (Cliente::where('empresa_id', $empresa->id)->where('telefone', $dados['telefone'])->exists()) {
+        if (Cliente::where('empresa_id', $empresa->id)->whereTelefone($dados['telefone'])->exists()) {
             throw ValidationException::withMessages(['telefone' => 'Telefone já cadastrado.']);
         }
 

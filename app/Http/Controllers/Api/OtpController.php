@@ -27,8 +27,12 @@ class OtpController extends Controller
 
         $empresa = Empresa::where('slug', $dados['empresa_slug'])->where('ativo', true)->firstOrFail();
 
-        $cliente = Cliente::where('empresa_id', $empresa->id)
-            ->where('telefone', $dados['telefone'])
+        // Normaliza pra dígitos-only — throttle e invalidação ficam consistentes
+        // independentemente do formato que o usuário digitou.
+        $telefoneDigits = preg_replace('/\D/', '', $dados['telefone']);
+
+        $cliente = Cliente::whereTelefone($dados['telefone'])
+            ->where('empresa_id', $empresa->id)
             ->where('ativo', true)
             ->first();
 
@@ -38,7 +42,7 @@ class OtpController extends Controller
 
         // Throttle: max 3 códigos em 15 min
         $recentes = OtpCodigo::where('empresa_id', $empresa->id)
-            ->where('telefone', $dados['telefone'])
+            ->where('telefone', $telefoneDigits)
             ->where('created_at', '>=', now()->subMinutes(15))
             ->count();
         if ($recentes >= 3) {
@@ -49,7 +53,7 @@ class OtpController extends Controller
 
         // Invalida códigos anteriores não usados
         OtpCodigo::where('empresa_id', $empresa->id)
-            ->where('telefone', $dados['telefone'])
+            ->where('telefone', $telefoneDigits)
             ->where('usado', false)
             ->update(['usado' => true]);
 
@@ -57,7 +61,7 @@ class OtpController extends Controller
 
         $otp = OtpCodigo::create([
             'empresa_id' => $empresa->id,
-            'telefone' => $dados['telefone'],
+            'telefone' => $telefoneDigits,
             'codigo' => $codigo,
             'expires_at' => now()->addMinutes(5),
             'ip' => $request->ip(),
@@ -88,9 +92,10 @@ class OtpController extends Controller
         ]);
 
         $empresa = Empresa::where('slug', $dados['empresa_slug'])->where('ativo', true)->firstOrFail();
+        $telefoneDigits = preg_replace('/\D/', '', $dados['telefone']);
 
         $otp = OtpCodigo::where('empresa_id', $empresa->id)
-            ->where('telefone', $dados['telefone'])
+            ->where('telefone', $telefoneDigits)
             ->where('usado', false)
             ->latest()
             ->first();
@@ -116,8 +121,8 @@ class OtpController extends Controller
 
         $otp->update(['usado' => true]);
 
-        $cliente = Cliente::where('empresa_id', $empresa->id)
-            ->where('telefone', $dados['telefone'])
+        $cliente = Cliente::whereTelefone($dados['telefone'])
+            ->where('empresa_id', $empresa->id)
             ->where('ativo', true)
             ->firstOrFail();
 

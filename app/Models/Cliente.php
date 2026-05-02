@@ -89,6 +89,19 @@ class Cliente extends Authenticatable
         return $this->belongsTo(Cliente::class, 'indicado_por_id');
     }
 
+    /**
+     * Compara telefone ignorando formatação — funciona com "(11) 98569-0114",
+     * "11985690114", "11 98569-0114" ou qualquer combinação.
+     */
+    public function scopeWhereTelefone($query, string $telefone)
+    {
+        $digits = preg_replace('/\D/', '', $telefone);
+        return $query->whereRaw(
+            "REPLACE(REPLACE(REPLACE(REPLACE(telefone, ' ', ''), '(', ''), ')', ''), '-', '') = ?",
+            [$digits]
+        );
+    }
+
     public function isAniversariante(): bool
     {
         if (!$this->data_nascimento) return false;
