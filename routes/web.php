@@ -31,6 +31,20 @@ use App\Http\Controllers\SuperAdmin\ImpersonateController;
 use App\Http\Controllers\SuperAdmin\AuditoriaController as SuperAuditoriaController;
 use App\Http\Controllers\SuperAdmin\AssinaturaController as SuperAssinaturaController;
 use App\Http\Controllers\WebhookPagamentoController;
+use App\Http\Controllers\InstallController;
+
+// Instalador web (auto-trava após concluir via storage/installed.lock)
+Route::middleware('install.gate')->prefix('install')->group(function () {
+    Route::get('/',          [InstallController::class, 'welcome']);
+    Route::get('/database',  [InstallController::class, 'database']);
+    Route::post('/database', [InstallController::class, 'databaseStore']);
+    Route::get('/app',       [InstallController::class, 'app']);
+    Route::post('/app',      [InstallController::class, 'appStore']);
+    Route::get('/admin',     [InstallController::class, 'admin']);
+    Route::post('/admin',    [InstallController::class, 'adminStore']);
+    Route::post('/admin/skip', [InstallController::class, 'adminSkip']);
+});
+Route::get('/install/complete', [InstallController::class, 'complete']);
 
 Route::get('/', fn() => redirect()->route('admin.login'));
 

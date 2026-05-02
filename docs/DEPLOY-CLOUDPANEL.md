@@ -6,8 +6,11 @@ Guia passo a passo para colocar o FidelizaPro em produção em VPS Linux com **C
 
 ---
 
+> **Modo rápido:** o projeto tem um instalador web (`/install`). Veja a seção [Instalação rápida com `/install`](#instalação-rápida-com-install) — 3 comandos no SSH + wizard no navegador. Os passos manuais 7-9 ficam pra quem prefere fazer no shell.
+
 ## Sumário
 
+- [Instalação rápida com `/install`](#instalação-rápida-com-install)
 - [1. Pré-requisitos do VPS](#1-pré-requisitos-do-vps)
 - [2. Criar site PHP no CloudPanel](#2-criar-site-php-no-cloudpanel)
 - [3. Configurar PHP 8.3](#3-configurar-php-83)
@@ -22,6 +25,39 @@ Guia passo a passo para colocar o FidelizaPro em produção em VPS Linux com **C
 - [12. Otimizações finais](#12-otimizações-finais)
 - [13. Hardening do servidor](#13-hardening-do-servidor)
 - [14. Atualização contínua](#14-atualização-contínua)
+
+---
+
+## Instalação rápida com `/install`
+
+Depois de fazer os passos **1–6** (criar site no painel, criar banco, subir código, mudar Web Root pra `/public`):
+
+```bash
+ssh fidelizapro@SEU_IP
+cd ~/htdocs/SEU_DOMINIO
+chmod +x install.sh && ./install.sh
+```
+
+O script `install.sh` faz: copia `.env.example` → `.env`, ajusta permissões (`storage/`, `bootstrap/cache/`), roda `composer install --no-dev` e gera a `APP_KEY`.
+
+Depois abra no navegador (após o SSL do passo 10 — ou em http no primeiro momento):
+
+```
+https://SEU_DOMINIO/install
+```
+
+O wizard tem 4 etapas:
+
+1. **Requisitos** — checa PHP 8.2+, extensões e permissões.
+2. **Banco** — pede host/porta/DB/usuário/senha (do passo 4), testa a conexão e grava no `.env`.
+3. **Aplicação** — nome, URL pública, fuso. Aqui você decide se quer **dados de exemplo** (3 empresas/60 clientes) ou começar limpo. O instalador roda as migrations automaticamente.
+4. **Super Admin** — cria a conta master (e-mail + senha). No fim, o instalador roda `storage:link`, gera os caches (`config/route/view`) e **trava `/install`** gravando `storage/installed.lock`.
+
+Pra reabrir o instalador (refazer a instalação): `rm storage/installed.lock`.
+
+Depois disso pule pros passos **10 (SSL)** e **11 (Cron)** — o resto já está feito.
+
+---
 
 ---
 

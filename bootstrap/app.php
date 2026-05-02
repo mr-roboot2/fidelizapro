@@ -6,6 +6,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use App\Http\Middleware\AdminAuth;
 use App\Http\Middleware\EmpresaScope;
 use App\Http\Middleware\SuperAdminAuth;
+use App\Http\Middleware\EnsureNotInstalled;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -19,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin.auth' => AdminAuth::class,
             'empresa.scope' => EmpresaScope::class,
             'super.auth' => SuperAdminAuth::class,
+            'install.gate' => EnsureNotInstalled::class,
         ]);
 
         // API consumida via Bearer token (sem cookies/CSRF). Não usar statefulApi(),
