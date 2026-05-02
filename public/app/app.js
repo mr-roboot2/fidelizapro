@@ -497,7 +497,7 @@ async function telaHome() {
                 </button>
                 <button onclick="showScreen('parceiros')" class="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col items-center gap-2 hover:shadow-md hover:border-slate-300 transition">
                     <div class="w-11 h-11 rounded-xl bg-purple-50 flex items-center justify-center">
-                        <i class="ri-handshake-line text-2xl text-purple-600"></i>
+                        <i class="ri-shake-hands-line text-2xl text-purple-600"></i>
                     </div>
                     <p class="text-sm font-semibold text-slate-700">Parceiros</p>
                 </button>
