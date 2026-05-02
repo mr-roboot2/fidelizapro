@@ -107,6 +107,12 @@ Route::middleware(['admin.auth', 'empresa.scope'])->prefix('admin')->name('admin
 Route::get('/parceiro/{secret}', [ParceiroPublicoController::class, 'tela'])->name('parceiro.publico');
 Route::post('/parceiro/{secret}/validar', [ParceiroPublicoController::class, 'validar'])->name('parceiro.validar');
 
+// Sair de impersonação: precisa rodar com o usuário admin impersonado
+// (nesse contexto Auth::user() NÃO é super, então não pode estar no grupo super.auth).
+// O controller valida a presença de impersonate_origem_id na sessão.
+Route::post('super/impersonate/sair', [ImpersonateController::class, 'sair'])
+    ->name('super.impersonate.sair');
+
 // Super admin
 Route::middleware(['super.auth'])->prefix('super')->name('super.')->group(function () {
     Route::get('/', [SuperDashboardController::class, 'index'])->name('dashboard');
@@ -117,7 +123,6 @@ Route::middleware(['super.auth'])->prefix('super')->name('super.')->group(functi
     Route::resource('users', SuperUserController::class)->except(['show']);
 
     Route::post('impersonate/{empresa}', [ImpersonateController::class, 'entrar'])->name('impersonate.entrar');
-    Route::post('impersonate/sair', [ImpersonateController::class, 'sair'])->name('impersonate.sair');
 
     Route::get('auditoria', [SuperAuditoriaController::class, 'index'])->name('auditoria.index');
     Route::get('auditoria/{log}', [SuperAuditoriaController::class, 'show'])->name('auditoria.show');
