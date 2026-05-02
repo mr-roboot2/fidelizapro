@@ -74,7 +74,7 @@ class PwaController extends Controller
         $appBase = parse_url(url('/app'), PHP_URL_PATH);
 
         $js = <<<JS
-const CACHE = 'fidelizapro-{$slug}-v3';
+const CACHE = 'fidelizapro-{$slug}-v4';
 const ASSETS = [
     '{$base}/',
     '{$appBase}/style.css',
@@ -102,6 +102,7 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
     if (e.request.method !== 'GET') return;
     const url = new URL(e.request.url);
+
     if (url.pathname.includes('/api/')) {
         e.respondWith(fetch(e.request).then((r) => {
             const c = r.clone();
@@ -110,6 +111,25 @@ self.addEventListener('fetch', (e) => {
         }).catch(() => caches.match(e.request)));
         return;
     }
+
+    // App shell: network-first para mudanças propagarem sem precisar limpar SW.
+    const isAppShell = url.origin === location.origin && (
+        url.pathname.endsWith('/app.js') ||
+        url.pathname.endsWith('/style.css') ||
+        url.pathname === '{$base}/' ||
+        url.pathname === '{$base}'
+    );
+    if (isAppShell) {
+        e.respondWith(fetch(e.request).then((r) => {
+            if (r && r.status === 200) {
+                const c = r.clone();
+                caches.open(CACHE).then((cc) => cc.put(e.request, c));
+            }
+            return r;
+        }).catch(() => caches.match(e.request).then((res) => res || caches.match('{$base}/'))));
+        return;
+    }
+
     e.respondWith(caches.match(e.request).then((r) => r || fetch(e.request).then((rr) => {
         if (rr && rr.status === 200) {
             const c = rr.clone();

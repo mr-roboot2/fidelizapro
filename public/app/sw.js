@@ -1,4 +1,4 @@
-const CACHE = 'fidelizapro-v4';
+const CACHE = 'fidelizapro-v5';
 
 // Caminhos relativos ao escopo do SW (a própria pasta /app/)
 const ASSETS = [
@@ -47,7 +47,32 @@ self.addEventListener('fetch', (e) => {
         return;
     }
 
-    // Demais: cache-first
+    // App shell (HTML/JS/CSS do próprio app): network-first com fallback cache.
+    // Garante que mudanças em app.js / index.html cheguem ao cliente sem precisar
+    // limpar o SW manualmente.
+    const isAppShell = url.origin === location.origin && (
+        url.pathname.endsWith('/app.js') ||
+        url.pathname.endsWith('/style.css') ||
+        url.pathname.endsWith('/index.html') ||
+        url.pathname.endsWith('/app/') ||
+        url.pathname.endsWith('/app')
+    );
+    if (isAppShell) {
+        e.respondWith(
+            fetch(e.request)
+                .then((r) => {
+                    if (r && r.status === 200) {
+                        const copy = r.clone();
+                        caches.open(CACHE).then((c) => c.put(e.request, copy));
+                    }
+                    return r;
+                })
+                .catch(() => caches.match(e.request).then((res) => res || caches.match('./')))
+        );
+        return;
+    }
+
+    // Demais (CDNs, ícones): cache-first
     e.respondWith(
         caches.match(e.request).then((res) =>
             res || fetch(e.request).then((r) => {
