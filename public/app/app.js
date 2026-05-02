@@ -855,58 +855,105 @@ async function telaResgates() {
 // Tela 9: Indicações
 async function telaIndicacoes() {
     const data = await api('/indicacoes');
+    const e = STATE.empresa;
+    const cor = e.cor_primaria, corSec = e.cor_secundaria;
     screenContainer.innerHTML = `
-    <div class="fade-in flex-1 flex flex-col overflow-y-auto">
-        <div class="p-5 text-white" style="background:linear-gradient(135deg,${STATE.empresa.cor_primaria},${STATE.empresa.cor_secundaria})">
-            <button onclick="showScreen('perfil')" class="text-white/80 mb-2"><i class="ri-arrow-left-line"></i> Voltar</button>
-            <h1 class="text-xl font-bold">Indique amigos</h1>
-            <p class="text-white/80 text-sm">Ganhe pontos por cada amigo que se cadastrar</p>
+    <div class="fade-in flex-1 flex flex-col overflow-y-auto bg-slate-50">
+        <div class="px-5 pt-6 pb-10 text-white" style="background:linear-gradient(135deg,${cor},${corSec})">
+            <button onclick="showScreen('perfil')" class="text-white/80 mb-3 flex items-center gap-1 text-sm hover:text-white transition">
+                <i class="ri-arrow-left-line"></i> Voltar
+            </button>
+            <h1 class="text-2xl font-bold">Indique amigos</h1>
+            <p class="text-white/80 text-sm mt-1">Ganhe pontos por cada amigo que se cadastrar</p>
         </div>
-        <div class="p-4">
-            <div class="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-4 text-center">
-                <p class="text-xs text-amber-700">Seu código de indicação</p>
-                <p class="text-3xl font-bold font-mono text-amber-700 my-2">${data.codigo_indicacao}</p>
-                <button onclick="copiarLink('${data.link}')" class="text-sm text-amber-700 underline">
-                    <i class="ri-link"></i> Copiar link
-                </button>
-            </div>
-            <div class="grid grid-cols-3 gap-2 mt-4">
-                <div class="bg-white border border-slate-200 rounded-xl p-3 text-center">
-                    <p class="text-xs text-slate-500">Indicações</p>
-                    <p class="text-xl font-bold">${data.total_indicacoes}</p>
-                </div>
-                <div class="bg-white border border-slate-200 rounded-xl p-3 text-center">
-                    <p class="text-xs text-slate-500">Convertidas</p>
-                    <p class="text-xl font-bold text-emerald-600">${data.total_convertidas}</p>
-                </div>
-                <div class="bg-white border border-slate-200 rounded-xl p-3 text-center">
-                    <p class="text-xs text-slate-500">Pontos ganhos</p>
-                    <p class="text-xl font-bold text-amber-600">${fmtNum(data.total_pontos_ganhos)}</p>
-                </div>
-            </div>
 
-            <form id="form-indicar" class="mt-4 space-y-2">
-                <input name="nome_indicado" required placeholder="Nome do amigo" class="w-full px-4 py-3 border border-slate-300 rounded-xl">
-                <input name="telefone_indicado" required placeholder="Telefone" class="w-full px-4 py-3 border border-slate-300 rounded-xl">
-                <button class="w-full py-3 text-white rounded-xl font-semibold" style="background:${STATE.empresa.cor_primaria}">
-                    <i class="ri-add-line"></i> Indicar amigo
+        <div class="px-4 -mt-6">
+            <div class="bg-white rounded-2xl shadow-md border border-slate-100 p-5 text-center">
+                <p class="text-[11px] text-slate-500 uppercase tracking-wider">Seu código de indicação</p>
+                <p class="text-3xl font-bold font-mono my-2 tracking-widest" style="color:${cor}">${data.codigo_indicacao}</p>
+                <div class="flex gap-2 mt-3">
+                    <button onclick="copiarLink('${data.link}')" class="flex-1 py-2.5 rounded-xl border-2 font-semibold text-sm flex items-center justify-center gap-1.5 hover:bg-slate-50 transition" style="border-color:${cor}; color:${cor}">
+                        <i class="ri-link"></i> Copiar link
+                    </button>
+                    <button onclick="compartilharIndicacao('${data.link}', '${e.nome.replace(/'/g, "\\'")}')" class="flex-1 py-2.5 rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-1.5 hover:shadow-lg transition" style="background:linear-gradient(135deg,${cor},${corSec})">
+                        <i class="ri-share-forward-line"></i> Compartilhar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="px-4 mt-3">
+            <div class="grid grid-cols-3 gap-2">
+                <div class="bg-white border border-slate-200 rounded-2xl p-3 text-center">
+                    <p class="text-[10px] text-slate-500 uppercase tracking-wider">Indicados</p>
+                    <p class="text-xl font-bold text-slate-800 mt-1">${data.total_indicacoes}</p>
+                </div>
+                <div class="bg-white border border-slate-200 rounded-2xl p-3 text-center">
+                    <p class="text-[10px] text-slate-500 uppercase tracking-wider">Convertidas</p>
+                    <p class="text-xl font-bold text-emerald-600 mt-1">${data.total_convertidas}</p>
+                </div>
+                <div class="bg-white border border-slate-200 rounded-2xl p-3 text-center">
+                    <p class="text-[10px] text-slate-500 uppercase tracking-wider">Pts ganhos</p>
+                    <p class="text-xl font-bold text-amber-600 mt-1">${fmtNum(data.total_pontos_ganhos)}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="px-4 mt-4">
+            <h3 class="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-2 px-1">Indicar manualmente</h3>
+            <form id="form-indicar" class="bg-white border border-slate-200 rounded-2xl p-4 space-y-3">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Nome do amigo</label>
+                    <div class="relative">
+                        <i class="ri-user-line absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input name="nome_indicado" required placeholder="Como ele é chamado"
+                               class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-slate-400 focus:outline-none transition">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Telefone</label>
+                    <div class="relative">
+                        <i class="ri-smartphone-line absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input name="telefone_indicado" required placeholder="(11) 99999-9999"
+                               class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-slate-400 focus:outline-none transition">
+                    </div>
+                </div>
+                <button class="w-full py-3 text-white rounded-xl font-semibold flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition" style="background:linear-gradient(135deg,${cor},${corSec})">
+                    <i class="ri-user-add-line"></i> Registrar indicação
                 </button>
             </form>
+        </div>
 
-            <div class="mt-4 space-y-2">
+        <div class="px-4 mt-5 pb-6">
+            <h3 class="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-2 px-1">Histórico</h3>
+            ${data.indicacoes.length === 0 ? `
+                <div class="bg-white border border-slate-200 rounded-2xl p-8 text-center">
+                    <div class="w-14 h-14 mx-auto rounded-full bg-slate-100 flex items-center justify-center mb-2">
+                        <i class="ri-share-line text-2xl text-slate-400"></i>
+                    </div>
+                    <p class="text-sm text-slate-500 font-medium">Nenhuma indicação ainda</p>
+                    <p class="text-xs text-slate-400 mt-1">Compartilhe seu código pra começar</p>
+                </div>
+            ` : `
+            <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden divide-y divide-slate-100">
                 ${data.indicacoes.map(i => `
-                    <div class="bg-white border border-slate-200 rounded-xl p-3 flex justify-between">
-                        <div>
-                            <p class="font-medium text-sm">${i.nome_indicado}</p>
-                            <p class="text-xs text-slate-500">${i.telefone}</p>
+                    <div class="p-4 flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-semibold text-slate-600 flex-shrink-0">
+                            ${i.nome_indicado.charAt(0).toUpperCase()}
                         </div>
-                        <div class="text-right">
-                            <p class="text-xs text-slate-500">${i.data}</p>
-                            <p class="text-xs ${i.status==='convertido'?'text-emerald-600':'text-amber-600'}">${i.status}</p>
+                        <div class="flex-1 min-w-0">
+                            <p class="font-semibold text-slate-800 truncate">${i.nome_indicado}</p>
+                            <p class="text-xs text-slate-500">${i.telefone} &middot; ${i.data}</p>
                         </div>
+                        <span class="text-[10px] font-semibold px-2 py-1 rounded-full ${
+                            i.status === 'convertido' ? 'bg-emerald-50 text-emerald-700' :
+                            i.status === 'cadastrado' ? 'bg-blue-50 text-blue-700' :
+                            i.status === 'expirado' ? 'bg-slate-100 text-slate-600' :
+                            'bg-amber-50 text-amber-700'
+                        }">${i.status}</span>
                     </div>
                 `).join('')}
-            </div>
+            </div>`}
         </div>
     </div>`;
 
@@ -923,6 +970,15 @@ async function telaIndicacoes() {
 
 window.copiarLink = (link) => {
     navigator.clipboard.writeText(link).then(() => toast('Link copiado!', 'success'));
+};
+
+window.compartilharIndicacao = async (link, nomeEmpresa) => {
+    const texto = `Conheci o programa de fidelidade da ${nomeEmpresa} e queria te indicar! Cadastre-se pelo meu link:`;
+    if (navigator.share) {
+        try { await navigator.share({ title: nomeEmpresa, text: texto, url: link }); } catch {}
+    } else {
+        navigator.clipboard.writeText(`${texto} ${link}`).then(() => toast('Mensagem copiada!', 'success'));
+    }
 };
 
 // Tela 10: Pesquisa de satisfação
