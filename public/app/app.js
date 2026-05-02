@@ -445,7 +445,7 @@ async function telaHome() {
     const cor = e.cor_primaria, corSec = e.cor_secundaria;
     screenContainer.innerHTML = `
     <div class="fade-in flex-1 flex flex-col overflow-y-auto bg-slate-50">
-        <div class="px-5 pt-6 pb-12 text-white relative" style="background:linear-gradient(135deg,${cor},${corSec})">
+        <div class="px-5 pt-6 pb-6 text-white" style="background:linear-gradient(135deg,${cor},${corSec})">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-white/70 text-xs uppercase tracking-wider">Olá,</p>
@@ -455,28 +455,26 @@ async function telaHome() {
                     ${c.nome.charAt(0).toUpperCase()}
                 </button>
             </div>
-        </div>
 
-        <div class="px-4 -mt-8">
-            <div class="bg-white rounded-2xl shadow-lg p-5 border border-slate-100">
-                <div class="grid grid-cols-2 gap-4 mb-4">
+            <div class="mt-5 bg-white/15 backdrop-blur rounded-2xl border border-white/20 p-4">
+                <div class="grid grid-cols-2 gap-3 pb-3 border-b border-white/20">
                     <div>
-                        <p class="text-xs text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1">
-                            <i class="ri-coin-line" style="color:${cor}"></i> Pontos
+                        <p class="text-[11px] text-white/70 uppercase tracking-wider flex items-center gap-1">
+                            <i class="ri-coin-line"></i> Pontos
                         </p>
-                        <p class="text-2xl font-bold text-slate-800">${fmtNum(data.pontos)}</p>
+                        <p class="text-2xl font-bold mt-1">${fmtNum(data.pontos)}</p>
                     </div>
                     <div>
-                        <p class="text-xs text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1">
-                            <i class="ri-money-dollar-circle-line text-emerald-500"></i> Cashback
+                        <p class="text-[11px] text-white/70 uppercase tracking-wider flex items-center gap-1">
+                            <i class="ri-money-dollar-circle-line"></i> Cashback
                         </p>
-                        <p class="text-2xl font-bold text-emerald-600">${fmtBRL(data.cashback)}</p>
-                        ${data.cashback_pendente > 0 ? `<p class="text-[10px] text-amber-600 mt-0.5"><i class="ri-time-line"></i> ${fmtBRL(data.cashback_pendente)} liberando</p>` : ''}
+                        <p class="text-2xl font-bold mt-1">${fmtBRL(data.cashback)}</p>
+                        ${data.cashback_pendente > 0 ? `<p class="text-[10px] text-white/70 mt-0.5"><i class="ri-time-line"></i> ${fmtBRL(data.cashback_pendente)} liberando</p>` : ''}
                     </div>
                 </div>
                 <button onclick="showScreen('qrcode')"
-                        class="w-full py-3 rounded-xl text-white font-semibold flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition"
-                        style="background:linear-gradient(135deg,${cor},${corSec})">
+                        class="w-full py-2.5 mt-3 rounded-xl bg-white font-semibold flex items-center justify-center gap-2 hover:bg-white/90 transition"
+                        style="color:${cor}">
                     <i class="ri-qr-code-line text-xl"></i> Mostrar meu QR Code
                 </button>
             </div>
