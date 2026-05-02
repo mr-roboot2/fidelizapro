@@ -47,6 +47,25 @@
             @endif
         </div>
 
+        @if ($cliente->exists)
+            <div class="mt-6 pt-6 border-t border-slate-200">
+                <h3 class="text-sm font-semibold text-slate-700 mb-1">Alterar senha</h3>
+                <p class="text-xs text-slate-500 mb-3">Deixe em branco para manter a senha atual.</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-sm font-medium text-slate-700">Nova senha</label>
+                        <input type="password" name="password" autocomplete="new-password" minlength="6"
+                               class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="text-sm font-medium text-slate-700">Confirmar senha</label>
+                        <input type="password" name="password_confirmation" autocomplete="new-password" minlength="6"
+                               class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg">
+                    </div>
+                </div>
+            </div>
+        @endif
+
         <div class="flex gap-2 mt-6">
             <button class="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
                 Salvar

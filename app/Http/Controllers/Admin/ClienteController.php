@@ -87,10 +87,16 @@ class ClienteController extends Controller
             'data_nascimento' => 'nullable|date',
             'aceita_whatsapp' => 'boolean',
             'ativo' => 'boolean',
+            'password' => 'nullable|string|min:6|confirmed',
         ]);
 
         $dados['aceita_whatsapp'] = $request->boolean('aceita_whatsapp');
         $dados['ativo'] = $request->boolean('ativo');
+        if (!empty($dados['password'])) {
+            $dados['password'] = Hash::make($dados['password']);
+        } else {
+            unset($dados['password']);
+        }
         $cliente->update($dados);
 
         return redirect()->route('admin.clientes.show', $cliente)->with('success', 'Cliente atualizado!');
