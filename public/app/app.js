@@ -44,6 +44,28 @@ async function api(path, opts = {}) {
 function fmtBRL(v) { return 'R$ ' + Number(v || 0).toFixed(2).replace('.', ','); }
 function fmtNum(v) { return Number(v || 0).toLocaleString('pt-BR'); }
 
+function formatarTelefone(v) {
+    v = String(v || '').replace(/\D/g, '').slice(0, 11);
+    if (!v) return '';
+    if (v.length <= 2) return '(' + v;
+    if (v.length <= 6) return '(' + v.slice(0, 2) + ') ' + v.slice(2);
+    if (v.length <= 10) return '(' + v.slice(0, 2) + ') ' + v.slice(2, 6) + '-' + v.slice(6);
+    return '(' + v.slice(0, 2) + ') ' + v.slice(2, 7) + '-' + v.slice(7);
+}
+
+// Aplica máscara em todos inputs de telefone (login, OTP, registrar, indicação)
+document.addEventListener('input', (ev) => {
+    const el = ev.target;
+    if (!el.matches || !el.matches('input[name="telefone"], input[name="telefone_indicado"], #otp-tel')) return;
+    const before = el.value;
+    const formatted = formatarTelefone(before);
+    if (formatted !== before) {
+        el.value = formatted;
+        // Joga o cursor pro fim — simples e robusto pra colagem
+        el.setSelectionRange(formatted.length, formatted.length);
+    }
+});
+
 function persistir() {
     if (STATE.token) localStorage.setItem('fp_token', STATE.token); else localStorage.removeItem('fp_token');
     if (STATE.cliente) localStorage.setItem('fp_cliente', JSON.stringify(STATE.cliente)); else localStorage.removeItem('fp_cliente');
