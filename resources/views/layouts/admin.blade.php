@@ -88,7 +88,7 @@
     <header class="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between">
         <h1 class="text-xl font-semibold text-slate-700">@yield('title', 'Painel')</h1>
         <div class="flex items-center gap-3">
-            <a href="/app/" target="_blank" class="text-sm text-indigo-600 hover:underline">
+            <a href="{{ isset($empresaAtiva->slug) ? url('/app/'.$empresaAtiva->slug.'/') : '/app/' }}" target="_blank" class="text-sm text-indigo-600 hover:underline">
                 <i class="ri-smartphone-line"></i> Ver portal cliente
             </a>
         </div>
