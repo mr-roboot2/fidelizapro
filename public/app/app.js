@@ -167,40 +167,56 @@ window.selecionarEmpresa = (e) => {
 // Tela 1: Login
 async function telaLogin() {
     const e = STATE.empresa;
+    const cor = e?.cor_primaria || '#6366f1';
+    const corSec = e?.cor_secundaria || '#8b5cf6';
+    const semWhitelabel = !WHITELABEL_SLUG;
     screenContainer.innerHTML = `
     <div class="fade-in flex-1 flex flex-col">
-        <div class="p-6 text-white" style="background:linear-gradient(135deg,${e?.cor_primaria||'#6366f1'},${e?.cor_secundaria||'#8b5cf6'})">
-            <button onclick="showScreen('escolherEmpresa')" class="text-white/80 mb-3"><i class="ri-arrow-left-line"></i> Trocar empresa</button>
+        <div class="p-6 pb-10 text-white" style="background:linear-gradient(135deg,${cor},${corSec})">
+            ${semWhitelabel ? `<button onclick="showScreen('escolherEmpresa')" class="text-white/80 mb-3 flex items-center gap-1 text-sm hover:text-white transition"><i class="ri-arrow-left-line"></i> Trocar empresa</button>` : ''}
+            ${e?.logo
+                ? `<img src="${e.logo}" alt="${e.nome}" class="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur p-2 mb-3 object-contain">`
+                : `<div class="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-3xl font-bold mb-3">${(e?.nome || 'F')[0]}</div>`
+            }
             <h1 class="text-2xl font-bold">${e?.nome || 'FidelizaPro'}</h1>
             <p class="text-white/80 text-sm">Acesse seu programa de fidelidade</p>
         </div>
-        <form id="form-login" class="p-6 space-y-4 flex-1">
+        <form id="form-login" class="p-6 -mt-4 bg-white rounded-t-3xl space-y-4 flex-1">
             <div>
-                <label class="text-sm font-medium">Telefone</label>
-                <input name="telefone" required placeholder="(11) 99999-9999"
-                       class="mt-1 w-full px-4 py-3 border border-slate-300 rounded-xl">
+                <label class="block text-sm font-medium text-slate-700 mb-1.5">Telefone</label>
+                <div class="relative">
+                    <i class="ri-smartphone-line absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input name="telefone" required placeholder="(11) 99999-9999"
+                           class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-slate-400 focus:outline-none transition">
+                </div>
             </div>
+
             <div>
-                <label class="text-sm font-medium">Senha</label>
-                <input name="password" type="password" required placeholder="••••••"
-                       class="mt-1 w-full px-4 py-3 border border-slate-300 rounded-xl">
+                <label class="block text-sm font-medium text-slate-700 mb-1.5">Senha</label>
+                <div class="relative">
+                    <i class="ri-lock-2-line absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input name="password" type="password" required placeholder="Sua senha"
+                           class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-slate-400 focus:outline-none transition">
+                </div>
             </div>
-            <button class="w-full py-3 text-white rounded-xl font-semibold mt-2" style="background:${e?.cor_primaria||'#6366f1'}">
-                Entrar
+
+            <button class="w-full py-3.5 text-white rounded-xl font-semibold shadow-md hover:shadow-xl transition flex items-center justify-center gap-2"
+                    style="background:linear-gradient(135deg,${cor},${corSec})">
+                Entrar <i class="ri-arrow-right-line"></i>
             </button>
 
-            <div class="relative my-3">
+            <div class="relative my-2">
                 <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-200"></div></div>
-                <div class="relative flex justify-center text-xs"><span class="bg-white px-2 text-slate-500">ou</span></div>
+                <div class="relative flex justify-center text-xs"><span class="bg-white px-3 text-slate-400 uppercase tracking-wide">ou</span></div>
             </div>
 
             <button type="button" onclick="showScreen('loginOtp')"
-                    class="w-full py-3 border-2 border-emerald-500 text-emerald-600 rounded-xl font-semibold flex items-center justify-center gap-2">
+                    class="w-full py-3 border-2 border-emerald-500 text-emerald-600 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-emerald-50 transition">
                 <i class="ri-whatsapp-line text-xl"></i> Entrar com WhatsApp
             </button>
 
-            <p class="text-center text-sm text-slate-500 pt-2">
-                Novo por aqui? <a onclick="showScreen('registrar')" class="font-medium cursor-pointer" style="color:${e?.cor_primaria||'#6366f1'}">Criar conta</a>
+            <p class="text-center text-sm text-slate-500 pt-3">
+                Novo por aqui? <a onclick="showScreen('registrar')" class="font-semibold cursor-pointer hover:underline" style="color:${cor}">Criar conta</a>
             </p>
         </form>
     </div>`;
@@ -314,26 +330,93 @@ window.resetOtp = () => {
 // Tela 2: Registrar
 async function telaRegistrar() {
     const e = STATE.empresa;
+    const cor = e?.cor_primaria || '#6366f1';
+    const corSec = e?.cor_secundaria || '#8b5cf6';
     const params = new URLSearchParams(location.search);
     const ref = params.get('ref') || '';
     screenContainer.innerHTML = `
     <div class="fade-in flex-1 flex flex-col">
-        <div class="p-6 text-white" style="background:linear-gradient(135deg,${e?.cor_primaria},${e?.cor_secundaria})">
-            <button onclick="showScreen('login')" class="text-white/80 mb-3"><i class="ri-arrow-left-line"></i> Voltar</button>
+        <div class="p-6 pb-8 text-white" style="background:linear-gradient(135deg,${cor},${corSec})">
+            <button onclick="showScreen('login')" class="text-white/80 mb-3 flex items-center gap-1 text-sm hover:text-white transition">
+                <i class="ri-arrow-left-line"></i> Voltar
+            </button>
             <h1 class="text-2xl font-bold">Criar conta</h1>
-            <p class="text-white/80 text-sm">${e?.nome}</p>
+            <p class="text-white/80 text-sm">${e?.nome || 'FidelizaPro'}</p>
         </div>
-        <form id="form-reg" class="p-6 space-y-3 flex-1 overflow-y-auto">
-            <input name="nome" required placeholder="Nome completo" class="w-full px-4 py-3 border border-slate-300 rounded-xl">
-            <input name="telefone" required placeholder="Telefone com DDD" class="w-full px-4 py-3 border border-slate-300 rounded-xl">
-            <input name="email" type="email" placeholder="E-mail (opcional)" class="w-full px-4 py-3 border border-slate-300 rounded-xl">
-            <div>
-                <label class="block text-xs text-slate-500 mb-1 ml-1">Data de nascimento (opcional)</label>
-                <input name="data_nascimento" type="date" class="w-full px-4 py-3 border border-slate-300 rounded-xl text-slate-700">
+        <form id="form-reg" class="p-6 -mt-4 bg-white rounded-t-3xl space-y-5 flex-1 overflow-y-auto">
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Nome completo <span class="text-rose-500">*</span></label>
+                    <div class="relative">
+                        <i class="ri-user-line absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input name="nome" required placeholder="Como você quer ser chamado"
+                               class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-slate-400 focus:outline-none transition">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Telefone <span class="text-rose-500">*</span></label>
+                    <div class="relative">
+                        <i class="ri-smartphone-line absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input name="telefone" required placeholder="(11) 99999-9999"
+                               class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-slate-400 focus:outline-none transition">
+                    </div>
+                    <p class="text-xs text-slate-500 mt-1 ml-1">Usado para login e notificações</p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Senha <span class="text-rose-500">*</span></label>
+                    <div class="relative">
+                        <i class="ri-lock-2-line absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input name="password" type="password" required minlength="6" placeholder="Mínimo 6 caracteres"
+                               class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-slate-400 focus:outline-none transition">
+                    </div>
+                </div>
             </div>
-            <input name="password" type="password" required minlength="6" placeholder="Senha (mínimo 6 caracteres)" class="w-full px-4 py-3 border border-slate-300 rounded-xl">
-            <input name="codigo_indicacao" value="${ref}" placeholder="Código de indicação (opcional)" class="w-full px-4 py-3 border border-slate-300 rounded-xl">
-            <button class="w-full py-3 text-white rounded-xl font-semibold mt-2" style="background:${e?.cor_primaria}">Criar conta</button>
+
+            <div class="pt-4 border-t border-slate-100">
+                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Informações adicionais</p>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1.5">E-mail</label>
+                        <div class="relative">
+                            <i class="ri-mail-line absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input name="email" type="email" placeholder="seu@email.com"
+                                   class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-slate-400 focus:outline-none transition">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1.5">Data de nascimento</label>
+                        <div class="relative">
+                            <i class="ri-cake-2-line absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 z-10"></i>
+                            <input name="data_nascimento" type="date"
+                                   class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-slate-400 focus:outline-none transition text-slate-700">
+                        </div>
+                        <p class="text-xs text-slate-500 mt-1 ml-1">Receba um presente no seu aniversário</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1.5">Código de indicação</label>
+                        <div class="relative">
+                            <i class="ri-gift-2-line absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input name="codigo_indicacao" value="${ref}" placeholder="Quem te indicou?"
+                                   class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-slate-400 focus:outline-none transition">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="w-full py-3.5 text-white rounded-xl font-semibold shadow-md hover:shadow-xl transition mt-2 flex items-center justify-center gap-2"
+                    style="background:linear-gradient(135deg,${cor},${corSec})">
+                Criar minha conta <i class="ri-arrow-right-line"></i>
+            </button>
+
+            <p class="text-center text-xs text-slate-400 leading-relaxed pb-2">
+                Ao criar conta, você concorda em receber<br>comunicações sobre o programa de fidelidade.
+            </p>
         </form>
     </div>`;
     $('#form-reg').addEventListener('submit', async (ev) => {
