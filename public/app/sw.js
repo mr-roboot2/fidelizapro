@@ -1,4 +1,4 @@
-const CACHE = 'fidelizapro-v2';
+const CACHE = 'fidelizapro-v3';
 
 // Caminhos relativos ao escopo do SW (a própria pasta /app/)
 const ASSETS = [
@@ -10,7 +10,7 @@ const ASSETS = [
     './icons/icon.svg',
     'https://cdn.tailwindcss.com',
     'https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css',
-    'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js',
+    'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/lib/browser.min.js',
 ];
 
 self.addEventListener('install', (e) => {
