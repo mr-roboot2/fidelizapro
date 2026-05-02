@@ -74,7 +74,7 @@ class PwaController extends Controller
         $appBase = parse_url(url('/app'), PHP_URL_PATH);
 
         $js = <<<JS
-const CACHE = 'fidelizapro-{$slug}-v2';
+const CACHE = 'fidelizapro-{$slug}-v3';
 const ASSETS = [
     '{$base}/',
     '{$appBase}/style.css',
@@ -82,7 +82,7 @@ const ASSETS = [
     '{$base}/manifest.json',
     'https://cdn.tailwindcss.com',
     'https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css',
-    'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/lib/browser.min.js',
+    'https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js',
 ];
 
 self.addEventListener('install', (e) => {

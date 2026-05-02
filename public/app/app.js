@@ -489,7 +489,7 @@ async function telaQrCode() {
             <p class="text-xs text-slate-400">${STATE.cliente.telefone}</p>
         </div>
     </div>`;
-    QRCode.toCanvas($('#qr-canvas'), STATE.cliente.codigo_qr, { width: 240, margin: 1 });
+    new QRious({ element: $('#qr-canvas'), value: STATE.cliente.codigo_qr, size: 240, padding: 4 });
 }
 
 // Tela 7: Perfil
