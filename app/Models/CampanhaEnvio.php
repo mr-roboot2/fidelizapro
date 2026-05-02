@@ -10,6 +10,8 @@ class CampanhaEnvio extends Model
 {
     use HasFactory;
 
+    protected $table = 'campanha_envios';
+
     protected $fillable = [
         'campanha_id', 'cliente_id', 'status', 'enviado_em', 'erro',
     ];
