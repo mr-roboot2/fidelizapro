@@ -21,7 +21,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'super.auth' => SuperAdminAuth::class,
         ]);
 
-        $middleware->statefulApi();
+        // API consumida via Bearer token (sem cookies/CSRF). Não usar statefulApi(),
+        // que marcaria requests do mesmo domínio como SPA e exigiria X-XSRF-TOKEN.
 
         // Webhooks de gateways externos não têm CSRF token
         $middleware->validateCsrfTokens(except: [
