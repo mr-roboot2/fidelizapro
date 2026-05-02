@@ -66,6 +66,10 @@ function setNavActive(nome) {
 }
 
 async function showScreen(nome, params = {}) {
+    // White label: a empresa está fixada na URL, então nunca mostra o seletor.
+    if (WHITELABEL_SLUG && nome === 'escolherEmpresa') {
+        nome = STATE.token ? 'home' : 'login';
+    }
     if (!STATE.token && !['login','loginOtp','registrar','escolherEmpresa'].includes(nome)) {
         // White label vai direto pra login (já tem empresa fixada)
         nome = WHITELABEL_SLUG ? 'login' : 'escolherEmpresa';
