@@ -327,7 +327,10 @@ async function telaRegistrar() {
             <input name="nome" required placeholder="Nome completo" class="w-full px-4 py-3 border border-slate-300 rounded-xl">
             <input name="telefone" required placeholder="Telefone com DDD" class="w-full px-4 py-3 border border-slate-300 rounded-xl">
             <input name="email" type="email" placeholder="E-mail (opcional)" class="w-full px-4 py-3 border border-slate-300 rounded-xl">
-            <input name="data_nascimento" type="date" placeholder="Data de nascimento" class="w-full px-4 py-3 border border-slate-300 rounded-xl">
+            <div>
+                <label class="block text-xs text-slate-500 mb-1 ml-1">Data de nascimento (opcional)</label>
+                <input name="data_nascimento" type="date" class="w-full px-4 py-3 border border-slate-300 rounded-xl text-slate-700">
+            </div>
             <input name="password" type="password" required minlength="6" placeholder="Senha (mínimo 6 caracteres)" class="w-full px-4 py-3 border border-slate-300 rounded-xl">
             <input name="codigo_indicacao" value="${ref}" placeholder="Código de indicação (opcional)" class="w-full px-4 py-3 border border-slate-300 rounded-xl">
             <button class="w-full py-3 text-white rounded-xl font-semibold mt-2" style="background:${e?.cor_primaria}">Criar conta</button>
