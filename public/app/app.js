@@ -1006,16 +1006,18 @@ async function telaEmpresa() {
 
     screenContainer.innerHTML = `
     <div class="fade-in flex-1 flex flex-col overflow-y-auto bg-slate-50">
-        <div class="px-5 pt-6 pb-12 text-white text-center" style="background:linear-gradient(135deg,${cor},${corSec})">
-            <button onclick="showScreen('perfil')" class="text-white/80 mb-3 flex items-center gap-1 text-sm hover:text-white transition mx-auto">
+        <div class="px-5 pt-6 pb-12 text-white" style="background:linear-gradient(135deg,${cor},${corSec})">
+            <button onclick="showScreen('perfil')" class="text-white/80 mb-4 flex items-center gap-1 text-sm hover:text-white transition">
                 <i class="ri-arrow-left-line"></i> Voltar
             </button>
-            ${e.logo
-                ? `<img src="${e.logo}" alt="${e.nome}" class="w-20 h-20 mx-auto rounded-2xl bg-white/20 backdrop-blur p-2 mb-3 object-contain">`
-                : `<div class="w-20 h-20 mx-auto rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-3xl font-bold mb-3">${e.nome.charAt(0)}</div>`
-            }
-            <h1 class="text-2xl font-bold">${e.nome}</h1>
-            <p class="text-white/80 text-xs mt-1">Cliente desde ${e.cliente_desde || '—'}</p>
+            <div class="text-center">
+                ${e.logo
+                    ? `<img src="${e.logo}" alt="${e.nome}" class="w-20 h-20 mx-auto rounded-2xl bg-white/20 backdrop-blur p-2 mb-3 object-contain">`
+                    : `<div class="w-20 h-20 mx-auto rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-3xl font-bold mb-3">${e.nome.charAt(0)}</div>`
+                }
+                <h1 class="text-2xl font-bold">${e.nome}</h1>
+                <p class="text-white/80 text-xs mt-1">Cliente desde ${e.cliente_desde || '—'}</p>
+            </div>
         </div>
 
         <div class="px-4 -mt-8 pb-6 space-y-4">
