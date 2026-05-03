@@ -44,6 +44,13 @@
                            class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg font-mono text-sm">
                 </div>
 
+                <div x-show="provedor === 'zapi'">
+                    <label class="text-sm font-medium">Client-Token (Z-API)</label>
+                    <input type="text" name="whatsapp_client_token" value="{{ old('whatsapp_client_token', $config->whatsapp_client_token) }}"
+                           class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg font-mono text-sm">
+                    <p class="text-[11px] text-slate-500 mt-1">Account-level token (no painel Z-API → Segurança → Token da conta). É <strong>diferente</strong> do token da instância.</p>
+                </div>
+
                 <div x-show="provedor === 'meta_cloud'">
                     <label class="text-sm font-medium">Phone Number ID</label>
                     <input type="text" name="whatsapp_phone_id" value="{{ old('whatsapp_phone_id', $config->whatsapp_phone_id) }}"

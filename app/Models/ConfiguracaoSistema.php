@@ -15,6 +15,7 @@ class ConfiguracaoSistema extends Model
         'cor_primaria', 'cor_secundaria',
         'site_url', 'rodape_html',
         'whatsapp_provider', 'whatsapp_api_url', 'whatsapp_api_token',
+        'whatsapp_client_token',
         'whatsapp_instance', 'whatsapp_phone_id', 'whatsapp_waba_id',
         'whatsapp_webhook_verify_token', 'whatsapp_ativo',
     ];

@@ -20,10 +20,12 @@ class ZapiDriver implements WhatsappDriverInterface
         }
 
         $base = $config->whatsapp_api_url ?: 'https://api.z-api.io';
+        // Z-API: Client-Token (account-level) é distinto do token da instância
+        $clientToken = $config->whatsapp_client_token ?: $config->whatsapp_api_token;
 
         try {
             $response = Http::withHeaders([
-                'Client-Token' => $config->whatsapp_api_token,
+                'Client-Token' => $clientToken,
                 'Content-Type' => 'application/json',
             ])->timeout(15)->post(
                 rtrim($base, '/')."/instances/{$config->whatsapp_instance}/token/{$config->whatsapp_api_token}/send-text",

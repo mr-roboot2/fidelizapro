@@ -29,6 +29,7 @@ class WhatsappController extends Controller
             'whatsapp_provider' => 'required|in:mock,evolution,zapi,meta_cloud',
             'whatsapp_api_url'  => 'nullable|url|max:255',
             'whatsapp_api_token'=> 'nullable|string|max:2000',
+            'whatsapp_client_token' => 'nullable|string|max:255',
             'whatsapp_instance' => 'nullable|string|max:255',
             'whatsapp_phone_id' => 'nullable|string|max:255',
             'whatsapp_waba_id'  => 'nullable|string|max:50',
