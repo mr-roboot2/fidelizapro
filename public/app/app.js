@@ -32,6 +32,70 @@ function toast(msg, tipo = 'info') {
     setTimeout(() => t.classList.add('hidden'), 2800);
 }
 
+// Modal de confirmação no estilo do PWA. Substitui o confirm() nativo.
+// Aceita string (mensagem simples) ou objeto { titulo, mensagem, ok, cancelar, tipo, icone }.
+// Retorna Promise<boolean>.
+function confirmar(opts = {}) {
+    if (typeof opts === 'string') opts = { mensagem: opts };
+    const {
+        titulo = 'Confirmar',
+        mensagem = '',
+        ok = 'Confirmar',
+        cancelar = 'Cancelar',
+        tipo = 'default', // 'default' | 'danger'
+        icone = tipo === 'danger' ? 'ri-alert-line' : 'ri-question-line',
+    } = opts;
+
+    return new Promise((resolve) => {
+        const corIcone = tipo === 'danger' ? 'text-rose-600 bg-rose-50' : 'text-white';
+        const styleIcone = tipo === 'danger' ? '' : 'background:linear-gradient(135deg,var(--cor-primaria,#6366f1),var(--cor-secundaria,#8b5cf6));';
+        const styleBtn = tipo === 'danger'
+            ? 'background:#e11d48;'
+            : 'background:var(--cor-primaria,#6366f1);';
+
+        const wrap = document.createElement('div');
+        wrap.className = 'modal-overlay fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm';
+        wrap.innerHTML = `
+            <div class="modal-sheet bg-white w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden">
+                <div class="px-6 pt-6 pb-1 flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-2xl ${corIcone} flex items-center justify-center text-2xl shrink-0" style="${styleIcone}">
+                        <i class="${icone}"></i>
+                    </div>
+                    <h3 class="font-bold text-lg text-slate-800 flex-1">${titulo}</h3>
+                </div>
+                <div class="px-6 pb-5 pt-3">
+                    <p class="text-sm text-slate-600 leading-relaxed whitespace-pre-line">${mensagem}</p>
+                </div>
+                <div class="px-4 pb-5 sm:pb-4 flex gap-2" style="padding-bottom: max(1rem, env(safe-area-inset-bottom));">
+                    <button data-acao="cancelar" class="flex-1 py-3 rounded-xl bg-slate-100 text-slate-700 font-semibold text-sm hover:bg-slate-200 active:bg-slate-300 transition">${cancelar}</button>
+                    <button data-acao="ok" class="flex-1 py-3 rounded-xl text-white font-semibold text-sm hover:opacity-90 active:opacity-80 transition shadow" style="${styleBtn}">${ok}</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(wrap);
+
+        const finalizar = (valor) => {
+            wrap.classList.add('is-closing');
+            document.removeEventListener('keydown', onKey);
+            setTimeout(() => wrap.remove(), 150);
+            resolve(valor);
+        };
+
+        const onKey = (ev) => {
+            if (ev.key === 'Escape') finalizar(false);
+            if (ev.key === 'Enter') finalizar(true);
+        };
+        document.addEventListener('keydown', onKey);
+
+        wrap.addEventListener('click', (ev) => {
+            const acao = ev.target.closest('[data-acao]')?.dataset.acao;
+            if (acao === 'ok') return finalizar(true);
+            if (acao === 'cancelar') return finalizar(false);
+            if (ev.target === wrap) return finalizar(false); // clique fora
+        });
+    });
+}
+
 async function api(path, opts = {}) {
     const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
     if (STATE.token) headers['Authorization'] = 'Bearer ' + STATE.token;
@@ -756,7 +820,13 @@ async function telaCatalogo() {
 }
 
 window.solicitarResgate = async (id, nome, custo) => {
-    if (!confirm(`Resgatar "${nome}" por ${fmtNum(custo)} pontos?`)) return;
+    const ok = await confirmar({
+        titulo: 'Resgatar prêmio',
+        mensagem: `Trocar ${fmtNum(custo)} pontos por "${nome}"?`,
+        ok: 'Resgatar',
+        icone: 'ri-gift-line',
+    });
+    if (!ok) return;
     try {
         const res = await api('/resgates', { method: 'POST', body: JSON.stringify({ recompensa_id: id }) });
         STATE.cliente.pontos_atual = res.novo_saldo_pontos;
@@ -1576,7 +1646,14 @@ async function telaPesquisa() {
 }
 
 window.excluirAvaliacao = async (id) => {
-    if (!confirm('Excluir sua avaliação? Você poderá criar outra depois.')) return;
+    const ok = await confirmar({
+        titulo: 'Excluir avaliação',
+        mensagem: 'Tem certeza? Você poderá criar uma nova depois.',
+        ok: 'Excluir',
+        tipo: 'danger',
+        icone: 'ri-delete-bin-line',
+    });
+    if (!ok) return;
     try {
         await api('/pesquisas/'+id, { method: 'DELETE' });
         toast('Avaliação removida', 'success');
@@ -1658,7 +1735,13 @@ async function telaParceiros() {
 }
 
 window.ativarCupom = async (beneficioId, nome) => {
-    if (!confirm(`Ativar cupom "${nome}"?\nVocê receberá um código que precisa apresentar no parceiro.`)) return;
+    const ok = await confirmar({
+        titulo: 'Ativar cupom',
+        mensagem: `Ativar "${nome}"?\nVocê receberá um código pra apresentar no parceiro.`,
+        ok: 'Ativar',
+        icone: 'ri-coupon-line',
+    });
+    if (!ok) return;
     try {
         const res = await api('/parceiros/cupons', { method: 'POST', body: JSON.stringify({ beneficio_id: beneficioId }) });
         toast(`Cupom ativado: ${res.cupom.codigo}`, 'success');
