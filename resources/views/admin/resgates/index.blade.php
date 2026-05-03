@@ -2,13 +2,38 @@
 @section('title', 'Resgates')
 @section('content')
 <div class="bg-white rounded-xl shadow-sm">
-    <div class="p-4 border-b border-slate-200 flex flex-wrap gap-2">
-        @foreach (['' => 'Todos', 'pendente' => 'Pendentes', 'aprovado' => 'Aprovados', 'entregue' => 'Entregues', 'cancelado' => 'Cancelados'] as $v => $r)
-            <a href="?status={{ $v }}"
-               class="px-3 py-1.5 rounded-full text-sm {{ request('status') === $v ? 'bg-indigo-600 text-white':'bg-slate-100' }}">
-                {{ $r }}
-            </a>
-        @endforeach
+    <div class="p-4 border-b border-slate-200 space-y-3">
+        <form method="GET" class="flex flex-wrap gap-2 items-center">
+            <input type="hidden" name="status" value="{{ request('status') }}">
+            <div class="relative flex-1 min-w-[240px]">
+                <i class="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <input type="text" name="q" value="{{ request('q') }}"
+                       placeholder="Buscar por código, cliente, telefone, CPF ou recompensa..."
+                       class="w-full pl-10 pr-9 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                @if (request('q'))
+                    <a href="?{{ http_build_query(array_filter(['status' => request('status')])) }}"
+                       class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" title="Limpar">
+                        <i class="ri-close-line"></i>
+                    </a>
+                @endif
+            </div>
+            <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700">Buscar</button>
+        </form>
+        <div class="flex flex-wrap gap-2">
+            @foreach (['' => 'Todos', 'pendente' => 'Pendentes', 'aprovado' => 'Aprovados', 'entregue' => 'Entregues', 'cancelado' => 'Cancelados'] as $v => $r)
+                <a href="?{{ http_build_query(array_filter(['status' => $v, 'q' => request('q')])) }}"
+                   class="px-3 py-1.5 rounded-full text-sm {{ (request('status') ?? '') === $v ? 'bg-indigo-600 text-white':'bg-slate-100' }}">
+                    {{ $r }}
+                </a>
+            @endforeach
+        </div>
+        @if (request('q') || request('status'))
+            <p class="text-xs text-slate-500">
+                <i class="ri-filter-line"></i>
+                {{ $resgates->total() }} {{ $resgates->total() === 1 ? 'resgate encontrado' : 'resgates encontrados' }}
+                @if (request('q')) para <strong>"{{ request('q') }}"</strong> @endif
+            </p>
+        @endif
     </div>
     <div class="overflow-x-auto">
         <table class="w-full text-sm">

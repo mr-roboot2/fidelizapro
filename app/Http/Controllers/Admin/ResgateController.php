@@ -17,6 +17,16 @@ class ResgateController extends Controller
 
         if ($status = $request->input('status')) $query->where('status', $status);
 
+        if ($q = trim((string) $request->input('q'))) {
+            $query->where(function ($w) use ($q) {
+                $w->where('codigo', 'like', "%{$q}%")
+                  ->orWhereHas('cliente', fn($c) => $c->where('nome', 'like', "%{$q}%")
+                                                     ->orWhere('telefone', 'like', "%{$q}%")
+                                                     ->orWhere('cpf', 'like', "%{$q}%"))
+                  ->orWhereHas('recompensa', fn($c) => $c->where('nome', 'like', "%{$q}%"));
+            });
+        }
+
         $resgates = $query->latest()->paginate(20)->withQueryString();
         return view('admin.resgates.index', compact('resgates'));
     }
