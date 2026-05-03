@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\WhatsappTemplate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 
 class WhatsappTemplateController extends Controller
 {
@@ -19,6 +20,53 @@ class WhatsappTemplateController extends Controller
             'eventos'      => WhatsappTemplate::EVENTOS,
             'configurados' => $configurados,
         ]);
+    }
+
+    /**
+     * Lista os templates disponíveis na WABA via API da Meta — debug
+     * útil quando o nome/idioma cadastrado aqui não bate com o que a
+     * Meta tem registrado.
+     */
+    public function listarMeta()
+    {
+        $empresa = Auth::user()->empresa;
+
+        if ($empresa->whatsapp_provider !== 'meta_cloud' || !$empresa->whatsapp_api_token || !$empresa->whatsapp_phone_id) {
+            return back()->with('error', 'Só funciona com provedor Meta Cloud configurado.');
+        }
+
+        // Descobrir o WABA ID a partir do Phone Number ID
+        try {
+            $phoneInfo = Http::withToken($empresa->whatsapp_api_token)
+                ->timeout(10)
+                ->get("https://graph.facebook.com/v18.0/{$empresa->whatsapp_phone_id}", [
+                    'fields' => 'whatsapp_business_account_id',
+                ]);
+
+            if (!$phoneInfo->successful()) {
+                return back()->with('error', 'Não consegui buscar a WABA: '.$phoneInfo->json('error.message'));
+            }
+
+            $wabaId = $phoneInfo->json('whatsapp_business_account_id');
+
+            $templates = Http::withToken($empresa->whatsapp_api_token)
+                ->timeout(15)
+                ->get("https://graph.facebook.com/v18.0/{$wabaId}/message_templates", [
+                    'fields' => 'name,status,language,category',
+                    'limit'  => 100,
+                ]);
+
+            if (!$templates->successful()) {
+                return back()->with('error', 'Falha ao listar templates: '.$templates->json('error.message'));
+            }
+
+            return view('admin.whatsapp-templates.meta', [
+                'templates' => $templates->json('data', []),
+                'waba_id'   => $wabaId,
+            ]);
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Erro: '.$e->getMessage());
+        }
     }
 
     public function update(Request $request, string $evento)

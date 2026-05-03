@@ -2,6 +2,13 @@
 @section('title', 'Templates WhatsApp')
 @section('content')
 
+<div class="flex justify-end mb-3">
+    <a href="{{ route('admin.whatsapp-templates.meta') }}"
+       class="text-sm bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 px-4 py-2 rounded-lg font-medium">
+        <i class="ri-list-check-2"></i> Ver templates registrados na Meta
+    </a>
+</div>
+
 <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 mb-5 text-sm text-indigo-900">
     <p class="font-semibold mb-1"><i class="ri-information-line"></i> Como funciona</p>
     <p class="text-indigo-800">

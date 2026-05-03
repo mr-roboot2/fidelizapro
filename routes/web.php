@@ -114,6 +114,7 @@ Route::middleware(['admin.auth', 'empresa.scope'])->prefix('admin')->name('admin
     Route::post('whatsapp/regenerar-webhook-token', [WhatsappController::class, 'regenerarWebhookToken'])->name('whatsapp.regenerar-webhook-token');
 
     Route::get('whatsapp-templates', [WhatsappTemplateController::class, 'index'])->name('whatsapp-templates.index');
+    Route::get('whatsapp-templates/meta', [WhatsappTemplateController::class, 'listarMeta'])->name('whatsapp-templates.meta');
     Route::put('whatsapp-templates/{evento}', [WhatsappTemplateController::class, 'update'])->name('whatsapp-templates.update');
 
     Route::resource('automacoes', AutomacaoController::class);
