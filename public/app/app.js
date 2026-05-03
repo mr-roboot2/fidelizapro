@@ -318,6 +318,10 @@ async function telaLoginOtp() {
 window.solicitarOtp = async (reenviar = false) => {
     const tel = $('#otp-tel').value.trim();
     if (!tel) return toast('Informe o telefone', 'error');
+
+    const btnReenviar = $('#otp-btn-reenviar');
+    if (reenviar && btnReenviar?.disabled) return; // já em cooldown
+
     try {
         const res = await api('/auth/otp/solicitar', {
             method: 'POST',
@@ -334,8 +338,33 @@ window.solicitarOtp = async (reenviar = false) => {
         if (res.codigo_dev) {
             $('#otp-dev').textContent = `🧪 Modo dev: código = ${res.codigo_dev}`;
         }
+        iniciarCooldownReenvio(30);
     } catch (e) { toast(e.message, 'error'); }
 };
+
+function iniciarCooldownReenvio(segundos) {
+    const btn = $('#otp-btn-reenviar');
+    if (!btn) return;
+    let restante = segundos;
+    const textoOriginal = 'Reenviar';
+    btn.disabled = true;
+    btn.classList.add('text-slate-400', 'cursor-not-allowed');
+    btn.classList.remove('text-emerald-600', 'hover:underline');
+
+    const tick = () => {
+        if (restante <= 0) {
+            btn.disabled = false;
+            btn.textContent = textoOriginal;
+            btn.classList.remove('text-slate-400', 'cursor-not-allowed');
+            btn.classList.add('text-emerald-600', 'hover:underline');
+            return;
+        }
+        btn.textContent = `Reenviar em ${restante}s`;
+        restante--;
+        setTimeout(tick, 1000);
+    };
+    tick();
+}
 
 window.validarOtp = async () => {
     const tel = $('#otp-tel').value.trim();
