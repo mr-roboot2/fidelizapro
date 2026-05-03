@@ -42,10 +42,11 @@
                         <p class="text-xs text-slate-500 mt-1">
                             Parâmetros enviados na ordem:
                             @foreach ($def['parametros'] as $i => $p)
-                                <code class="bg-slate-100 px-1 rounded">{{ '{{'.($i+1).'}}' }} = {{ $p }}</code>{{ !$loop->last ? ' · ' : '' }}
+                                @php $marker = '{{'.($i+1).'}}'; @endphp
+                                <code class="bg-slate-100 px-1 rounded">{{ $marker }} = {{ $p }}</code>{!! !$loop->last ? ' &middot; ' : '' !!}
                             @endforeach
                         </p>
-                        <p class="text-[11px] text-slate-400 mt-1 italic">Exemplo de corpo do template: "{{ $def['exemplo'] }}"</p>
+                        <p class="text-[11px] text-slate-400 mt-1 italic">Exemplo: "{{ $def['exemplo'] }}"</p>
                     </div>
 
                     <div class="flex flex-col gap-2 w-full md:w-72">
