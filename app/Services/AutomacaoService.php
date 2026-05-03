@@ -128,8 +128,10 @@ class AutomacaoService
         $auto = Automacao::where('tipo', $tipo)->where('ativo', true)->first();
         if (!$auto) return false;
 
-        if ($this->jaEnviadoHoje($auto, $cliente)) return false;
-
+        // Eventos pontuais (pos_compra, agradecimento_resgate) precisam
+        // disparar A CADA ocorrência — o caller já garante 1 chamada por
+        // evento. Boas_vindas só roda 1x na vida (no cadastro), então
+        // também não tem risco de spam.
         $sucesso = $this->enviarMensagemAutomacao($auto, $cliente, $extras);
 
         if ($sucesso) {
