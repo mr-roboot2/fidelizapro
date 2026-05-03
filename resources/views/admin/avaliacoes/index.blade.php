@@ -94,6 +94,17 @@
         @endforelse
     </ul>
 
-    <div class="p-4">{{ $avaliacoes->links() }}</div>
+    @if ($avaliacoes->hasPages())
+        <div class="p-4 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2">
+            <p class="text-xs text-slate-500">
+                Mostrando {{ $avaliacoes->firstItem() }}–{{ $avaliacoes->lastItem() }} de {{ $avaliacoes->total() }} avaliações
+            </p>
+            <div>{{ $avaliacoes->links() }}</div>
+        </div>
+    @else
+        <div class="p-4 border-t border-slate-100">
+            <p class="text-xs text-slate-500 text-center">{{ $avaliacoes->total() }} {{ $avaliacoes->total() === 1 ? 'avaliação' : 'avaliações' }} no total</p>
+        </div>
+    @endif
 </div>
 @endsection

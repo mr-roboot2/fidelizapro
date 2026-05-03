@@ -34,7 +34,7 @@ class AvaliacaoController extends Controller
             });
         }
 
-        $avaliacoes = $query->latest()->paginate(20)->withQueryString();
+        $avaliacoes = $query->latest()->paginate(10)->withQueryString();
 
         // Métricas resumo
         $base = Pesquisa::where('empresa_id', $empresaId);
