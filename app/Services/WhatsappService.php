@@ -51,6 +51,19 @@ class WhatsappService
     }
 
     /**
+     * Envia mensagem com botões interativos. Cada botão é:
+     *   ['type' => 'COPY'|'URL'|'CALL'|'REPLY', 'label' => string, 'value' => string]
+     * Drivers que não suportam botões fazem fallback para texto puro.
+     */
+    public function enviarComBotoes(Empresa $empresa, string $telefone, string $mensagem, array $botoes, string $origem = 'sistema', string $evento = 'livre'): bool
+    {
+        $sucesso = $this->driver()->enviarComBotoes($this->config(), $telefone, $mensagem, $botoes);
+        $resumoBotoes = collect($botoes)->map(fn($b) => "[{$b['type']}:{$b['value']}]")->implode(' ');
+        $this->registrarEnvio($empresa, $telefone, $mensagem.($resumoBotoes ? "\n".$resumoBotoes : ''), $sucesso, $evento, $origem);
+        return $sucesso;
+    }
+
+    /**
      * Envia mensagem por evento (otp, aniversario, boas_vindas, etc.).
      *
      * Se a empresa tem template aprovado configurado para esse evento e o

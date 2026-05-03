@@ -18,4 +18,11 @@ class MockDriver implements WhatsappDriverInterface
         $this->enviar($config, $telefoneDestino, "[Teste de conexão WhatsApp - {$config->nome_sistema}]");
         return ['ok' => true, 'mensagem' => 'Modo MOCK ativo: mensagem registrada em storage/logs/laravel.log'];
     }
+
+    public function enviarComBotoes(ConfiguracaoSistema $config, string $telefone, string $mensagem, array $botoes): bool
+    {
+        $rotulos = implode(' | ', array_map(fn($b) => "[{$b['type']}:{$b['label']}={$b['value']}]", $botoes));
+        Log::info("[WhatsApp MOCK] → {$telefone}: {$mensagem}  botões: {$rotulos}");
+        return true;
+    }
 }

@@ -51,6 +51,32 @@ class EvolutionDriver implements WhatsappDriverInterface
         ];
     }
 
+    /**
+     * Evolution não tem endpoint padronizado pra botões — fallback pra texto
+     * com o código/URL anexados.
+     */
+    public function enviarComBotoes(ConfiguracaoSistema $config, string $telefone, string $mensagem, array $botoes): bool
+    {
+        return $this->enviar($config, $telefone, $this->fallbackTexto($mensagem, $botoes));
+    }
+
+    protected function fallbackTexto(string $mensagem, array $botoes): string
+    {
+        $partes = [$mensagem];
+        foreach ($botoes as $b) {
+            $tipo  = strtoupper($b['type'] ?? '');
+            $label = $b['label'] ?? '';
+            $value = $b['value'] ?? '';
+            $partes[] = match ($tipo) {
+                'COPY' => "Código: *{$value}*",
+                'URL'  => "{$label}: {$value}",
+                'CALL' => "{$label}: {$value}",
+                default => '',
+            };
+        }
+        return implode("\n\n", array_filter($partes));
+    }
+
     protected function normalizar(string $telefone): string
     {
         $apenas = preg_replace('/\D/', '', $telefone);

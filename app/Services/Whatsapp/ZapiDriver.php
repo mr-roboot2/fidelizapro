@@ -55,6 +55,81 @@ class ZapiDriver implements WhatsappDriverInterface
         ];
     }
 
+    /**
+     * Z-API: /send-button-actions — botões interativos com ações:
+     * COPY (copia código), URL (abre link), CALL (liga). Limite Z-API: 3 botões.
+     */
+    public function enviarComBotoes(ConfiguracaoSistema $config, string $telefone, string $mensagem, array $botoes): bool
+    {
+        if (!$config->whatsapp_instance || !$config->whatsapp_api_token) {
+            Log::warning("[Z-API] Configuração global incompleta (botões)");
+            return false;
+        }
+        if (empty($botoes)) {
+            return $this->enviar($config, $telefone, $mensagem);
+        }
+
+        $base = $config->whatsapp_api_url ?: 'https://api.z-api.io';
+        $clientToken = $config->whatsapp_client_token ?: $config->whatsapp_api_token;
+
+        // Mapeia o formato genérico pro formato Z-API
+        $buttonActions = [];
+        foreach (array_slice($botoes, 0, 3) as $i => $b) {
+            $tipo  = strtoupper($b['type'] ?? 'REPLY');
+            $label = (string) ($b['label'] ?? 'Ok');
+            $value = (string) ($b['value'] ?? '');
+            $entry = ['id' => (string) ($i + 1), 'type' => $tipo, 'label' => $label];
+            switch ($tipo) {
+                case 'COPY': $entry['copyCode'] = $value; break;
+                case 'URL':  $entry['url']      = $value; break;
+                case 'CALL': $entry['phone']    = $value; break;
+                case 'REPLY': default: break;
+            }
+            $buttonActions[] = $entry;
+        }
+
+        try {
+            $response = Http::withHeaders([
+                'Client-Token' => $clientToken,
+                'Content-Type' => 'application/json',
+            ])->timeout(15)->post(
+                rtrim($base, '/')."/instances/{$config->whatsapp_instance}/token/{$config->whatsapp_api_token}/send-button-actions",
+                [
+                    'phone'         => $this->normalizar($telefone),
+                    'message'       => $mensagem,
+                    'buttonActions' => $buttonActions,
+                ]
+            );
+
+            if (!$response->successful()) {
+                Log::warning("[Z-API] Falha enviando botões para {$telefone}: ".$response->body());
+                // Fallback: texto puro com os valores dos botões anexados
+                return $this->enviar($config, $telefone, $this->fallbackTexto($mensagem, $botoes));
+            }
+            return true;
+        } catch (\Throwable $e) {
+            Log::error("[Z-API] Exceção (botões): ".$e->getMessage());
+            return $this->enviar($config, $telefone, $this->fallbackTexto($mensagem, $botoes));
+        }
+    }
+
+    protected function fallbackTexto(string $mensagem, array $botoes): string
+    {
+        $partes = [$mensagem];
+        foreach ($botoes as $b) {
+            $tipo  = strtoupper($b['type'] ?? '');
+            $label = $b['label'] ?? '';
+            $value = $b['value'] ?? '';
+            $partes[] = match ($tipo) {
+                'COPY' => "Código: *{$value}*",
+                'URL'  => "{$label}: {$value}",
+                'CALL' => "{$label}: {$value}",
+                default => '',
+            };
+        }
+        return implode("\n\n", array_filter($partes));
+    }
+
     protected function normalizar(string $telefone): string
     {
         $apenas = preg_replace('/\D/', '', $telefone);

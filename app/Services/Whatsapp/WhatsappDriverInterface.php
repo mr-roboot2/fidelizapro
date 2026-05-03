@@ -17,4 +17,15 @@ interface WhatsappDriverInterface
      * Retorna ['ok' => bool, 'mensagem' => string].
      */
     public function testar(ConfiguracaoSistema $config, string $telefoneDestino): array;
+
+    /**
+     * Envia mensagem com botões de ação (URL, COPY, CALL, REPLY).
+     * Quando o provider não suporta, faz fallback pra texto puro com o
+     * código/URL embutido no corpo da mensagem.
+     *
+     * Cada botão é um array com:
+     *   ['type' => 'COPY'|'URL'|'CALL'|'REPLY', 'label' => string,
+     *    'value' => string]   // codigo a copiar / url / telefone / id de resposta
+     */
+    public function enviarComBotoes(ConfiguracaoSistema $config, string $telefone, string $mensagem, array $botoes): bool;
 }

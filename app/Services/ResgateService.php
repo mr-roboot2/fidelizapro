@@ -7,13 +7,17 @@ use App\Models\Recompensa;
 use App\Models\Resgate;
 use App\Models\User;
 use App\Services\AutomacaoService;
+use App\Services\WhatsappService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class ResgateService
 {
     public function __construct(
         protected PontuacaoService $pontuacaoService,
-        protected AutomacaoService $automacaoService
+        protected AutomacaoService $automacaoService,
+        protected WhatsappService $whatsappService
     ) {}
 
     public function solicitar(Cliente $cliente, Recompensa $recompensa, ?string $observacao = null, ?string $ip = null): Resgate
@@ -82,6 +86,28 @@ class ResgateService
             '{recompensa}' => $resgate->recompensa->nome,
             '{codigo_resgate}' => $resgate->codigo,
         ]);
+
+        // Mensagem complementar com botão pra copiar o código (Z-API).
+        // Em outros drivers cai pra texto com o código em negrito.
+        try {
+            $cliente = $resgate->cliente;
+            $msg = "🎁 Seu resgate de *{$resgate->recompensa->nome}* foi aprovado!\n\n"
+                 . "Apresente o código abaixo no caixa pra retirar.";
+            $this->whatsappService->enviarComBotoes(
+                $resgate->empresa,
+                $cliente->telefone,
+                $msg,
+                [
+                    ['type' => 'COPY', 'label' => 'Copiar código', 'value' => $resgate->codigo],
+                ],
+                'sistema',
+                'resgate_aprovado'
+            );
+        } catch (Throwable $e) {
+            Log::warning('[Resgate] Falha ao enviar botão de cópia: '.$e->getMessage(), [
+                'resgate_id' => $resgate->id,
+            ]);
+        }
 
         return $resgate->fresh();
     }
