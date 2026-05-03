@@ -6,9 +6,18 @@
     @method('PUT')
 
     <div class="bg-white rounded-xl shadow-sm p-6 space-y-4">
-        <a href="{{ route('super.documentos.index') }}" class="text-sm text-slate-500 hover:text-slate-800">
-            <i class="ri-arrow-left-line"></i> Voltar
-        </a>
+        @php
+            $urlPublica = url('/'.($documento->slug === 'privacidade' ? 'politica-privacidade' : 'termos-de-uso'));
+        @endphp
+        <div class="flex items-center justify-between">
+            <a href="{{ route('super.documentos.index') }}" class="text-sm text-slate-500 hover:text-slate-800">
+                <i class="ri-arrow-left-line"></i> Voltar
+            </a>
+            <a href="{{ $urlPublica }}" target="_blank"
+               class="inline-flex items-center gap-1.5 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg">
+                <i class="ri-external-link-line"></i> Ver página pública
+            </a>
+        </div>
 
         <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">Título</label>
