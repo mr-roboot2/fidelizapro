@@ -92,10 +92,11 @@ class AutomacaoService
                 $cliente->telefone,
                 $mapping['evento'],
                 $mapping['params'],
-                $msg
+                $msg,
+                'automacao'
             );
         } else {
-            $sucesso = $this->whatsapp->enviar($empresa, $cliente->telefone, $msg);
+            $sucesso = $this->whatsapp->enviar($empresa, $cliente->telefone, $msg, 'automacao', $auto->tipo);
         }
 
         AutomacaoLog::create([

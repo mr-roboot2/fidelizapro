@@ -43,6 +43,7 @@
                 ['admin.avaliacoes.index', 'ri-star-line', 'Avaliações'],
                 ['admin.parceiros.index', 'ri-handshake-line', 'Parceiros'],
                 ['admin.relatorios.index', 'ri-bar-chart-line', 'Relatórios'],
+                ['admin.whatsapp-logs.index', 'ri-whatsapp-line', 'WhatsApp'],
                 ['admin.atividade.suspeita', 'ri-shield-keyhole-line', 'Antifraude'],
                 ['admin.meu-plano.index', 'ri-vip-crown-line', 'Meu plano'],
                 ['admin.importacao.index', 'ri-plug-line', 'Importação / PDV'],

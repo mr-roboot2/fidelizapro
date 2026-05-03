@@ -40,6 +40,8 @@ use App\Http\Controllers\SuperAdmin\WhatsappController as SuperWhatsappControlle
 use App\Http\Controllers\SuperAdmin\WhatsappTemplateController as SuperWhatsappTemplateController;
 use App\Http\Controllers\SuperAdmin\AutomacaoController as SuperAutomacaoController;
 use App\Http\Controllers\SuperAdmin\CampanhaController as SuperCampanhaController;
+use App\Http\Controllers\SuperAdmin\WhatsappLogController as SuperWhatsappLogController;
+use App\Http\Controllers\Admin\WhatsappLogController as AdminWhatsappLogController;
 
 // Instalador web (auto-trava após concluir via storage/installed.lock)
 Route::middleware('install.gate')->prefix('install')->group(function () {
@@ -109,6 +111,8 @@ Route::middleware(['admin.auth', 'empresa.scope'])->prefix('admin')->name('admin
     Route::get('importacao', [ImportacaoController::class, 'index'])->name('importacao.index');
     Route::post('importacao', [ImportacaoController::class, 'processar'])->name('importacao.processar');
 
+    Route::get('whatsapp-logs', [AdminWhatsappLogController::class, 'index'])->name('whatsapp-logs.index');
+
     Route::get('atividade-suspeita', [AtividadeSuspeitaController::class, 'index'])->name('atividade.suspeita');
     Route::get('meu-plano', [MeuPlanoController::class, 'index'])->name('meu-plano.index');
 
@@ -165,6 +169,8 @@ Route::middleware(['super.auth'])->prefix('super')->name('super.')->group(functi
 
     Route::resource('campanhas', SuperCampanhaController::class)->except(['show']);
     Route::post('campanhas/{campanha}/disparar', [SuperCampanhaController::class, 'disparar'])->name('campanhas.disparar');
+
+    Route::get('whatsapp-logs', [SuperWhatsappLogController::class, 'index'])->name('whatsapp-logs.index');
 
     Route::get('documentos', [SuperDocumentoLegalController::class, 'index'])->name('documentos.index');
     Route::get('documentos/criar', [SuperDocumentoLegalController::class, 'create'])->name('documentos.create');

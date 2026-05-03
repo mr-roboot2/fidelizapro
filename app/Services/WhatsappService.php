@@ -7,12 +7,14 @@ use App\Models\CampanhaEnvio;
 use App\Models\Cliente;
 use App\Models\ConfiguracaoSistema;
 use App\Models\Empresa;
+use App\Models\WhatsappEnvio;
 use App\Models\WhatsappTemplate;
 use App\Services\Whatsapp\EvolutionDriver;
 use App\Services\Whatsapp\MetaCloudDriver;
 use App\Services\Whatsapp\MockDriver;
 use App\Services\Whatsapp\WhatsappDriverInterface;
 use App\Services\Whatsapp\ZapiDriver;
+use Throwable;
 
 class WhatsappService
 {
@@ -41,9 +43,11 @@ class WhatsappService
         return ConfiguracaoSistema::instancia();
     }
 
-    public function enviar(Empresa $empresa, string $telefone, string $mensagem): bool
+    public function enviar(Empresa $empresa, string $telefone, string $mensagem, string $origem = 'manual', string $evento = 'livre'): bool
     {
-        return $this->driver()->enviar($this->config(), $telefone, $mensagem);
+        $sucesso = $this->driver()->enviar($this->config(), $telefone, $mensagem);
+        $this->registrarEnvio($empresa, $telefone, $mensagem, $sucesso, $evento, $origem);
+        return $sucesso;
     }
 
     /**
@@ -54,10 +58,11 @@ class WhatsappService
      * janela de 24h). Senão, faz fallback pro texto livre fornecido em
      * $textoFallback (ou monta a partir do exemplo do evento).
      */
-    public function enviarEvento(Empresa $empresa, string $telefone, string $evento, array $parametros = [], ?string $textoFallback = null): bool
+    public function enviarEvento(Empresa $empresa, string $telefone, string $evento, array $parametros = [], ?string $textoFallback = null, string $origem = 'sistema'): bool
     {
         $config = $this->config();
         $driver = $this->driver();
+        $usouTemplate = false;
 
         if ($config->whatsapp_provider === 'meta_cloud' && $config->whatsapp_ativo) {
             $tpl = WhatsappTemplate::where('evento', $evento)
@@ -65,7 +70,10 @@ class WhatsappService
                 ->first();
 
             if ($tpl && $driver instanceof MetaCloudDriver) {
-                return $driver->enviarTemplate($config, $telefone, $tpl->nome_template, $tpl->idioma, $parametros);
+                $sucesso = $driver->enviarTemplate($config, $telefone, $tpl->nome_template, $tpl->idioma, $parametros);
+                $usouTemplate = true;
+                $this->registrarEnvio($empresa, $telefone, "[template:{$tpl->nome_template}] ".implode(' | ', $parametros), $sucesso, $evento, $origem);
+                return $sucesso;
             }
         }
 
@@ -79,7 +87,41 @@ class WhatsappService
             }
         }
 
-        return $driver->enviar($config, $telefone, $textoFallback);
+        $sucesso = $driver->enviar($config, $telefone, $textoFallback);
+        $this->registrarEnvio($empresa, $telefone, $textoFallback, $sucesso, $evento, $origem);
+        return $sucesso;
+    }
+
+    /**
+     * Persiste o envio na tabela whatsapp_envios. Falhas de log nunca
+     * propagam — mensagem já foi enviada (ou tentativa já foi feita) e o
+     * fluxo principal não deve cair por causa do registro.
+     */
+    protected function registrarEnvio(?Empresa $empresa, string $telefone, ?string $mensagem, bool $sucesso, string $evento, string $origem): void
+    {
+        try {
+            $config = $this->config();
+            $clienteId = null;
+            if ($empresa) {
+                $clienteId = Cliente::where('empresa_id', $empresa->id)
+                    ->whereTelefone($telefone)
+                    ->value('id');
+            }
+
+            WhatsappEnvio::create([
+                'empresa_id' => $empresa?->id,
+                'cliente_id' => $clienteId,
+                'telefone'   => $telefone,
+                'evento'     => $evento,
+                'origem'     => $origem,
+                'mensagem'   => $mensagem,
+                'provider'   => $config->whatsapp_ativo ? $config->whatsapp_provider : 'mock',
+                'sucesso'    => $sucesso,
+                'erro'       => $sucesso ? null : 'Falha no envio (verifique log do driver)',
+            ]);
+        } catch (Throwable $e) {
+            // ignora silenciosamente — não pode derrubar o fluxo principal
+        }
     }
 
     public function testar(string $telefoneDestino): array
@@ -108,7 +150,7 @@ class WhatsappService
 
             $msg = $this->personalizarMensagem($campanha->mensagem, $cliente);
             // Empresa é só pra contexto/log — config real é global
-            $sucesso = $this->enviar($cliente->empresa, $cliente->telefone, $msg);
+            $sucesso = $this->enviar($cliente->empresa, $cliente->telefone, $msg, 'campanha', 'campanha');
 
             $envio->update([
                 'status' => $sucesso ? 'enviado' : 'falhou',

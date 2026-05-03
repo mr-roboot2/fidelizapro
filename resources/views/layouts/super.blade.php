@@ -40,6 +40,7 @@
                 ['super.whatsapp-templates.index', 'ri-message-3-line', 'Templates WhatsApp'],
                 ['super.automacoes.index', 'ri-magic-line', 'Automações'],
                 ['super.campanhas.index', 'ri-megaphone-line', 'Campanhas'],
+                ['super.whatsapp-logs.index', 'ri-history-line', 'Logs WhatsApp'],
                 ['super.configuracoes.edit', 'ri-settings-3-line', 'Configurações'],
             ];
         @endphp
