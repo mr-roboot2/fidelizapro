@@ -111,6 +111,7 @@ async function showScreen(nome, params = {}) {
         perfil: telaPerfil,
         editarPerfil: telaEditarPerfil,
         alterarSenha: telaAlterarSenha,
+        extrato: telaExtrato,
         resgates: telaResgates,
         indicacoes: telaIndicacoes,
         pesquisa: telaPesquisa,
@@ -753,6 +754,13 @@ async function telaPerfil() {
         <div class="px-4 mt-4">
             <h3 class="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-2 px-1">Minha conta</h3>
             <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden divide-y divide-slate-100">
+                <button onclick="showScreen('extrato')" class="w-full p-4 flex items-center gap-3 hover:bg-slate-50 transition">
+                    <div class="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center">
+                        <i class="ri-bank-line text-blue-600"></i>
+                    </div>
+                    <span class="flex-1 text-left font-medium text-slate-700">Extrato</span>
+                    <i class="ri-arrow-right-s-line text-slate-400 text-xl"></i>
+                </button>
                 <button onclick="showScreen('resgates')" class="w-full p-4 flex items-center gap-3 hover:bg-slate-50 transition">
                     <div class="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center">
                         <i class="ri-coupon-line text-amber-600"></i>
@@ -996,6 +1004,98 @@ window.logout = async () => {
     STATE.token = null; STATE.cliente = null;
     persistir();
     showScreen('escolherEmpresa');
+};
+
+// Tela 7.7: Extrato (movimentações de pontos e cashback)
+async function telaExtrato() {
+    const data = await api('/cliente/extrato');
+    const e = STATE.empresa;
+    const cor = e.cor_primaria, corSec = e.cor_secundaria;
+
+    const renderItem = (m, isCashback) => {
+        const credito = m.tipo === 'credito';
+        const sinal = credito ? '+' : '−';
+        const valor = isCashback ? `R$ ${Number(m.valor).toFixed(2).replace('.', ',')}` : fmtNum(m.pontos) + ' pts';
+        const saldoFmt = isCashback ? `R$ ${Number(m.saldo_posterior).toFixed(2).replace('.', ',')}` : fmtNum(m.saldo_posterior) + ' pts';
+        const pendente = isCashback && m.processado === false;
+        return `
+        <li class="py-3 flex items-start gap-3">
+            <div class="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${credito ? 'bg-emerald-100' : 'bg-rose-100'}">
+                <i class="ri-arrow-${credito ? 'up' : 'down'}-line ${credito ? 'text-emerald-600' : 'text-rose-600'}"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <p class="font-medium text-slate-800 text-sm">${m.descricao || (credito ? 'Crédito' : 'Débito')}</p>
+                <div class="flex flex-wrap gap-x-2 text-[11px] text-slate-500 mt-0.5">
+                    <span>${m.data}</span>
+                    <span class="px-1.5 rounded bg-slate-100 text-slate-600">${m.origem}</span>
+                </div>
+                <p class="text-[11px] text-slate-400 mt-0.5">Saldo após: ${saldoFmt}${pendente ? ` &middot; <span class="text-amber-600">libera em ${m.liberado_em}</span>` : ''}</p>
+            </div>
+            <p class="font-bold text-sm whitespace-nowrap ${credito ? 'text-emerald-600' : 'text-rose-600'}">${sinal}${valor}</p>
+        </li>`;
+    };
+
+    screenContainer.innerHTML = `
+    <div class="fade-in flex-1 flex flex-col overflow-y-auto bg-slate-50">
+        <div class="px-5 pt-6 pb-10 text-white" style="background:linear-gradient(135deg,${cor},${corSec})">
+            <button onclick="showScreen('perfil')" class="text-white/80 mb-3 flex items-center gap-1 text-sm hover:text-white transition">
+                <i class="ri-arrow-left-line"></i> Voltar
+            </button>
+            <h1 class="text-2xl font-bold">Extrato</h1>
+            <p class="text-white/80 text-sm mt-1">Veja todas as suas movimentações</p>
+        </div>
+
+        <div class="px-4 -mt-6">
+            <div class="bg-white rounded-2xl shadow-md border border-slate-100 p-1.5 flex gap-1">
+                <button id="tab-pontos" onclick="extratoTab('pontos')" class="flex-1 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-1.5 text-white" style="background:linear-gradient(135deg,${cor},${corSec})">
+                    <i class="ri-coin-line"></i> Pontos
+                </button>
+                <button id="tab-cashback" onclick="extratoTab('cashback')" class="flex-1 py-2.5 rounded-xl font-semibold text-sm text-slate-600 flex items-center justify-center gap-1.5 hover:bg-slate-50 transition">
+                    <i class="ri-money-dollar-circle-line"></i> Cashback
+                </button>
+            </div>
+        </div>
+
+        <div class="px-4 mt-3 pb-6">
+            <div id="extrato-conteudo-pontos" class="bg-white border border-slate-200 rounded-2xl px-4">
+                ${data.pontos.length === 0
+                    ? `<div class="py-10 text-center">
+                        <div class="w-14 h-14 mx-auto rounded-full bg-slate-100 flex items-center justify-center mb-2">
+                            <i class="ri-coin-line text-2xl text-slate-400"></i>
+                        </div>
+                        <p class="text-sm text-slate-500 font-medium">Nenhuma movimentação de pontos ainda</p>
+                       </div>`
+                    : `<ul class="divide-y divide-slate-100">${data.pontos.map(p => renderItem(p, false)).join('')}</ul>`}
+            </div>
+            <div id="extrato-conteudo-cashback" class="bg-white border border-slate-200 rounded-2xl px-4 hidden">
+                ${data.cashback.length === 0
+                    ? `<div class="py-10 text-center">
+                        <div class="w-14 h-14 mx-auto rounded-full bg-slate-100 flex items-center justify-center mb-2">
+                            <i class="ri-money-dollar-circle-line text-2xl text-slate-400"></i>
+                        </div>
+                        <p class="text-sm text-slate-500 font-medium">Nenhuma movimentação de cashback ainda</p>
+                       </div>`
+                    : `<ul class="divide-y divide-slate-100">${data.cashback.map(c => renderItem(c, true)).join('')}</ul>`}
+            </div>
+        </div>
+    </div>`;
+}
+
+window.extratoTab = (qual) => {
+    const e = STATE.empresa;
+    const cor = e.cor_primaria, corSec = e.cor_secundaria;
+    const ativa = qual === 'pontos' ? 'tab-pontos' : 'tab-cashback';
+    const inativa = qual === 'pontos' ? 'tab-cashback' : 'tab-pontos';
+    const ativaEl = document.getElementById(ativa);
+    const inativaEl = document.getElementById(inativa);
+    ativaEl.style.background = `linear-gradient(135deg, ${cor}, ${corSec})`;
+    ativaEl.classList.add('text-white');
+    ativaEl.classList.remove('text-slate-600', 'hover:bg-slate-50');
+    inativaEl.style.background = '';
+    inativaEl.classList.remove('text-white');
+    inativaEl.classList.add('text-slate-600', 'hover:bg-slate-50');
+    document.getElementById('extrato-conteudo-pontos').classList.toggle('hidden', qual !== 'pontos');
+    document.getElementById('extrato-conteudo-cashback').classList.toggle('hidden', qual !== 'cashback');
 };
 
 // Tela 8: Resgates

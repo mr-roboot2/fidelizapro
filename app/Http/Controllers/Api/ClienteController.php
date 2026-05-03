@@ -57,7 +57,9 @@ class ClienteController extends Controller
 
     public function extrato(Request $request)
     {
-        $transacoes = $request->user()->transacoesPontos()->latest()->take(50)->get()
+        $cliente = $request->user();
+
+        $pontos = $cliente->transacoesPontos()->latest()->take(50)->get()
             ->map(fn($t) => [
                 'id' => $t->id,
                 'data' => $t->created_at->format('d/m/Y H:i'),
@@ -68,7 +70,23 @@ class ClienteController extends Controller
                 'descricao' => $t->descricao,
             ]);
 
-        return response()->json(['transacoes' => $transacoes]);
+        $cashback = $cliente->movimentosCashback()->latest()->take(50)->get()
+            ->map(fn($m) => [
+                'id' => $m->id,
+                'data' => $m->created_at->format('d/m/Y H:i'),
+                'tipo' => $m->tipo,
+                'origem' => $m->origem,
+                'valor' => (float) $m->valor,
+                'saldo_posterior' => (float) $m->saldo_posterior,
+                'descricao' => $m->descricao,
+                'processado' => (bool) $m->processado,
+                'liberado_em' => $m->liberado_em?->format('d/m/Y'),
+            ]);
+
+        return response()->json([
+            'pontos' => $pontos,
+            'cashback' => $cashback,
+        ]);
     }
 
     public function atualizarPerfil(Request $request)
