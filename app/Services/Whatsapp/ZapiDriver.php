@@ -2,36 +2,31 @@
 
 namespace App\Services\Whatsapp;
 
-use App\Models\Empresa;
+use App\Models\ConfiguracaoSistema;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 /**
  * Z-API (z-api.io) — provider brasileiro popular.
  * Docs: https://developer.z-api.io/
- *
- * Configuração esperada:
- *   whatsapp_api_url   = https://api.z-api.io
- *   whatsapp_instance  = sua instance ID
- *   whatsapp_api_token = seu token
  */
 class ZapiDriver implements WhatsappDriverInterface
 {
-    public function enviar(Empresa $empresa, string $telefone, string $mensagem): bool
+    public function enviar(ConfiguracaoSistema $config, string $telefone, string $mensagem): bool
     {
-        if (!$empresa->whatsapp_instance || !$empresa->whatsapp_api_token) {
-            Log::warning("[Z-API] Configuração incompleta para empresa {$empresa->id}");
+        if (!$config->whatsapp_instance || !$config->whatsapp_api_token) {
+            Log::warning("[Z-API] Configuração global incompleta");
             return false;
         }
 
-        $base = $empresa->whatsapp_api_url ?: 'https://api.z-api.io';
+        $base = $config->whatsapp_api_url ?: 'https://api.z-api.io';
 
         try {
             $response = Http::withHeaders([
-                'Client-Token' => $empresa->whatsapp_api_token,
+                'Client-Token' => $config->whatsapp_api_token,
                 'Content-Type' => 'application/json',
             ])->timeout(15)->post(
-                rtrim($base, '/')."/instances/{$empresa->whatsapp_instance}/token/{$empresa->whatsapp_api_token}/send-text",
+                rtrim($base, '/')."/instances/{$config->whatsapp_instance}/token/{$config->whatsapp_api_token}/send-text",
                 [
                     'phone' => $this->normalizar($telefone),
                     'message' => $mensagem,
@@ -49,9 +44,9 @@ class ZapiDriver implements WhatsappDriverInterface
         }
     }
 
-    public function testar(Empresa $empresa, string $telefoneDestino): array
+    public function testar(ConfiguracaoSistema $config, string $telefoneDestino): array
     {
-        $ok = $this->enviar($empresa, $telefoneDestino, "[Teste de conexão WhatsApp via Z-API - {$empresa->nome}]");
+        $ok = $this->enviar($config, $telefoneDestino, "[Teste de conexão WhatsApp via Z-API - {$config->nome_sistema}]");
         return [
             'ok' => $ok,
             'mensagem' => $ok ? 'Mensagem de teste enviada!' : 'Falha — confira instance ID e token nos logs.',

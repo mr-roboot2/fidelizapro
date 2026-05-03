@@ -3,14 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class WhatsappTemplate extends Model
 {
     protected $table = 'whatsapp_templates';
 
     protected $fillable = [
-        'empresa_id', 'evento', 'nome_template', 'idioma', 'ativo',
+        'evento', 'nome_template', 'idioma', 'ativo',
     ];
 
     protected $casts = [
@@ -72,11 +71,6 @@ class WhatsappTemplate extends Model
             'exemplo' => '{{1}}, seu resgate de "{{2}}" foi aprovado!',
         ],
     ];
-
-    public function empresa(): BelongsTo
-    {
-        return $this->belongsTo(Empresa::class);
-    }
 
     public function definicaoEvento(): ?array
     {

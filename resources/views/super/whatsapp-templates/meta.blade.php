@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+@extends('layouts.super')
 @section('title', 'Templates registrados na Meta')
 @section('content')
 
@@ -10,15 +10,14 @@
             </h2>
             <p class="text-xs text-slate-500 mt-0.5">WABA ID: <code class="bg-slate-100 px-1 rounded font-mono text-[10px]">{{ $waba_id }}</code> &middot; lista direto da API da Meta</p>
         </div>
-        <a href="{{ route('admin.whatsapp-templates.index') }}" class="text-sm text-slate-600 hover:underline">
-            <i class="ri-arrow-left-line"></i> Voltar pra configuração
+        <a href="{{ route('super.whatsapp-templates.index') }}" class="text-sm text-slate-600 hover:underline">
+            <i class="ri-arrow-left-line"></i> Voltar
         </a>
     </div>
 
     @if (empty($templates))
         <div class="p-10 text-center">
-            <p class="text-slate-500 font-medium">Nenhum template encontrado nessa WABA.</p>
-            <p class="text-xs text-slate-400 mt-2">Crie em <a href="https://business.facebook.com/wa/manage/message-templates" target="_blank" class="text-indigo-600 underline">WhatsApp Manager</a>.</p>
+            <p class="text-slate-500 font-medium">Nenhum template encontrado.</p>
         </div>
     @else
         <table class="w-full text-sm">
@@ -52,10 +51,6 @@
                 @endforeach
             </tbody>
         </table>
-
-        <div class="px-6 py-3 bg-slate-50 border-t border-slate-200 text-xs text-slate-600">
-            <p><strong>Como usar:</strong> copie exatamente o <strong>Nome</strong> e o <strong>Idioma</strong> que aparecem aqui pra colar em <a href="{{ route('admin.whatsapp-templates.index') }}" class="text-indigo-600 underline">/admin/whatsapp-templates</a>. Só templates com status <strong>APPROVED</strong> funcionam pra envio.</p>
-        </div>
     @endif
 </div>
 @endsection

@@ -38,6 +38,8 @@ use App\Http\Controllers\InstallController;
 use App\Http\Controllers\DocumentoLegalPublicoController;
 use App\Http\Controllers\SuperAdmin\DocumentoLegalController as SuperDocumentoLegalController;
 use App\Http\Controllers\SuperAdmin\ConfiguracaoSistemaController;
+use App\Http\Controllers\SuperAdmin\WhatsappController as SuperWhatsappController;
+use App\Http\Controllers\SuperAdmin\WhatsappTemplateController as SuperWhatsappTemplateController;
 
 // Instalador web (auto-trava após concluir via storage/installed.lock)
 Route::middleware('install.gate')->prefix('install')->group(function () {
@@ -108,14 +110,7 @@ Route::middleware(['admin.auth', 'empresa.scope'])->prefix('admin')->name('admin
     Route::get('importacao', [ImportacaoController::class, 'index'])->name('importacao.index');
     Route::post('importacao', [ImportacaoController::class, 'processar'])->name('importacao.processar');
 
-    Route::get('whatsapp', [WhatsappController::class, 'edit'])->name('whatsapp.edit');
-    Route::put('whatsapp', [WhatsappController::class, 'update'])->name('whatsapp.update');
-    Route::post('whatsapp/testar', [WhatsappController::class, 'testar'])->name('whatsapp.testar');
-    Route::post('whatsapp/regenerar-webhook-token', [WhatsappController::class, 'regenerarWebhookToken'])->name('whatsapp.regenerar-webhook-token');
-
-    Route::get('whatsapp-templates', [WhatsappTemplateController::class, 'index'])->name('whatsapp-templates.index');
-    Route::get('whatsapp-templates/meta', [WhatsappTemplateController::class, 'listarMeta'])->name('whatsapp-templates.meta');
-    Route::put('whatsapp-templates/{evento}', [WhatsappTemplateController::class, 'update'])->name('whatsapp-templates.update');
+    // WhatsApp foi movido para o super admin — config é global.
 
     Route::resource('automacoes', AutomacaoController::class);
     Route::post('automacoes/{automacao}/toggle', [AutomacaoController::class, 'toggle'])->name('automacoes.toggle');
@@ -162,6 +157,15 @@ Route::middleware(['super.auth'])->prefix('super')->name('super.')->group(functi
     Route::get('configuracoes', [ConfiguracaoSistemaController::class, 'edit'])->name('configuracoes.edit');
     Route::put('configuracoes', [ConfiguracaoSistemaController::class, 'update'])->name('configuracoes.update');
 
+    Route::get('whatsapp', [SuperWhatsappController::class, 'edit'])->name('whatsapp.edit');
+    Route::put('whatsapp', [SuperWhatsappController::class, 'update'])->name('whatsapp.update');
+    Route::post('whatsapp/testar', [SuperWhatsappController::class, 'testar'])->name('whatsapp.testar');
+    Route::post('whatsapp/regenerar-webhook-token', [SuperWhatsappController::class, 'regenerarWebhookToken'])->name('whatsapp.regenerar-webhook-token');
+
+    Route::get('whatsapp-templates', [SuperWhatsappTemplateController::class, 'index'])->name('whatsapp-templates.index');
+    Route::get('whatsapp-templates/meta', [SuperWhatsappTemplateController::class, 'listarMeta'])->name('whatsapp-templates.meta');
+    Route::put('whatsapp-templates/{evento}', [SuperWhatsappTemplateController::class, 'update'])->name('whatsapp-templates.update');
+
     Route::get('documentos', [SuperDocumentoLegalController::class, 'index'])->name('documentos.index');
     Route::get('documentos/criar', [SuperDocumentoLegalController::class, 'create'])->name('documentos.create');
     Route::post('documentos', [SuperDocumentoLegalController::class, 'store'])->name('documentos.store');
@@ -181,9 +185,9 @@ Route::middleware(['super.auth'])->prefix('super')->name('super.')->group(functi
 // Webhooks de gateway de pagamento (públicos)
 Route::post('/webhook/pagamento/{gateway}', [WebhookPagamentoController::class, 'receber'])->name('webhook.pagamento');
 
-// Webhook WhatsApp Cloud API (Meta) — verify (GET) + receber eventos (POST)
-Route::get('/webhook/whatsapp/meta/{slug}',  [WhatsappWebhookController::class, 'verificar'])->name('webhook.whatsapp.verificar');
-Route::post('/webhook/whatsapp/meta/{slug}', [WhatsappWebhookController::class, 'receber'])->name('webhook.whatsapp.receber');
+// Webhook WhatsApp Cloud API (Meta) — global (uma WABA pra todas empresas)
+Route::get('/webhook/whatsapp/meta',  [WhatsappWebhookController::class, 'verificar'])->name('webhook.whatsapp.verificar');
+Route::post('/webhook/whatsapp/meta', [WhatsappWebhookController::class, 'receber'])->name('webhook.whatsapp.receber');
 
 // Mock de pagamento (dev)
 Route::get('/pagamento-mock/{cobranca}', [WebhookPagamentoController::class, 'pagamentoMock'])->name('pagamento.mock');

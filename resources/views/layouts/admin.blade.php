@@ -39,8 +39,6 @@
                 ['admin.parceiros.index', 'ri-handshake-line', 'Parceiros'],
                 ['admin.campanhas.index', 'ri-whatsapp-line', 'Campanhas'],
                 ['admin.automacoes.index', 'ri-magic-line', 'Automações'],
-                ['admin.whatsapp.edit', 'ri-whatsapp-fill', 'WhatsApp API'],
-                ['admin.whatsapp-templates.index', 'ri-message-3-line', 'Templates WhatsApp'],
                 ['admin.relatorios.index', 'ri-bar-chart-line', 'Relatórios'],
                 ['admin.atividade.suspeita', 'ri-shield-keyhole-line', 'Antifraude'],
                 ['admin.meu-plano.index', 'ri-vip-crown-line', 'Meu plano'],

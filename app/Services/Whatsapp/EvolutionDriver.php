@@ -2,7 +2,7 @@
 
 namespace App\Services\Whatsapp;
 
-use App\Models\Empresa;
+use App\Models\ConfiguracaoSistema;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -12,19 +12,19 @@ use Illuminate\Support\Facades\Log;
  */
 class EvolutionDriver implements WhatsappDriverInterface
 {
-    public function enviar(Empresa $empresa, string $telefone, string $mensagem): bool
+    public function enviar(ConfiguracaoSistema $config, string $telefone, string $mensagem): bool
     {
-        if (!$empresa->whatsapp_api_url || !$empresa->whatsapp_api_token || !$empresa->whatsapp_instance) {
-            Log::warning("[Evolution] Configuração incompleta para empresa {$empresa->id}");
+        if (!$config->whatsapp_api_url || !$config->whatsapp_api_token || !$config->whatsapp_instance) {
+            Log::warning("[Evolution] Configuração global incompleta");
             return false;
         }
 
         try {
             $response = Http::withHeaders([
-                'apikey' => $empresa->whatsapp_api_token,
+                'apikey' => $config->whatsapp_api_token,
                 'Content-Type' => 'application/json',
             ])->timeout(15)->post(
-                rtrim($empresa->whatsapp_api_url, '/').'/message/sendText/'.$empresa->whatsapp_instance,
+                rtrim($config->whatsapp_api_url, '/').'/message/sendText/'.$config->whatsapp_instance,
                 [
                     'number' => $this->normalizar($telefone),
                     'text' => $mensagem,
@@ -42,9 +42,9 @@ class EvolutionDriver implements WhatsappDriverInterface
         }
     }
 
-    public function testar(Empresa $empresa, string $telefoneDestino): array
+    public function testar(ConfiguracaoSistema $config, string $telefoneDestino): array
     {
-        $ok = $this->enviar($empresa, $telefoneDestino, "[Teste de conexão WhatsApp via Evolution - {$empresa->nome}]");
+        $ok = $this->enviar($config, $telefoneDestino, "[Teste de conexão WhatsApp via Evolution - {$config->nome_sistema}]");
         return [
             'ok' => $ok,
             'mensagem' => $ok ? 'Mensagem de teste enviada com sucesso!' : 'Falha — confira URL, token e instance nos logs.',

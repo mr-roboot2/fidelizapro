@@ -1,37 +1,31 @@
-@extends('layouts.admin')
+@extends('layouts.super')
 @section('title', 'Templates WhatsApp')
 @section('content')
 
 <div class="flex justify-end mb-3">
-    <a href="{{ route('admin.whatsapp-templates.meta') }}"
+    <a href="{{ route('super.whatsapp-templates.meta') }}"
        class="text-sm bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 px-4 py-2 rounded-lg font-medium">
         <i class="ri-list-check-2"></i> Ver templates registrados na Meta
     </a>
 </div>
 
-<div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 mb-5 text-sm text-indigo-900">
-    <p class="font-semibold mb-1"><i class="ri-information-line"></i> Como funciona</p>
-    <p class="text-indigo-800">
-        A Cloud API da Meta só permite enviar texto livre dentro da janela de 24h após o cliente responder.
-        Pra mensagens iniciadas pelo sistema (OTP, aniversário, etc.) é preciso usar <strong>templates aprovados</strong>.
+<div class="bg-rose-50 border border-rose-100 rounded-xl p-4 mb-5 text-sm text-rose-900">
+    <p class="font-semibold mb-1"><i class="ri-information-line"></i> Templates globais</p>
+    <p class="text-rose-800">
+        Esses templates são compartilhados por todas as empresas. Use <code>{{ '{{empresa}}' }}</code> nos parâmetros pra que cada empresa apareça com seu nome no template.
     </p>
-    <ol class="list-decimal list-inside mt-2 space-y-0.5 text-indigo-800 text-xs">
-        <li>No <a href="https://business.facebook.com/wa/manage/message-templates" target="_blank" class="underline">WhatsApp Manager</a> da Meta, crie um template e aguarde aprovação (~1 a 24h).</li>
-        <li>Volte aqui e cole o <strong>nome exato</strong> do template aprovado em cada evento abaixo.</li>
-        <li>Eventos sem template configurado continuam enviando texto livre (só chega na janela de 24h).</li>
-    </ol>
 </div>
 
 <div class="space-y-3">
     @foreach ($eventos as $slug => $def)
         @php $tpl = $configurados[$slug] ?? null; @endphp
         <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-            <form method="POST" action="{{ route('admin.whatsapp-templates.update', $slug) }}">
+            <form method="POST" action="{{ route('super.whatsapp-templates.update', $slug) }}">
                 @csrf @method('PUT')
 
                 <div class="p-5 flex items-start gap-4 flex-wrap">
-                    <div class="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0">
-                        <i class="ri-message-3-line text-indigo-600 text-xl"></i>
+                    <div class="w-10 h-10 rounded-lg bg-rose-50 flex items-center justify-center flex-shrink-0">
+                        <i class="ri-message-3-line text-rose-600 text-xl"></i>
                     </div>
 
                     <div class="flex-1 min-w-[240px]">
@@ -71,7 +65,7 @@
                                 <span>Ativo</span>
                             </label>
                         </div>
-                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                        <button type="submit" class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
                             Salvar
                         </button>
                     </div>

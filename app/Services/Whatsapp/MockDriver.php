@@ -2,20 +2,20 @@
 
 namespace App\Services\Whatsapp;
 
-use App\Models\Empresa;
+use App\Models\ConfiguracaoSistema;
 use Illuminate\Support\Facades\Log;
 
 class MockDriver implements WhatsappDriverInterface
 {
-    public function enviar(Empresa $empresa, string $telefone, string $mensagem): bool
+    public function enviar(ConfiguracaoSistema $config, string $telefone, string $mensagem): bool
     {
-        Log::info("[WhatsApp MOCK][{$empresa->slug}] → {$telefone}: {$mensagem}");
+        Log::info("[WhatsApp MOCK] → {$telefone}: {$mensagem}");
         return true;
     }
 
-    public function testar(Empresa $empresa, string $telefoneDestino): array
+    public function testar(ConfiguracaoSistema $config, string $telefoneDestino): array
     {
-        $this->enviar($empresa, $telefoneDestino, "[Teste de conexão WhatsApp - {$empresa->nome}]");
+        $this->enviar($config, $telefoneDestino, "[Teste de conexão WhatsApp - {$config->nome_sistema}]");
         return ['ok' => true, 'mensagem' => 'Modo MOCK ativo: mensagem registrada em storage/logs/laravel.log'];
     }
 }

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Campanha;
 use App\Models\CampanhaEnvio;
 use App\Models\Cliente;
+use App\Models\ConfiguracaoSistema;
 use App\Models\Empresa;
 use App\Models\WhatsappTemplate;
 use App\Services\Whatsapp\EvolutionDriver;
@@ -16,25 +17,33 @@ use App\Services\Whatsapp\ZapiDriver;
 class WhatsappService
 {
     /**
-     * Resolve o driver da empresa. Cai em mock se desativado/inválido.
+     * Resolve o driver baseado na configuração GLOBAL do sistema (super admin).
+     * Cai em mock se desativado/inválido.
      */
-    public function driverFor(Empresa $empresa): WhatsappDriverInterface
+    public function driver(): WhatsappDriverInterface
     {
-        if (!$empresa->whatsapp_ativo) {
+        $config = ConfiguracaoSistema::instancia();
+
+        if (!$config->whatsapp_ativo) {
             return new MockDriver();
         }
 
-        return match ($empresa->whatsapp_provider) {
+        return match ($config->whatsapp_provider) {
             'evolution' => new EvolutionDriver(),
-            'zapi' => new ZapiDriver(),
-            'meta_cloud' => new MetaCloudDriver(),
-            default => new MockDriver(),
+            'zapi'      => new ZapiDriver(),
+            'meta_cloud'=> new MetaCloudDriver(),
+            default     => new MockDriver(),
         };
+    }
+
+    public function config(): ConfiguracaoSistema
+    {
+        return ConfiguracaoSistema::instancia();
     }
 
     public function enviar(Empresa $empresa, string $telefone, string $mensagem): bool
     {
-        return $this->driverFor($empresa)->enviar($empresa, $telefone, $mensagem);
+        return $this->driver()->enviar($this->config(), $telefone, $mensagem);
     }
 
     /**
@@ -47,16 +56,16 @@ class WhatsappService
      */
     public function enviarEvento(Empresa $empresa, string $telefone, string $evento, array $parametros = [], ?string $textoFallback = null): bool
     {
-        $driver = $this->driverFor($empresa);
+        $config = $this->config();
+        $driver = $this->driver();
 
-        if ($empresa->whatsapp_provider === 'meta_cloud' && $empresa->whatsapp_ativo) {
-            $tpl = WhatsappTemplate::where('empresa_id', $empresa->id)
-                ->where('evento', $evento)
+        if ($config->whatsapp_provider === 'meta_cloud' && $config->whatsapp_ativo) {
+            $tpl = WhatsappTemplate::where('evento', $evento)
                 ->where('ativo', true)
                 ->first();
 
             if ($tpl && $driver instanceof MetaCloudDriver) {
-                return $driver->enviarTemplate($empresa, $telefone, $tpl->nome_template, $tpl->idioma, $parametros);
+                return $driver->enviarTemplate($config, $telefone, $tpl->nome_template, $tpl->idioma, $parametros);
             }
         }
 
@@ -70,12 +79,12 @@ class WhatsappService
             }
         }
 
-        return $driver->enviar($empresa, $telefone, $textoFallback);
+        return $driver->enviar($config, $telefone, $textoFallback);
     }
 
-    public function testar(Empresa $empresa, string $telefoneDestino): array
+    public function testar(string $telefoneDestino): array
     {
-        return $this->driverFor($empresa)->testar($empresa, $telefoneDestino);
+        return $this->driver()->testar($this->config(), $telefoneDestino);
     }
 
     public function dispararCampanha(Campanha $campanha): void
