@@ -87,6 +87,10 @@ function setNavActive(nome) {
     });
 }
 
+// Rastreia a tela anterior pra botões "Voltar" contextuais.
+let telaAnterior = null;
+let telaAtual = null;
+
 async function showScreen(nome, params = {}) {
     // White label: a empresa está fixada na URL, então nunca mostra o seletor.
     if (WHITELABEL_SLUG && nome === 'escolherEmpresa') {
@@ -96,6 +100,11 @@ async function showScreen(nome, params = {}) {
         // White label vai direto pra login (já tem empresa fixada)
         nome = WHITELABEL_SLUG ? 'login' : 'escolherEmpresa';
     }
+    if (telaAtual && telaAtual !== nome) {
+        telaAnterior = telaAtual;
+    }
+    telaAtual = nome;
+
     setNavActive(nome);
     $('#bottom-nav').classList.toggle('hidden', !STATE.token);
 
@@ -1662,6 +1671,8 @@ async function telaMeusCupons() {
     const data = await api('/parceiros/meus-cupons');
     const e = STATE.empresa;
     const cor = e.cor_primaria, corSec = e.cor_secundaria;
+    // Volta para onde veio (perfil, parceiros, home) — default: parceiros
+    const voltarPara = ['perfil','parceiros','home'].includes(telaAnterior) ? telaAnterior : 'parceiros';
 
     const statusInfo = (s) => ({
         disponivel: { label: 'Disponível', cls: 'bg-emerald-100 text-emerald-700', icon: 'ri-check-line' },
@@ -1672,7 +1683,7 @@ async function telaMeusCupons() {
     screenContainer.innerHTML = `
     <div class="fade-in flex-1 flex flex-col overflow-y-auto bg-slate-50">
         <div class="px-5 pt-6 pb-10 text-white" style="background:linear-gradient(135deg,${cor},${corSec})">
-            <button onclick="showScreen('parceiros')" class="text-white/80 mb-3 flex items-center gap-1 text-sm hover:text-white transition">
+            <button onclick="showScreen('${voltarPara}')" class="text-white/80 mb-3 flex items-center gap-1 text-sm hover:text-white transition">
                 <i class="ri-arrow-left-line"></i> Voltar
             </button>
             <h1 class="text-2xl font-bold">Meus cupons</h1>
