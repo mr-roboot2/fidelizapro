@@ -112,10 +112,7 @@ class AutomacaoService
      */
     public function disparar(Empresa $empresa, string $tipo, Cliente $cliente, array $extras = []): bool
     {
-        $auto = Automacao::where('empresa_id', $empresa->id)
-            ->where('tipo', $tipo)
-            ->where('ativo', true)
-            ->first();
+        $auto = Automacao::where('tipo', $tipo)->where('ativo', true)->first();
         if (!$auto) return false;
 
         if ($this->jaEnviadoHoje($auto, $cliente)) return false;
@@ -132,8 +129,8 @@ class AutomacaoService
 
     protected function buscarClientesAlvo(Automacao $auto): Collection
     {
-        $base = Cliente::where('empresa_id', $auto->empresa_id)
-            ->where('ativo', true)
+        // Automações são globais — busca em todas empresas
+        $base = Cliente::where('ativo', true)
             ->where('aceita_whatsapp', true);
 
         return match ($auto->tipo) {

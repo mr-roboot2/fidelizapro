@@ -89,7 +89,6 @@ class WhatsappService
 
     public function dispararCampanha(Campanha $campanha): void
     {
-        $empresa = $campanha->empresa;
         $clientes = $this->buscarClientesPorSegmento($campanha);
 
         $campanha->update([
@@ -108,7 +107,8 @@ class WhatsappService
             ]);
 
             $msg = $this->personalizarMensagem($campanha->mensagem, $cliente);
-            $sucesso = $this->enviar($empresa, $cliente->telefone, $msg);
+            // Empresa é só pra contexto/log — config real é global
+            $sucesso = $this->enviar($cliente->empresa, $cliente->telefone, $msg);
 
             $envio->update([
                 'status' => $sucesso ? 'enviado' : 'falhou',
@@ -129,9 +129,13 @@ class WhatsappService
 
     public function buscarClientesPorSegmento(Campanha $campanha)
     {
-        $query = Cliente::where('empresa_id', $campanha->empresa_id)
-            ->where('ativo', true)
+        // Campanha global (empresa_id = null) atinge clientes de todas empresas
+        $query = Cliente::where('ativo', true)
             ->where('aceita_whatsapp', true);
+
+        if ($campanha->empresa_id) {
+            $query->where('empresa_id', $campanha->empresa_id);
+        }
 
         return match ($campanha->segmento) {
             'aniversariantes' => $query->whereMonth('data_nascimento', now()->month)->get(),

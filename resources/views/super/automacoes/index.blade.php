@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+@extends("layouts.super")
 @section('title', 'Automações WhatsApp')
 @section('content')
 <div class="max-w-4xl">
@@ -53,15 +53,15 @@
 
                     <div class="flex flex-col gap-2 shrink-0">
                         @if ($auto->exists)
-                            <a href="{{ route('admin.automacoes.edit', $auto) }}" class="text-xs px-3 py-1.5 bg-indigo-100 text-indigo-700 rounded">Editar</a>
-                            <form action="{{ route('admin.automacoes.toggle', $auto) }}" method="POST">
+                            <a href="{{ route('super.automacoes.edit', $auto) }}" class="text-xs px-3 py-1.5 bg-indigo-100 text-indigo-700 rounded">Editar</a>
+                            <form action="{{ route('super.automacoes.toggle', $auto) }}" method="POST">
                                 @csrf
                                 <button class="text-xs px-3 py-1.5 {{ $auto->ativo ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700' }} rounded w-full">
                                     {{ $auto->ativo ? 'Pausar' : 'Ativar' }}
                                 </button>
                             </form>
                             @if (in_array($tipo, ['aniversario','pontos_vencendo','inativo_30d','inativo_60d']))
-                                <form action="{{ route('admin.automacoes.executar', $auto) }}" method="POST" onsubmit="return confirm('Executar agora? Vai enviar mensagens reais.')">
+                                <form action="{{ route('super.automacoes.executar', $auto) }}" method="POST" onsubmit="return confirm('Executar agora? Vai enviar mensagens reais.')">
                                     @csrf
                                     <button class="text-xs px-3 py-1.5 bg-purple-100 text-purple-700 rounded w-full">
                                         <i class="ri-play-line"></i> Executar agora
@@ -69,7 +69,7 @@
                                 </form>
                             @endif
                         @else
-                            <a href="{{ route('admin.automacoes.create', ['tipo' => $tipo]) }}"
+                            <a href="{{ route('super.automacoes.create', ['tipo' => $tipo]) }}"
                                class="text-xs px-3 py-1.5 bg-indigo-600 text-white rounded">
                                 <i class="ri-add-line"></i> Configurar
                             </a>

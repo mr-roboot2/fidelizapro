@@ -1,8 +1,8 @@
-@extends('layouts.admin')
+@extends("layouts.super")
 @section('title', 'Campanhas WhatsApp')
 @section('content')
 <div class="mb-4 flex justify-end">
-    <a href="{{ route('admin.campanhas.create') }}"
+    <a href="{{ route('super.campanhas.create') }}"
        class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm">
         <i class="ri-add-line"></i> Nova campanha
     </a>
@@ -45,16 +45,16 @@
             @endif
 
             <div class="mt-3 flex gap-2">
-                <a href="{{ route('admin.campanhas.edit', $c) }}" class="flex-1 text-center text-sm py-1.5 bg-slate-100 rounded">Editar</a>
+                <a href="{{ route('super.campanhas.edit', $c) }}" class="flex-1 text-center text-sm py-1.5 bg-slate-100 rounded">Editar</a>
                 @if (in_array($c->status, ['rascunho', 'agendada']))
-                    <form action="{{ route('admin.campanhas.disparar', $c) }}" method="POST" class="flex-1" onsubmit="return confirm('Disparar agora?')">
+                    <form action="{{ route('super.campanhas.disparar', $c) }}" method="POST" class="flex-1" onsubmit="return confirm('Disparar agora?')">
                         @csrf
                         <button class="w-full text-sm py-1.5 bg-emerald-600 text-white rounded">
                             <i class="ri-send-plane-line"></i> Disparar
                         </button>
                     </form>
                 @endif
-                <form action="{{ route('admin.campanhas.destroy', $c) }}" method="POST" onsubmit="return confirm('Excluir?')">
+                <form action="{{ route('super.campanhas.destroy', $c) }}" method="POST" onsubmit="return confirm('Excluir?')">
                     @csrf @method('DELETE')
                     <button class="text-sm py-1.5 px-3 bg-rose-100 text-rose-700 rounded">
                         <i class="ri-delete-bin-line"></i>

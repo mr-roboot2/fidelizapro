@@ -1,8 +1,8 @@
-@extends('layouts.admin')
+@extends("layouts.super")
 @section('title', $automacao->exists ? 'Editar automação' : 'Configurar automação')
 @section('content')
 <div class="bg-white rounded-xl shadow-sm p-6 max-w-3xl">
-    <form method="POST" action="{{ $automacao->exists ? route('admin.automacoes.update', $automacao) : route('admin.automacoes.store') }}">
+    <form method="POST" action="{{ $automacao->exists ? route('super.automacoes.update', $automacao) : route('super.automacoes.store') }}">
         @csrf
         @if ($automacao->exists) @method('PUT') @endif
         @unless ($automacao->exists)
@@ -56,9 +56,9 @@
 
         <div class="flex gap-2 mt-6">
             <button class="px-5 py-2 bg-indigo-600 text-white rounded-lg">Salvar</button>
-            <a href="{{ route('admin.automacoes.index') }}" class="px-5 py-2 bg-slate-200 rounded-lg">Cancelar</a>
+            <a href="{{ route('super.automacoes.index') }}" class="px-5 py-2 bg-slate-200 rounded-lg">Cancelar</a>
             @if ($automacao->exists)
-                <form action="{{ route('admin.automacoes.destroy', $automacao) }}" method="POST" class="ml-auto" onsubmit="return confirm('Remover automação?')">
+                <form action="{{ route('super.automacoes.destroy', $automacao) }}" method="POST" class="ml-auto" onsubmit="return confirm('Remover automação?')">
                     @csrf @method('DELETE')
                     <button class="px-4 py-2 bg-rose-100 text-rose-700 rounded-lg text-sm">Excluir</button>
                 </form>

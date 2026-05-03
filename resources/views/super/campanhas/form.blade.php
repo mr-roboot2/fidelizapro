@@ -1,8 +1,8 @@
-@extends('layouts.admin')
+@extends("layouts.super")
 @section('title', $campanha->exists ? 'Editar campanha' : 'Nova campanha')
 @section('content')
 <div class="bg-white rounded-xl shadow-sm p-6 max-w-2xl">
-    <form method="POST" action="{{ $campanha->exists ? route('admin.campanhas.update', $campanha) : route('admin.campanhas.store') }}">
+    <form method="POST" action="{{ $campanha->exists ? route('super.campanhas.update', $campanha) : route('super.campanhas.store') }}">
         @csrf
         @if ($campanha->exists) @method('PUT') @endif
         <div class="space-y-4">
@@ -43,7 +43,7 @@
         </div>
         <div class="flex gap-2 mt-6">
             <button class="px-5 py-2 bg-indigo-600 text-white rounded-lg">Salvar</button>
-            <a href="{{ route('admin.campanhas.index') }}" class="px-5 py-2 bg-slate-200 rounded-lg">Cancelar</a>
+            <a href="{{ route('super.campanhas.index') }}" class="px-5 py-2 bg-slate-200 rounded-lg">Cancelar</a>
         </div>
     </form>
 </div>

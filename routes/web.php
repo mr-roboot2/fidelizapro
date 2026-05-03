@@ -10,7 +10,6 @@ use App\Http\Controllers\Admin\RecompensaController;
 use App\Http\Controllers\Admin\ResgateController;
 use App\Http\Controllers\Admin\TransacaoController;
 use App\Http\Controllers\Admin\CashbackController;
-use App\Http\Controllers\Admin\CampanhaController;
 use App\Http\Controllers\Admin\RelatorioController;
 use App\Http\Controllers\Admin\ConfiguracaoController;
 use App\Http\Controllers\Admin\CaixaController;
@@ -18,7 +17,6 @@ use App\Http\Controllers\Admin\ImportacaoController;
 use App\Http\Controllers\Admin\WhatsappController;
 use App\Http\Controllers\Admin\WhatsappTemplateController;
 use App\Http\Controllers\Admin\AvaliacaoController;
-use App\Http\Controllers\Admin\AutomacaoController;
 use App\Http\Controllers\Admin\AtividadeSuspeitaController;
 use App\Http\Controllers\Admin\MeuPlanoController;
 use App\Http\Controllers\SuperAdmin\PlanoController as SuperPlanoController;
@@ -40,6 +38,8 @@ use App\Http\Controllers\SuperAdmin\DocumentoLegalController as SuperDocumentoLe
 use App\Http\Controllers\SuperAdmin\ConfiguracaoSistemaController;
 use App\Http\Controllers\SuperAdmin\WhatsappController as SuperWhatsappController;
 use App\Http\Controllers\SuperAdmin\WhatsappTemplateController as SuperWhatsappTemplateController;
+use App\Http\Controllers\SuperAdmin\AutomacaoController as SuperAutomacaoController;
+use App\Http\Controllers\SuperAdmin\CampanhaController as SuperCampanhaController;
 
 // Instalador web (auto-trava após concluir via storage/installed.lock)
 Route::middleware('install.gate')->prefix('install')->group(function () {
@@ -99,8 +99,7 @@ Route::middleware(['admin.auth', 'empresa.scope'])->prefix('admin')->name('admin
     Route::get('cashback', [CashbackController::class, 'index'])->name('cashback.index');
     Route::post('cashback/ajustar', [CashbackController::class, 'ajustar'])->name('cashback.ajustar');
 
-    Route::resource('campanhas', CampanhaController::class)->except(['show']);
-    Route::post('campanhas/{campanha}/disparar', [CampanhaController::class, 'disparar'])->name('campanhas.disparar');
+    // Campanhas e Automações foram movidas pro super admin — config global
 
     Route::get('relatorios', [RelatorioController::class, 'index'])->name('relatorios.index');
 
@@ -109,12 +108,6 @@ Route::middleware(['admin.auth', 'empresa.scope'])->prefix('admin')->name('admin
 
     Route::get('importacao', [ImportacaoController::class, 'index'])->name('importacao.index');
     Route::post('importacao', [ImportacaoController::class, 'processar'])->name('importacao.processar');
-
-    // WhatsApp foi movido para o super admin — config é global.
-
-    Route::resource('automacoes', AutomacaoController::class);
-    Route::post('automacoes/{automacao}/toggle', [AutomacaoController::class, 'toggle'])->name('automacoes.toggle');
-    Route::post('automacoes/{automacao}/executar', [AutomacaoController::class, 'executarAgora'])->name('automacoes.executar');
 
     Route::get('atividade-suspeita', [AtividadeSuspeitaController::class, 'index'])->name('atividade.suspeita');
     Route::get('meu-plano', [MeuPlanoController::class, 'index'])->name('meu-plano.index');
@@ -165,6 +158,13 @@ Route::middleware(['super.auth'])->prefix('super')->name('super.')->group(functi
     Route::get('whatsapp-templates', [SuperWhatsappTemplateController::class, 'index'])->name('whatsapp-templates.index');
     Route::get('whatsapp-templates/meta', [SuperWhatsappTemplateController::class, 'listarMeta'])->name('whatsapp-templates.meta');
     Route::put('whatsapp-templates/{evento}', [SuperWhatsappTemplateController::class, 'update'])->name('whatsapp-templates.update');
+
+    Route::resource('automacoes', SuperAutomacaoController::class);
+    Route::post('automacoes/{automacao}/toggle', [SuperAutomacaoController::class, 'toggle'])->name('automacoes.toggle');
+    Route::post('automacoes/{automacao}/executar', [SuperAutomacaoController::class, 'executarAgora'])->name('automacoes.executar');
+
+    Route::resource('campanhas', SuperCampanhaController::class)->except(['show']);
+    Route::post('campanhas/{campanha}/disparar', [SuperCampanhaController::class, 'disparar'])->name('campanhas.disparar');
 
     Route::get('documentos', [SuperDocumentoLegalController::class, 'index'])->name('documentos.index');
     Route::get('documentos/criar', [SuperDocumentoLegalController::class, 'create'])->name('documentos.create');

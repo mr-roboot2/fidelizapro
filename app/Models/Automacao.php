@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Automacao extends Model
@@ -11,7 +10,7 @@ class Automacao extends Model
     protected $table = 'automacoes';
 
     protected $fillable = [
-        'empresa_id', 'tipo', 'nome', 'mensagem', 'dias_offset',
+        'tipo', 'nome', 'mensagem', 'dias_offset',
         'ativo', 'ultima_execucao', 'total_enviados',
     ];
 
@@ -39,11 +38,6 @@ class Automacao extends Model
         'pos_compra' => "Obrigado pela compra, {primeiro_nome}! ❤️\nVocê acumulou pontos com a gente na {empresa}. Saldo atual: {pontos} pontos. Confira seu app!",
         'agradecimento_resgate' => "Parabéns, {primeiro_nome}! 🎁\n\nSeu resgate na {empresa} foi aprovado. Apresente o código do app na próxima visita. Continue acumulando pontos!",
     ];
-
-    public function empresa(): BelongsTo
-    {
-        return $this->belongsTo(Empresa::class);
-    }
 
     public function logs(): HasMany
     {

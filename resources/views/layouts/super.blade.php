@@ -38,6 +38,8 @@
                 ['super.documentos.index', 'ri-file-text-line', 'Documentos legais'],
                 ['super.whatsapp.edit', 'ri-whatsapp-fill', 'WhatsApp'],
                 ['super.whatsapp-templates.index', 'ri-message-3-line', 'Templates WhatsApp'],
+                ['super.automacoes.index', 'ri-magic-line', 'Automações'],
+                ['super.campanhas.index', 'ri-megaphone-line', 'Campanhas'],
                 ['super.configuracoes.edit', 'ri-settings-3-line', 'Configurações'],
             ];
         @endphp

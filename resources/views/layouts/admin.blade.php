@@ -37,8 +37,6 @@
                 ['admin.cashback.index', 'ri-money-dollar-circle-line', 'Cashback'],
                 ['admin.avaliacoes.index', 'ri-star-line', 'Avaliações'],
                 ['admin.parceiros.index', 'ri-handshake-line', 'Parceiros'],
-                ['admin.campanhas.index', 'ri-whatsapp-line', 'Campanhas'],
-                ['admin.automacoes.index', 'ri-magic-line', 'Automações'],
                 ['admin.relatorios.index', 'ri-bar-chart-line', 'Relatórios'],
                 ['admin.atividade.suspeita', 'ri-shield-keyhole-line', 'Antifraude'],
                 ['admin.meu-plano.index', 'ri-vip-crown-line', 'Meu plano'],
