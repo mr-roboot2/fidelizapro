@@ -125,8 +125,9 @@
             A integração é única pra todo o SaaS — uma WABA, um número, todas as empresas usam.
             Templates aprovados também são compartilhados.
         </p>
+        @php $marcadorEmpresa = '{{empresa}}'; @endphp
         <p class="text-xs text-slate-600">
-            Pro nome da empresa aparecer na mensagem (ex: boas-vindas), use o template com parâmetro <code>{{ '{{empresa}}' }}</code>.
+            Pro nome da empresa aparecer na mensagem (ex: boas-vindas), use o template com parâmetro <code>{{ $marcadorEmpresa }}</code>.
         </p>
         <a href="{{ route('super.whatsapp-templates.index') }}" class="block text-sm bg-rose-600 hover:bg-rose-700 text-white text-center py-2 rounded-lg">
             <i class="ri-message-3-line"></i> Gerenciar Templates

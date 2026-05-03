@@ -9,10 +9,11 @@
     </a>
 </div>
 
+@php $marcadorEmpresa = '{{empresa}}'; @endphp
 <div class="bg-rose-50 border border-rose-100 rounded-xl p-4 mb-5 text-sm text-rose-900">
     <p class="font-semibold mb-1"><i class="ri-information-line"></i> Templates globais</p>
     <p class="text-rose-800">
-        Esses templates são compartilhados por todas as empresas. Use <code>{{ '{{empresa}}' }}</code> nos parâmetros pra que cada empresa apareça com seu nome no template.
+        Esses templates são compartilhados por todas as empresas. Use <code>{{ $marcadorEmpresa }}</code> nos parâmetros pra que cada empresa apareça com seu nome no template.
     </p>
 </div>
 
