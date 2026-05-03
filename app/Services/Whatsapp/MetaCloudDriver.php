@@ -46,11 +46,56 @@ class MetaCloudDriver implements WhatsappDriverInterface
 
     public function testar(Empresa $empresa, string $telefoneDestino): array
     {
-        $ok = $this->enviar($empresa, $telefoneDestino, "[Teste WhatsApp Cloud API - {$empresa->nome}]");
-        return [
-            'ok' => $ok,
-            'mensagem' => $ok ? 'Mensagem de teste enviada!' : 'Falha — confira token e phone ID. Cloud API só envia para números pré-aprovados em modo dev.',
-        ];
+        if (!$empresa->whatsapp_api_token || !$empresa->whatsapp_phone_id) {
+            return ['ok' => false, 'mensagem' => 'Configure token e Phone Number ID antes de testar.'];
+        }
+
+        // Cloud API só permite texto livre dentro da janela de 24h após o
+        // cliente ter respondido. Pra teste de conexão usamos o template
+        // "hello_world" que vem aprovado por padrão em toda WABA.
+        try {
+            $response = Http::withToken($empresa->whatsapp_api_token)
+                ->timeout(15)
+                ->post("https://graph.facebook.com/v18.0/{$empresa->whatsapp_phone_id}/messages", [
+                    'messaging_product' => 'whatsapp',
+                    'to'   => $this->normalizar($telefoneDestino),
+                    'type' => 'template',
+                    'template' => [
+                        'name'     => 'hello_world',
+                        'language' => ['code' => 'en_US'],
+                    ],
+                ]);
+
+            if ($response->successful()) {
+                $msgId = $response->json('messages.0.id');
+                Log::info("[Meta Cloud] Teste enviado", ['empresa' => $empresa->id, 'msg_id' => $msgId]);
+                return [
+                    'ok' => true,
+                    'mensagem' => "Template 'hello_world' enviado! Se não chegar, verifique: (1) número está como tester no Meta Console, (2) WABA verificada, (3) número de envio registrado.",
+                ];
+            }
+
+            $erro = $response->json('error.message') ?? $response->body();
+            $codigo = $response->json('error.code');
+            Log::warning("[Meta Cloud] Falha no teste", ['empresa' => $empresa->id, 'erro' => $erro]);
+
+            // Mensagens de erro mais comuns traduzidas
+            $dica = match ((int) $codigo) {
+                131030 => 'Número de destino não está na lista de testers no Meta Console.',
+                133010 => 'Número de envio não foi registrado. Faça o /register com PIN.',
+                132000 => 'Template não existe ou não foi aprovado.',
+                190    => 'Token inválido ou expirado.',
+                default => null,
+            };
+
+            return [
+                'ok' => false,
+                'mensagem' => "Falha: {$erro}".($dica ? " — {$dica}" : ''),
+            ];
+        } catch (\Throwable $e) {
+            Log::error("[Meta Cloud] Exceção no teste: ".$e->getMessage());
+            return ['ok' => false, 'mensagem' => 'Erro de conexão: '.$e->getMessage()];
+        }
     }
 
     protected function normalizar(string $telefone): string
