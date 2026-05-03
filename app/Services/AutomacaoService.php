@@ -28,17 +28,7 @@ class AutomacaoService
             foreach ($clientes as $cliente) {
                 if ($this->jaEnviadoHoje($auto, $cliente)) continue;
 
-                $msg = $this->whatsapp->personalizarMensagem($auto->mensagem, $cliente);
-                $sucesso = $this->whatsapp->enviar($auto->empresa, $cliente->telefone, $msg);
-
-                AutomacaoLog::create([
-                    'automacao_id' => $auto->id,
-                    'cliente_id' => $cliente->id,
-                    'sucesso' => $sucesso,
-                    'mensagem_enviada' => $msg,
-                    'erro' => $sucesso ? null : 'Falha no envio',
-                ]);
-
+                $sucesso = $this->enviarMensagemAutomacao($auto, $cliente);
                 $sucesso ? $resumo['enviados']++ : $resumo['falhas']++;
                 if ($sucesso) $auto->increment('total_enviados');
             }
@@ -59,23 +49,61 @@ class AutomacaoService
         $enviados = 0; $falhas = 0;
 
         foreach ($clientes as $cliente) {
-            $msg = $this->whatsapp->personalizarMensagem($auto->mensagem, $cliente);
-            $sucesso = $this->whatsapp->enviar($auto->empresa, $cliente->telefone, $msg);
-
-            AutomacaoLog::create([
-                'automacao_id' => $auto->id,
-                'cliente_id' => $cliente->id,
-                'sucesso' => $sucesso,
-                'mensagem_enviada' => $msg,
-                'erro' => $sucesso ? null : 'Falha no envio',
-            ]);
-
+            $sucesso = $this->enviarMensagemAutomacao($auto, $cliente);
             $sucesso ? $enviados++ : $falhas++;
             if ($sucesso) $auto->increment('total_enviados');
         }
 
         $auto->update(['ultima_execucao' => now()]);
         return ['enviados' => $enviados, 'falhas' => $falhas, 'total' => $clientes->count()];
+    }
+
+    /**
+     * Mapeia tipo da automação pra evento de template e seus parâmetros.
+     * Retorna null pros tipos sem mapping (cai pro texto livre).
+     */
+    protected function eventoTemplateParaTipo(string $tipoAutomacao, Cliente $cliente, array $extras = []): ?array
+    {
+        $nome = $cliente->nome;
+        $empresa = $cliente->empresa->nome ?? '';
+
+        return match ($tipoAutomacao) {
+            'aniversario'           => ['evento' => 'aniversario',     'params' => [$nome]],
+            'pontos_vencendo'       => ['evento' => 'pontos_vencendo', 'params' => [$nome, (string) (int) $cliente->pontos_atual]],
+            'inativo_30d'           => ['evento' => 'inativo_30d',     'params' => [$nome]],
+            'inativo_60d'           => ['evento' => 'inativo_60d',     'params' => [$nome]],
+            'boas_vindas'           => ['evento' => 'boas_vindas',     'params' => [$nome, $empresa]],
+            'agradecimento_resgate' => ['evento' => 'resgate_aprovado','params' => [$nome, $extras['{recompensa}'] ?? '']],
+            default                 => null,
+        };
+    }
+
+    protected function enviarMensagemAutomacao(Automacao $auto, Cliente $cliente, array $extras = []): bool
+    {
+        $msg = $this->whatsapp->personalizarMensagem($auto->mensagem, $cliente, $extras);
+        $mapping = $this->eventoTemplateParaTipo($auto->tipo, $cliente, $extras);
+
+        if ($mapping) {
+            $sucesso = $this->whatsapp->enviarEvento(
+                $auto->empresa,
+                $cliente->telefone,
+                $mapping['evento'],
+                $mapping['params'],
+                $msg
+            );
+        } else {
+            $sucesso = $this->whatsapp->enviar($auto->empresa, $cliente->telefone, $msg);
+        }
+
+        AutomacaoLog::create([
+            'automacao_id' => $auto->id,
+            'cliente_id' => $cliente->id,
+            'sucesso' => $sucesso,
+            'mensagem_enviada' => $msg,
+            'erro' => $sucesso ? null : 'Falha no envio',
+        ]);
+
+        return $sucesso;
     }
 
     /**
@@ -92,16 +120,7 @@ class AutomacaoService
 
         if ($this->jaEnviadoHoje($auto, $cliente)) return false;
 
-        $msg = $this->whatsapp->personalizarMensagem($auto->mensagem, $cliente, $extras);
-        $sucesso = $this->whatsapp->enviar($empresa, $cliente->telefone, $msg);
-
-        AutomacaoLog::create([
-            'automacao_id' => $auto->id,
-            'cliente_id' => $cliente->id,
-            'sucesso' => $sucesso,
-            'mensagem_enviada' => $msg,
-            'erro' => $sucesso ? null : 'Falha no envio',
-        ]);
+        $sucesso = $this->enviarMensagemAutomacao($auto, $cliente, $extras);
 
         if ($sucesso) {
             $auto->increment('total_enviados');

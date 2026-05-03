@@ -6,9 +6,13 @@ use App\Models\Cliente;
 use App\Models\Empresa;
 use App\Models\MovimentoCashback;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class CashbackService
 {
+    public function __construct(protected ?WhatsappService $whatsapp = null) {}
+
     public function calcularCashback(Empresa $empresa, float $valor): float
     {
         if ($empresa->cashback_percentual <= 0) return 0;
@@ -107,8 +111,10 @@ class CashbackService
             ->get();
 
         $contador = 0;
+        $clientesNotificar = [];
+
         foreach ($movimentos as $mov) {
-            DB::transaction(function () use ($mov, &$contador) {
+            DB::transaction(function () use ($mov, &$contador, &$clientesNotificar) {
                 $cliente = $mov->cliente;
                 $cliente->refresh();
                 $valor = (float) $mov->valor;
@@ -119,8 +125,29 @@ class CashbackService
 
                 $mov->update(['processado' => true, 'saldo_posterior' => $cliente->cashback_atual]);
                 $contador++;
+
+                $clientesNotificar[$cliente->id] = $cliente;
             });
         }
+
+        // Notifica via WhatsApp (após o commit das transactions)
+        if ($this->whatsapp) {
+            foreach ($clientesNotificar as $cliente) {
+                try {
+                    $valorFmt = number_format((float) $cliente->cashback_atual, 2, ',', '.');
+                    $this->whatsapp->enviarEvento(
+                        $cliente->empresa,
+                        $cliente->telefone,
+                        'cashback_disponivel',
+                        [$cliente->nome, $valorFmt],
+                        "Olá {$cliente->nome}! Seu cashback de R\$ {$valorFmt} foi liberado e já está disponível no app."
+                    );
+                } catch (Throwable $e) {
+                    Log::warning("[Cashback] Falha ao notificar cliente {$cliente->id}: ".$e->getMessage());
+                }
+            }
+        }
+
         return $contador;
     }
 }
