@@ -125,10 +125,10 @@ class ClienteController extends Controller
 
         try {
             if ($valor > 0) {
-                $pontos->creditar($cliente, $valor, 'ajuste_admin', null, $descricao);
+                $pontos->creditar($cliente, $valor, 'manual', null, $descricao);
                 $msg = "Creditados ".number_format($valor, 0, ',', '.')." pontos.";
             } else {
-                $pontos->debitar($cliente, abs($valor), 'ajuste_admin', null, $descricao);
+                $pontos->debitar($cliente, abs($valor), 'manual', null, $descricao);
                 $msg = "Debitados ".number_format(abs($valor), 0, ',', '.')." pontos.";
             }
         } catch (\DomainException $e) {
@@ -152,10 +152,10 @@ class ClienteController extends Controller
 
         try {
             if ($valor > 0) {
-                $cashback->creditar($cliente, $valor, 'ajuste_admin', null, $descricao);
+                $cashback->creditar($cliente, $valor, 'manual', null, $descricao);
                 $msg = "Creditados R$ ".number_format($valor, 2, ',', '.')." de cashback.";
             } else {
-                $cashback->debitar($cliente, abs($valor), 'ajuste_admin', null, $descricao);
+                $cashback->debitar($cliente, abs($valor), 'manual', null, $descricao);
                 $msg = "Debitados R$ ".number_format(abs($valor), 2, ',', '.')." de cashback.";
             }
         } catch (\DomainException $e) {
