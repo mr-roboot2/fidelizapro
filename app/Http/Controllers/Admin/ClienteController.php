@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Cliente;
+use App\Services\CashbackService;
 use App\Services\PlanoLimiteService;
+use App\Services\PontuacaoService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -107,6 +109,60 @@ class ClienteController extends Controller
         $this->autorizar($cliente);
         $cliente->delete();
         return redirect()->route('admin.clientes.index')->with('success', 'Cliente excluído.');
+    }
+
+    public function ajustarPontos(Request $request, Cliente $cliente, PontuacaoService $pontos)
+    {
+        $this->autorizar($cliente);
+
+        $dados = $request->validate([
+            'valor'  => 'required|numeric|not_in:0',
+            'motivo' => 'required|string|max:255',
+        ]);
+
+        $valor = (float) $dados['valor'];
+        $descricao = 'Ajuste manual: '.$dados['motivo'];
+
+        try {
+            if ($valor > 0) {
+                $pontos->creditar($cliente, $valor, 'ajuste_admin', null, $descricao);
+                $msg = "Creditados ".number_format($valor, 0, ',', '.')." pontos.";
+            } else {
+                $pontos->debitar($cliente, abs($valor), 'ajuste_admin', null, $descricao);
+                $msg = "Debitados ".number_format(abs($valor), 0, ',', '.')." pontos.";
+            }
+        } catch (\DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', $msg);
+    }
+
+    public function ajustarCashback(Request $request, Cliente $cliente, CashbackService $cashback)
+    {
+        $this->autorizar($cliente);
+
+        $dados = $request->validate([
+            'valor'  => 'required|numeric|not_in:0',
+            'motivo' => 'required|string|max:255',
+        ]);
+
+        $valor = (float) $dados['valor'];
+        $descricao = 'Ajuste manual: '.$dados['motivo'];
+
+        try {
+            if ($valor > 0) {
+                $cashback->creditar($cliente, $valor, 'ajuste_admin', null, $descricao);
+                $msg = "Creditados R$ ".number_format($valor, 2, ',', '.')." de cashback.";
+            } else {
+                $cashback->debitar($cliente, abs($valor), 'ajuste_admin', null, $descricao);
+                $msg = "Debitados R$ ".number_format(abs($valor), 2, ',', '.')." de cashback.";
+            }
+        } catch (\DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', $msg);
     }
 
     protected function autorizar(Cliente $cliente): void

@@ -71,6 +71,8 @@ Route::middleware(['admin.auth', 'empresa.scope'])->prefix('admin')->name('admin
     Route::post('caixa/criar', [CaixaController::class, 'criar'])->name('caixa.criar');
 
     Route::resource('clientes', ClienteController::class);
+    Route::post('clientes/{cliente}/pontos', [ClienteController::class, 'ajustarPontos'])->name('clientes.pontos');
+    Route::post('clientes/{cliente}/cashback', [ClienteController::class, 'ajustarCashback'])->name('clientes.cashback');
     Route::resource('compras', CompraController::class)->only(['index', 'create', 'store', 'show']);
     Route::resource('regras', RegraPontuacaoController::class)->except(['show']);
     Route::resource('recompensas', RecompensaController::class)->except(['show']);

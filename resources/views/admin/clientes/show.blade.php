@@ -1,6 +1,22 @@
 @extends('layouts.admin')
 @section('title', $cliente->nome)
 @section('content')
+@if (session('success'))
+    <div class="mb-4 bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-lg text-sm">
+        {{ session('success') }}
+    </div>
+@endif
+@if (session('error'))
+    <div class="mb-4 bg-rose-50 border border-rose-200 text-rose-800 px-4 py-3 rounded-lg text-sm">
+        {{ session('error') }}
+    </div>
+@endif
+@if ($errors->any())
+    <div class="mb-4 bg-rose-50 border border-rose-200 text-rose-800 px-4 py-3 rounded-lg text-sm">
+        {{ $errors->first() }}
+    </div>
+@endif
+
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <div class="bg-white rounded-xl shadow-sm p-6">
         <div class="flex items-center gap-4 mb-4">
@@ -41,6 +57,43 @@
                class="px-3 text-center text-sm bg-slate-200 py-2 rounded-lg">
                 <i class="ri-edit-line"></i>
             </a>
+        </div>
+
+        <div class="mt-6 pt-5 border-t border-slate-200">
+            <h3 class="font-semibold text-sm mb-1 flex items-center gap-1.5">
+                <i class="ri-equalizer-line text-slate-500"></i> Ajustar saldo manualmente
+            </h3>
+            <p class="text-xs text-slate-500 mb-3">Valor positivo credita, negativo debita. O motivo fica registrado no histórico.</p>
+
+            <form method="POST" action="{{ route('admin.clientes.pontos', $cliente) }}" class="space-y-2 mb-4">
+                @csrf
+                <label class="block text-xs font-semibold text-amber-700 uppercase tracking-wide">Pontos</label>
+                <div class="flex gap-2">
+                    <input name="valor" type="number" step="1" placeholder="+50 ou -50" required
+                           class="w-28 px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    <input name="motivo" type="text" placeholder="Motivo (ex: bônus, correção)" required maxlength="255"
+                           class="flex-1 px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                </div>
+                <button type="submit" class="w-full text-sm bg-amber-600 text-white py-2 rounded-lg hover:bg-amber-700"
+                        onclick="return confirm('Aplicar ajuste de pontos?');">
+                    Aplicar ajuste de pontos
+                </button>
+            </form>
+
+            <form method="POST" action="{{ route('admin.clientes.cashback', $cliente) }}" class="space-y-2">
+                @csrf
+                <label class="block text-xs font-semibold text-emerald-700 uppercase tracking-wide">Cashback (R$)</label>
+                <div class="flex gap-2">
+                    <input name="valor" type="number" step="0.01" placeholder="+10,00 ou -10,00" required
+                           class="w-28 px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    <input name="motivo" type="text" placeholder="Motivo (ex: bônus, correção)" required maxlength="255"
+                           class="flex-1 px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                </div>
+                <button type="submit" class="w-full text-sm bg-emerald-600 text-white py-2 rounded-lg hover:bg-emerald-700"
+                        onclick="return confirm('Aplicar ajuste de cashback?');">
+                    Aplicar ajuste de cashback
+                </button>
+            </form>
         </div>
     </div>
 
