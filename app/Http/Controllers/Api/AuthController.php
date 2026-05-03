@@ -9,7 +9,9 @@ use App\Services\AutomacaoService;
 use App\Services\PontuacaoService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class AuthController extends Controller
 {
@@ -80,25 +82,38 @@ class AuthController extends Controller
             'ativo' => true,
         ]);
 
-        // Bônus de cadastro
-        $regraCadastro = $empresa->regrasPontuacao()->where('tipo', 'cadastro')->where('ativo', true)->first();
-        if ($regraCadastro && $regraCadastro->pontos_fixos > 0) {
-            $pontuacaoService->creditar($cliente, $regraCadastro->pontos_fixos, 'cadastro', null, 'Bônus de cadastro');
-        }
-
-        // Bônus de indicação
-        if ($indicador) {
-            $regraInd = $empresa->regrasPontuacao()->where('tipo', 'indicacao')->where('ativo', true)->first();
-            if ($regraInd && $regraInd->pontos_fixos > 0) {
-                $pontuacaoService->creditar($indicador, $regraInd->pontos_fixos, 'indicacao', $cliente,
-                    "Indicação convertida: {$cliente->nome}");
-            }
-        }
-
+        // Token primeiro — etapa crítica. Se isso falhar, devolve 500 limpo.
         $token = $cliente->createToken('pwa-cliente')->plainTextToken;
 
-        // Dispara automação de boas-vindas (se configurada)
-        $automacaoService->disparar($empresa, 'boas_vindas', $cliente->fresh());
+        // Etapas best-effort: bônus de cadastro/indicação e automação WhatsApp.
+        // Se falharem, logamos mas NÃO queimamos o cadastro — o cliente já existe
+        // e tem token. Refazer perderia tudo (telefone fica preso por unique).
+        try {
+            $regraCadastro = $empresa->regrasPontuacao()->where('tipo', 'cadastro')->where('ativo', true)->first();
+            if ($regraCadastro && $regraCadastro->pontos_fixos > 0) {
+                $pontuacaoService->creditar($cliente, $regraCadastro->pontos_fixos, 'cadastro', null, 'Bônus de cadastro');
+            }
+        } catch (Throwable $e) {
+            Log::warning('Falha ao creditar bônus de cadastro', ['cliente_id' => $cliente->id, 'erro' => $e->getMessage()]);
+        }
+
+        try {
+            if ($indicador) {
+                $regraInd = $empresa->regrasPontuacao()->where('tipo', 'indicacao')->where('ativo', true)->first();
+                if ($regraInd && $regraInd->pontos_fixos > 0) {
+                    $pontuacaoService->creditar($indicador, $regraInd->pontos_fixos, 'indicacao', $cliente,
+                        "Indicação convertida: {$cliente->nome}");
+                }
+            }
+        } catch (Throwable $e) {
+            Log::warning('Falha ao creditar bônus de indicação', ['cliente_id' => $cliente->id, 'erro' => $e->getMessage()]);
+        }
+
+        try {
+            $automacaoService->disparar($empresa, 'boas_vindas', $cliente->fresh());
+        } catch (Throwable $e) {
+            Log::warning('Falha ao disparar automação de boas-vindas', ['cliente_id' => $cliente->id, 'erro' => $e->getMessage()]);
+        }
 
         return response()->json([
             'token' => $token,
