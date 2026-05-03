@@ -51,9 +51,15 @@
                                 <span class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">Inativo</span>
                             @endif
                         </td>
-                        <td class="p-3 text-center">
+                        <td class="p-3 text-center whitespace-nowrap">
                             <a href="{{ route('admin.clientes.show', $cli) }}" class="text-indigo-600 hover:underline mr-2">Ver</a>
-                            <a href="{{ route('admin.clientes.edit', $cli) }}" class="text-slate-600 hover:underline">Editar</a>
+                            <a href="{{ route('admin.clientes.edit', $cli) }}" class="text-slate-600 hover:underline mr-2">Editar</a>
+                            <form action="{{ route('admin.clientes.destroy', $cli) }}" method="POST" class="inline"
+                                  onsubmit="return confirm('Excluir o cliente {{ $cli->nome }}? Esta ação não pode ser desfeita.');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="text-rose-600 hover:underline">Excluir</button>
+                            </form>
                         </td>
                     </tr>
                 @empty
