@@ -209,39 +209,98 @@ async function showScreen(nome, params = {}) {
 // Tela 0: escolher empresa
 async function telaEscolherEmpresa() {
     const data = await api('/empresas');
+    const s = data.sistema || { nome: 'FidelizaPro', slogan: 'Programa de fidelidade', cor_primaria: '#6366f1', cor_secundaria: '#8b5cf6' };
+    const inicial = (s.nome || 'F').charAt(0).toUpperCase();
+    document.title = s.nome;
+    document.documentElement.style.setProperty('--cor-primaria', s.cor_primaria);
+    document.documentElement.style.setProperty('--cor-secundaria', s.cor_secundaria);
+
+    const cardEmpresa = (e) => `
+        <button onclick='selecionarEmpresa(${JSON.stringify(e)})'
+                class="empresa-card w-full flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-2xl text-left transition-all hover:shadow-lg hover:-translate-y-0.5 hover:border-transparent active:scale-[0.98]">
+            ${e.logo
+                ? `<img src="${e.logo}" class="w-14 h-14 rounded-2xl object-contain bg-slate-50 flex-shrink-0 ring-1 ring-slate-100">`
+                : `<div class="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-2xl flex-shrink-0 shadow-sm" style="background:linear-gradient(135deg,${e.cor_primaria || '#6366f1'},${e.cor_secundaria || '#8b5cf6'})">${e.nome.charAt(0)}</div>`
+            }
+            <div class="flex-1 min-w-0">
+                <p class="font-semibold text-slate-800 truncate">${e.nome}</p>
+                <p class="text-xs text-slate-500 mt-0.5"><i class="ri-arrow-right-circle-line"></i> Toque para acessar</p>
+            </div>
+            <div class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 flex-shrink-0">
+                <i class="ri-arrow-right-s-line text-xl"></i>
+            </div>
+        </button>
+    `;
+
     screenContainer.innerHTML = `
     <div class="fade-in flex-1 flex flex-col bg-slate-50">
-        <div class="px-5 pt-8 pb-12 text-white text-center bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500">
-            <div class="w-20 h-20 mx-auto rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-3xl font-bold mb-3 shadow-lg">F</div>
-            <h1 class="text-2xl font-bold">FidelizaPro</h1>
-            <p class="text-white/80 text-sm mt-1">Escolha onde você compra</p>
+        <div class="relative overflow-hidden text-white" style="background:linear-gradient(135deg,${s.cor_primaria},${s.cor_secundaria})">
+            <div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(circle at 20% 20%, white 1px, transparent 1px), radial-gradient(circle at 80% 60%, white 1px, transparent 1px); background-size: 40px 40px;"></div>
+            <div class="relative px-6 pt-10 pb-16 text-center">
+                ${s.logo
+                    ? `<img src="${s.logo}" alt="${s.nome}" class="w-20 h-20 mx-auto rounded-2xl bg-white/15 backdrop-blur p-2 mb-4 object-contain shadow-lg ring-1 ring-white/20">`
+                    : `<div class="w-20 h-20 mx-auto rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center text-4xl font-bold mb-4 shadow-lg ring-1 ring-white/20">${inicial}</div>`
+                }
+                <h1 class="text-3xl font-bold tracking-tight">${s.nome}</h1>
+                <p class="text-white/85 text-sm mt-1.5">${s.slogan || 'Programa de fidelidade'}</p>
+            </div>
         </div>
 
-        <div class="px-4 -mt-6 pb-6 space-y-3">
-            ${data.empresas.length === 0 ? `
-                <div class="bg-white rounded-2xl shadow-md border border-slate-100 p-8 text-center">
-                    <div class="w-14 h-14 mx-auto rounded-full bg-slate-100 flex items-center justify-center mb-3">
-                        <i class="ri-store-2-line text-3xl text-slate-400"></i>
-                    </div>
-                    <p class="text-sm text-slate-500 font-medium">Nenhuma empresa disponível</p>
+        <div class="px-4 -mt-8 pb-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 mb-4">
+                <div class="relative">
+                    <i class="ri-search-line absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input id="busca-empresa" type="text" placeholder="Buscar empresa..."
+                           class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-slate-400 focus:outline-none transition text-sm">
                 </div>
-            ` : ''}
-            ${data.empresas.map(e => `
-                <button onclick='selecionarEmpresa(${JSON.stringify(e)})'
-                        class="w-full flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-2xl hover:shadow-md hover:border-slate-300 transition text-left">
-                    ${e.logo
-                        ? `<img src="${e.logo}" class="w-12 h-12 rounded-xl object-contain bg-slate-50 flex-shrink-0">`
-                        : `<div class="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-xl flex-shrink-0" style="background:linear-gradient(135deg,${e.cor_primaria},${e.cor_secundaria})">${e.nome.charAt(0)}</div>`
-                    }
-                    <div class="flex-1 min-w-0">
-                        <p class="font-semibold text-slate-800 truncate">${e.nome}</p>
-                        <p class="text-xs text-slate-500">Toque para acessar</p>
+                <p class="text-xs text-slate-500 mt-2 px-1">
+                    <i class="ri-store-2-line"></i> ${data.empresas.length}
+                    ${data.empresas.length === 1 ? 'empresa disponível' : 'empresas disponíveis'}
+                </p>
+            </div>
+
+            <div id="lista-empresas" class="space-y-2.5">
+                ${data.empresas.length === 0 ? `
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-10 text-center">
+                        <div class="w-16 h-16 mx-auto rounded-full bg-slate-100 flex items-center justify-center mb-3">
+                            <i class="ri-store-2-line text-3xl text-slate-400"></i>
+                        </div>
+                        <p class="text-sm text-slate-700 font-semibold mb-1">Nenhuma empresa disponível</p>
+                        <p class="text-xs text-slate-500">Volte mais tarde — novas empresas chegando.</p>
                     </div>
-                    <i class="ri-arrow-right-s-line text-2xl text-slate-400"></i>
-                </button>
-            `).join('')}
+                ` : data.empresas.map(cardEmpresa).join('')}
+            </div>
+            <div id="lista-empresas-vazia" class="hidden bg-white rounded-2xl shadow-sm border border-slate-100 p-8 text-center">
+                <div class="w-12 h-12 mx-auto rounded-full bg-slate-100 flex items-center justify-center mb-2">
+                    <i class="ri-search-line text-2xl text-slate-400"></i>
+                </div>
+                <p class="text-sm text-slate-500">Nenhuma empresa encontrada</p>
+            </div>
         </div>
+
+        <p class="text-center text-[11px] text-slate-400 pb-6 px-4">
+            Powered by <span class="font-semibold text-slate-500">${s.nome}</span>
+        </p>
     </div>`;
+
+    // Filtro local de busca
+    const input = document.getElementById('busca-empresa');
+    if (input) {
+        input.addEventListener('input', () => {
+            const termo = input.value.toLowerCase().trim();
+            const empresas = data.empresas.filter(e => e.nome.toLowerCase().includes(termo));
+            const lista = document.getElementById('lista-empresas');
+            const vazia = document.getElementById('lista-empresas-vazia');
+            if (empresas.length === 0 && termo) {
+                lista.classList.add('hidden');
+                vazia.classList.remove('hidden');
+            } else {
+                lista.classList.remove('hidden');
+                vazia.classList.add('hidden');
+                lista.innerHTML = empresas.map(cardEmpresa).join('');
+            }
+        });
+    }
 }
 
 window.selecionarEmpresa = (e) => {
