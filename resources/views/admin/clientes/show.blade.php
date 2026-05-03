@@ -135,24 +135,95 @@
             </ul>
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm p-5">
-            <h3 class="font-semibold mb-3">Movimentação de pontos</h3>
+        <div class="bg-white rounded-xl shadow-sm p-5" data-historico="pontos">
+            <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                <h3 class="font-semibold flex items-center gap-2">
+                    <i class="ri-coin-line text-amber-600"></i> Movimentação de pontos
+                    <span class="text-xs font-normal text-slate-500">({{ $cliente->transacoesPontos->count() }})</span>
+                </h3>
+                <div class="flex gap-1 text-xs">
+                    <button type="button" onclick="filtrarHistorico(this, 'pontos', 'todos')" class="filtro-btn ativo px-3 py-1 rounded-full bg-slate-200 text-slate-700">Todos</button>
+                    <button type="button" onclick="filtrarHistorico(this, 'pontos', 'credito')" class="filtro-btn px-3 py-1 rounded-full hover:bg-slate-100 text-slate-600">Créditos</button>
+                    <button type="button" onclick="filtrarHistorico(this, 'pontos', 'debito')" class="filtro-btn px-3 py-1 rounded-full hover:bg-slate-100 text-slate-600">Débitos</button>
+                </div>
+            </div>
             <ul class="divide-y divide-slate-100 text-sm">
                 @forelse ($cliente->transacoesPontos as $t)
-                    <li class="py-2 flex justify-between">
-                        <div>
-                            <p class="font-medium">{{ $t->descricao }}</p>
-                            <p class="text-xs text-slate-500">{{ $t->created_at->format('d/m/Y H:i') }} • {{ $t->origem }}</p>
+                    <li class="py-3 flex items-start gap-3" data-tipo="{{ $t->tipo }}">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 {{ $t->tipo === 'credito' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600' }}">
+                            <i class="ri-{{ $t->tipo === 'credito' ? 'arrow-up' : 'arrow-down' }}-line"></i>
                         </div>
-                        <p class="font-semibold {{ $t->tipo === 'credito' ? 'text-emerald-600' : 'text-rose-600' }}">
+                        <div class="flex-1 min-w-0">
+                            <p class="font-medium text-slate-800">{{ $t->descricao }}</p>
+                            <div class="flex flex-wrap gap-x-3 text-xs text-slate-500 mt-0.5">
+                                <span>{{ $t->created_at->format('d/m/Y H:i') }}</span>
+                                <span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">{{ $t->origem }}</span>
+                                <span>saldo após: <strong>{{ number_format($t->saldo_posterior, 0, ',', '.') }} pts</strong></span>
+                            </div>
+                        </div>
+                        <p class="font-bold whitespace-nowrap {{ $t->tipo === 'credito' ? 'text-emerald-600' : 'text-rose-600' }}">
                             {{ $t->tipo === 'credito' ? '+' : '−' }}{{ number_format($t->pontos, 0, ',', '.') }}
                         </p>
                     </li>
                 @empty
-                    <p class="text-slate-400 text-sm">Sem movimentações.</p>
+                    <p class="text-slate-400 text-sm py-3">Sem movimentações.</p>
                 @endforelse
             </ul>
         </div>
+
+        <div class="bg-white rounded-xl shadow-sm p-5" data-historico="cashback">
+            <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                <h3 class="font-semibold flex items-center gap-2">
+                    <i class="ri-money-dollar-circle-line text-emerald-600"></i> Movimentação de cashback
+                    <span class="text-xs font-normal text-slate-500">({{ $cliente->movimentosCashback->count() }})</span>
+                </h3>
+                <div class="flex gap-1 text-xs">
+                    <button type="button" onclick="filtrarHistorico(this, 'cashback', 'todos')" class="filtro-btn ativo px-3 py-1 rounded-full bg-slate-200 text-slate-700">Todos</button>
+                    <button type="button" onclick="filtrarHistorico(this, 'cashback', 'credito')" class="filtro-btn px-3 py-1 rounded-full hover:bg-slate-100 text-slate-600">Créditos</button>
+                    <button type="button" onclick="filtrarHistorico(this, 'cashback', 'debito')" class="filtro-btn px-3 py-1 rounded-full hover:bg-slate-100 text-slate-600">Débitos</button>
+                </div>
+            </div>
+            <ul class="divide-y divide-slate-100 text-sm">
+                @forelse ($cliente->movimentosCashback as $m)
+                    <li class="py-3 flex items-start gap-3" data-tipo="{{ $m->tipo }}">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 {{ $m->tipo === 'credito' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600' }}">
+                            <i class="ri-{{ $m->tipo === 'credito' ? 'arrow-up' : 'arrow-down' }}-line"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="font-medium text-slate-800">{{ $m->descricao }}</p>
+                            <div class="flex flex-wrap gap-x-3 text-xs text-slate-500 mt-0.5">
+                                <span>{{ $m->created_at->format('d/m/Y H:i') }}</span>
+                                <span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">{{ $m->origem }}</span>
+                                <span>saldo após: <strong>R$ {{ number_format($m->saldo_posterior, 2, ',', '.') }}</strong></span>
+                                @if (!$m->processado)
+                                    <span class="text-amber-600"><i class="ri-time-line"></i> pendente até {{ $m->liberado_em?->format('d/m/Y') }}</span>
+                                @endif
+                            </div>
+                        </div>
+                        <p class="font-bold whitespace-nowrap {{ $m->tipo === 'credito' ? 'text-emerald-600' : 'text-rose-600' }}">
+                            {{ $m->tipo === 'credito' ? '+' : '−' }}R$ {{ number_format($m->valor, 2, ',', '.') }}
+                        </p>
+                    </li>
+                @empty
+                    <p class="text-slate-400 text-sm py-3">Sem movimentações.</p>
+                @endforelse
+            </ul>
+        </div>
+
+        <script>
+        function filtrarHistorico(btn, secao, tipo) {
+            const card = document.querySelector(`[data-historico="${secao}"]`);
+            card.querySelectorAll('.filtro-btn').forEach(b => {
+                b.classList.remove('ativo', 'bg-slate-200', 'text-slate-700');
+                b.classList.add('hover:bg-slate-100', 'text-slate-600');
+            });
+            btn.classList.add('ativo', 'bg-slate-200', 'text-slate-700');
+            btn.classList.remove('hover:bg-slate-100', 'text-slate-600');
+            card.querySelectorAll('li[data-tipo]').forEach(li => {
+                li.style.display = (tipo === 'todos' || li.dataset.tipo === tipo) ? '' : 'none';
+            });
+        }
+        </script>
     </div>
 </div>
 @endsection

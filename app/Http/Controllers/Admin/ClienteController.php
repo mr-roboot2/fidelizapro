@@ -65,8 +65,12 @@ class ClienteController extends Controller
     public function show(Cliente $cliente)
     {
         $this->autorizar($cliente);
-        $cliente->load(['compras' => fn($q) => $q->latest()->take(20),
-                       'resgates.recompensa', 'transacoesPontos' => fn($q) => $q->latest()->take(20)]);
+        $cliente->load([
+            'compras' => fn($q) => $q->latest()->take(20),
+            'resgates.recompensa',
+            'transacoesPontos' => fn($q) => $q->latest()->take(50),
+            'movimentosCashback' => fn($q) => $q->latest()->take(50),
+        ]);
         return view('admin.clientes.show', compact('cliente'));
     }
 
