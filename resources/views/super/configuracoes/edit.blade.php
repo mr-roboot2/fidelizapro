@@ -134,6 +134,32 @@
     </div>
 
     <div class="bg-white rounded-xl shadow-sm p-6">
+        <h2 class="font-semibold text-slate-800 mb-1">Tarefas agendadas (cron)</h2>
+        <p class="text-xs text-slate-500 mb-5">Horários em que o sistema roda tarefas automáticas. Os horários abaixo só são respeitados se o cron <code class="bg-slate-100 px-1 rounded">php artisan schedule:run</code> estiver rodando a cada minuto no servidor.</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Horário das automações WhatsApp</label>
+                <input type="time" name="horario_automacoes"
+                       value="{{ old('horario_automacoes', $config->horario_automacoes ?? '09:00') }}" required
+                       class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:outline-none">
+                <p class="text-xs text-slate-500 mt-1">
+                    Mensagens enviadas automaticamente em momentos chave: cadastro, aniversário, pós-compra, clientes inativos.
+                </p>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Horário da liberação de cashback</label>
+                <input type="time" name="horario_cashback"
+                       value="{{ old('horario_cashback', $config->horario_cashback ?? '03:00') }}" required
+                       class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:outline-none">
+                <p class="text-xs text-slate-500 mt-1">
+                    Cashbacks pendentes que passaram do prazo viram disponíveis pro cliente. Execute em horário de baixo movimento.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm p-6">
         <h2 class="font-semibold text-slate-800 mb-1">Rodapé público</h2>
         <p class="text-xs text-slate-500 mb-5">HTML pequeno que aparece no rodapé das páginas públicas (login, documentos legais).</p>
         <textarea name="rodape_html" rows="3" maxlength="1000"

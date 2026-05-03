@@ -18,6 +18,7 @@ class ConfiguracaoSistema extends Model
         'whatsapp_client_token',
         'whatsapp_instance', 'whatsapp_phone_id', 'whatsapp_waba_id',
         'whatsapp_webhook_verify_token', 'whatsapp_ativo',
+        'horario_automacoes', 'horario_cashback',
     ];
 
     protected $casts = [

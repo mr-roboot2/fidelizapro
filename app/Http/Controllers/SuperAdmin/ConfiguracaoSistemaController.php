@@ -32,6 +32,8 @@ class ConfiguracaoSistemaController extends Controller
             'cor_secundaria'   => 'required|string|regex:/^#[0-9a-fA-F]{6}$/',
             'site_url'         => 'nullable|url|max:120',
             'rodape_html'      => 'nullable|string|max:1000',
+            'horario_automacoes' => 'required|date_format:H:i',
+            'horario_cashback'   => 'required|date_format:H:i',
             'logo'             => 'nullable|image|mimes:png,jpg,jpeg,svg,webp|max:1024',
             'favicon'          => 'nullable|image|mimes:png,jpg,jpeg,svg,webp,ico|max:256',
             'remover_logo'     => 'nullable|in:1',
