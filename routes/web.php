@@ -163,11 +163,15 @@ Route::middleware(['super.auth'])->prefix('super')->name('super.')->group(functi
     Route::get('whatsapp-templates/meta', [SuperWhatsappTemplateController::class, 'listarMeta'])->name('whatsapp-templates.meta');
     Route::put('whatsapp-templates/{evento}', [SuperWhatsappTemplateController::class, 'update'])->name('whatsapp-templates.update');
 
-    Route::resource('automacoes', SuperAutomacaoController::class);
+    // parameters() forçado pq o pluralizador do Laravel transforma "automacoes"
+    // em "{automaco}" (singular tosco), e aí o nome não bate com $automacao do
+    // controller — o route binding implícito falha silencioso e instancia uma
+    // model vazia, fazendo o edit aparecer como create.
+    Route::resource('automacoes', SuperAutomacaoController::class)->parameters(['automacoes' => 'automacao']);
     Route::post('automacoes/{automacao}/toggle', [SuperAutomacaoController::class, 'toggle'])->name('automacoes.toggle');
     Route::post('automacoes/{automacao}/executar', [SuperAutomacaoController::class, 'executarAgora'])->name('automacoes.executar');
 
-    Route::resource('campanhas', SuperCampanhaController::class)->except(['show']);
+    Route::resource('campanhas', SuperCampanhaController::class)->except(['show'])->parameters(['campanhas' => 'campanha']);
     Route::post('campanhas/{campanha}/disparar', [SuperCampanhaController::class, 'disparar'])->name('campanhas.disparar');
 
     Route::get('whatsapp-logs', [SuperWhatsappLogController::class, 'index'])->name('whatsapp-logs.index');
