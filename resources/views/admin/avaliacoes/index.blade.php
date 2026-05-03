@@ -2,26 +2,28 @@
 @section('title', 'Avaliações')
 @section('content')
 
-<div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
-    <div class="bg-white rounded-xl shadow-sm p-4">
-        <p class="text-xs text-slate-500 uppercase tracking-wider">Total</p>
-        <p class="text-2xl font-bold text-slate-800 mt-1">{{ $resumo['total'] }}</p>
-    </div>
-    <div class="bg-white rounded-xl shadow-sm p-4">
-        <p class="text-xs text-slate-500 uppercase tracking-wider">Nota média</p>
-        <p class="text-2xl font-bold text-amber-600 mt-1">{{ number_format($resumo['media'], 1, ',', '.') }} <span class="text-sm font-normal text-slate-500">/ 5</span></p>
-    </div>
-    <div class="bg-emerald-50 rounded-xl p-4 border border-emerald-100">
-        <p class="text-xs text-emerald-700 uppercase tracking-wider">Promotores (4-5)</p>
-        <p class="text-2xl font-bold text-emerald-700 mt-1">{{ $resumo['promotores'] }}</p>
-    </div>
-    <div class="bg-amber-50 rounded-xl p-4 border border-amber-100">
-        <p class="text-xs text-amber-700 uppercase tracking-wider">Neutros (3)</p>
-        <p class="text-2xl font-bold text-amber-700 mt-1">{{ $resumo['neutros'] }}</p>
-    </div>
-    <div class="bg-rose-50 rounded-xl p-4 border border-rose-100">
-        <p class="text-xs text-rose-700 uppercase tracking-wider">Detratores (1-2)</p>
-        <p class="text-2xl font-bold text-rose-700 mt-1">{{ $resumo['detratores'] }}</p>
+<div class="sticky top-0 -mx-6 -mt-6 px-6 pt-6 pb-4 bg-slate-100 z-20 mb-4">
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div class="bg-white rounded-xl shadow-sm p-4">
+            <p class="text-xs text-slate-500 uppercase tracking-wider">Total</p>
+            <p class="text-2xl font-bold text-slate-800 mt-1">{{ $resumo['total'] }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-4">
+            <p class="text-xs text-slate-500 uppercase tracking-wider">Nota média</p>
+            <p class="text-2xl font-bold text-amber-600 mt-1">{{ number_format($resumo['media'], 1, ',', '.') }} <span class="text-sm font-normal text-slate-500">/ 5</span></p>
+        </div>
+        <div class="bg-emerald-50 rounded-xl p-4 border border-emerald-100">
+            <p class="text-xs text-emerald-700 uppercase tracking-wider">Promotores (4-5)</p>
+            <p class="text-2xl font-bold text-emerald-700 mt-1">{{ $resumo['promotores'] }}</p>
+        </div>
+        <div class="bg-amber-50 rounded-xl p-4 border border-amber-100">
+            <p class="text-xs text-amber-700 uppercase tracking-wider">Neutros (3)</p>
+            <p class="text-2xl font-bold text-amber-700 mt-1">{{ $resumo['neutros'] }}</p>
+        </div>
+        <div class="bg-rose-50 rounded-xl p-4 border border-rose-100">
+            <p class="text-xs text-rose-700 uppercase tracking-wider">Detratores (1-2)</p>
+            <p class="text-2xl font-bold text-rose-700 mt-1">{{ $resumo['detratores'] }}</p>
+        </div>
     </div>
 </div>
 
