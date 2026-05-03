@@ -221,6 +221,12 @@ async function telaLogin() {
             <p class="text-center text-sm text-slate-500 pt-3">
                 Novo por aqui? <a onclick="showScreen('registrar')" class="font-semibold cursor-pointer hover:underline" style="color:${cor}">Criar conta</a>
             </p>
+
+            <p class="text-center text-[11px] text-slate-400 pt-3 mt-2 border-t border-slate-100">
+                <a href="/termos-de-uso" target="_blank" class="hover:underline">Termos de uso</a>
+                &middot;
+                <a href="/politica-privacidade" target="_blank" class="hover:underline">Política de privacidade</a>
+            </p>
         </form>
     </div>`;
     $('#form-login').addEventListener('submit', async (ev) => {

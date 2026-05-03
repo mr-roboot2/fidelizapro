@@ -35,6 +35,7 @@
                 ['super.assinaturas.index', 'ri-bank-card-line', 'Assinaturas'],
                 ['super.planos.index', 'ri-stack-line', 'Planos'],
                 ['super.auditoria.index', 'ri-history-line', 'Auditoria'],
+                ['super.documentos.index', 'ri-file-text-line', 'Documentos legais'],
             ];
         @endphp
         @foreach ($itens as [$rota, $icone, $rotulo])

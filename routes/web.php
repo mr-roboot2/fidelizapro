@@ -32,6 +32,8 @@ use App\Http\Controllers\SuperAdmin\AuditoriaController as SuperAuditoriaControl
 use App\Http\Controllers\SuperAdmin\AssinaturaController as SuperAssinaturaController;
 use App\Http\Controllers\WebhookPagamentoController;
 use App\Http\Controllers\InstallController;
+use App\Http\Controllers\DocumentoLegalPublicoController;
+use App\Http\Controllers\SuperAdmin\DocumentoLegalController as SuperDocumentoLegalController;
 
 // Instalador web (auto-trava após concluir via storage/installed.lock)
 Route::middleware('install.gate')->prefix('install')->group(function () {
@@ -45,6 +47,10 @@ Route::middleware('install.gate')->prefix('install')->group(function () {
     Route::post('/admin/skip', [InstallController::class, 'adminSkip']);
 });
 Route::get('/install/complete', [InstallController::class, 'complete']);
+
+// Documentos legais (públicos)
+Route::get('/politica-privacidade', [DocumentoLegalPublicoController::class, 'show'])->defaults('slug', 'privacidade')->name('documentos.privacidade');
+Route::get('/termos-de-uso', [DocumentoLegalPublicoController::class, 'show'])->defaults('slug', 'termos')->name('documentos.termos');
 
 Route::get('/', fn() => redirect()->route('admin.login'));
 
@@ -144,6 +150,10 @@ Route::middleware(['super.auth'])->prefix('super')->name('super.')->group(functi
     Route::get('auditoria/{log}', [SuperAuditoriaController::class, 'show'])->name('auditoria.show');
 
     Route::resource('planos', SuperPlanoController::class)->except(['show']);
+
+    Route::get('documentos', [SuperDocumentoLegalController::class, 'index'])->name('documentos.index');
+    Route::get('documentos/{slug}/editar', [SuperDocumentoLegalController::class, 'edit'])->name('documentos.edit');
+    Route::put('documentos/{slug}', [SuperDocumentoLegalController::class, 'update'])->name('documentos.update');
 
     Route::get('assinaturas', [SuperAssinaturaController::class, 'index'])->name('assinaturas.index');
     Route::get('assinaturas/criar', [SuperAssinaturaController::class, 'create'])->name('assinaturas.create');
