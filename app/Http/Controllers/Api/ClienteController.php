@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Cliente;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 use SimpleSoftwareIO\QrCode\Generator as QrGenerator;
 
 class ClienteController extends Controller
@@ -82,5 +84,23 @@ class ClienteController extends Controller
 
         $cliente->update($dados);
         return response()->json(['cliente' => $cliente->fresh(), 'message' => 'Perfil atualizado!']);
+    }
+
+    public function alterarSenha(Request $request)
+    {
+        $dados = $request->validate([
+            'senha_atual' => 'required|string',
+            'senha_nova'  => 'required|string|min:6|confirmed',
+        ]);
+
+        $cliente = $request->user();
+
+        if (!Hash::check($dados['senha_atual'], $cliente->password)) {
+            throw ValidationException::withMessages(['senha_atual' => 'Senha atual incorreta.']);
+        }
+
+        $cliente->update(['password' => Hash::make($dados['senha_nova'])]);
+
+        return response()->json(['message' => 'Senha alterada com sucesso!']);
     }
 }

@@ -40,6 +40,7 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
     Route::get('cliente/compras', [ClienteController::class, 'historicoCompras']);
     Route::get('cliente/extrato', [ClienteController::class, 'extrato']);
     Route::put('cliente/perfil', [ClienteController::class, 'atualizarPerfil']);
+    Route::put('cliente/senha', [ClienteController::class, 'alterarSenha']);
 
     Route::get('recompensas', [RecompensaController::class, 'catalogo']);
 
