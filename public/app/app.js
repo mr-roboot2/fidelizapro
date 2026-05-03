@@ -137,21 +137,31 @@ async function showScreen(nome, params = {}) {
 async function telaEscolherEmpresa() {
     const data = await api('/empresas');
     screenContainer.innerHTML = `
-    <div class="fade-in flex-1 flex flex-col">
-        <div class="p-6 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-white">
-            <div class="w-16 h-16 mx-auto rounded-2xl bg-white/20 flex items-center justify-center text-3xl font-bold mb-3">F</div>
-            <h1 class="text-center text-2xl font-bold">FidelizaPro</h1>
-            <p class="text-center text-white/80 text-sm mt-1">Escolha onde você compra</p>
+    <div class="fade-in flex-1 flex flex-col bg-slate-50">
+        <div class="px-5 pt-8 pb-12 text-white text-center bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500">
+            <div class="w-20 h-20 mx-auto rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-3xl font-bold mb-3 shadow-lg">F</div>
+            <h1 class="text-2xl font-bold">FidelizaPro</h1>
+            <p class="text-white/80 text-sm mt-1">Escolha onde você compra</p>
         </div>
-        <div class="flex-1 p-4 space-y-3">
+
+        <div class="px-4 -mt-6 pb-6 space-y-3">
+            ${data.empresas.length === 0 ? `
+                <div class="bg-white rounded-2xl shadow-md border border-slate-100 p-8 text-center">
+                    <div class="w-14 h-14 mx-auto rounded-full bg-slate-100 flex items-center justify-center mb-3">
+                        <i class="ri-store-2-line text-3xl text-slate-400"></i>
+                    </div>
+                    <p class="text-sm text-slate-500 font-medium">Nenhuma empresa disponível</p>
+                </div>
+            ` : ''}
             ${data.empresas.map(e => `
                 <button onclick='selecionarEmpresa(${JSON.stringify(e)})'
-                        class="w-full flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-xl hover:shadow-md transition">
-                    <div class="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg" style="background:${e.cor_primaria}">
-                        ${e.logo ? `<img src="${e.logo}" class="w-full h-full object-cover rounded-xl">` : e.nome.charAt(0)}
-                    </div>
-                    <div class="text-left flex-1">
-                        <p class="font-semibold">${e.nome}</p>
+                        class="w-full flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-2xl hover:shadow-md hover:border-slate-300 transition text-left">
+                    ${e.logo
+                        ? `<img src="${e.logo}" class="w-12 h-12 rounded-xl object-contain bg-slate-50 flex-shrink-0">`
+                        : `<div class="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-xl flex-shrink-0" style="background:linear-gradient(135deg,${e.cor_primaria},${e.cor_secundaria})">${e.nome.charAt(0)}</div>`
+                    }
+                    <div class="flex-1 min-w-0">
+                        <p class="font-semibold text-slate-800 truncate">${e.nome}</p>
                         <p class="text-xs text-slate-500">Toque para acessar</p>
                     </div>
                     <i class="ri-arrow-right-s-line text-2xl text-slate-400"></i>
@@ -1268,32 +1278,71 @@ window.extratoTab = (qual) => {
 // Tela 8: Resgates
 async function telaResgates() {
     const data = await api('/resgates');
+    const e = STATE.empresa;
+    const cor = e.cor_primaria, corSec = e.cor_secundaria;
+
+    const statusInfo = (s) => ({
+        pendente:  { label: 'Pendente',  cls: 'bg-amber-100 text-amber-700',     icon: 'ri-time-line' },
+        aprovado:  { label: 'Aprovado',  cls: 'bg-blue-100 text-blue-700',       icon: 'ri-check-line' },
+        entregue:  { label: 'Entregue',  cls: 'bg-emerald-100 text-emerald-700', icon: 'ri-checkbox-circle-line' },
+        cancelado: { label: 'Cancelado', cls: 'bg-rose-100 text-rose-700',       icon: 'ri-close-circle-line' },
+    }[s] || { label: s, cls: 'bg-slate-200 text-slate-600', icon: 'ri-question-line' });
+
     screenContainer.innerHTML = `
-    <div class="fade-in flex-1 flex flex-col overflow-y-auto">
-        <div class="p-5 text-white" style="background:linear-gradient(135deg,${STATE.empresa.cor_primaria},${STATE.empresa.cor_secundaria})">
-            <button onclick="showScreen('perfil')" class="text-white/80 mb-2"><i class="ri-arrow-left-line"></i> Voltar</button>
-            <h1 class="text-xl font-bold">Meus resgates</h1>
+    <div class="fade-in flex-1 flex flex-col overflow-y-auto bg-slate-50">
+        <div class="px-5 pt-6 pb-10 text-white" style="background:linear-gradient(135deg,${cor},${corSec})">
+            <button onclick="showScreen('perfil')" class="text-white/80 mb-3 flex items-center gap-1 text-sm hover:text-white transition">
+                <i class="ri-arrow-left-line"></i> Voltar
+            </button>
+            <h1 class="text-2xl font-bold">Meus resgates</h1>
+            <p class="text-white/80 text-sm mt-1">${data.resgates.length} ${data.resgates.length === 1 ? 'resgate' : 'resgates'}</p>
         </div>
-        <div class="p-4 space-y-2">
-            ${data.resgates.length === 0 ? `<p class="text-center text-slate-400 py-10">Nenhum resgate ainda.</p>` : ''}
-            ${data.resgates.map(r => `
-                <div class="bg-white border border-slate-200 rounded-xl p-3">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <p class="font-semibold">${r.recompensa}</p>
-                            <p class="text-xs font-mono text-slate-500">${r.codigo}</p>
-                            <p class="text-xs text-slate-500 mt-1">${r.data}</p>
-                        </div>
-                        <span class="text-xs px-2 py-0.5 rounded-full ${
-                            r.status === 'pendente' ? 'bg-amber-100 text-amber-700' :
-                            r.status === 'aprovado' ? 'bg-blue-100 text-blue-700' :
-                            r.status === 'entregue' ? 'bg-emerald-100 text-emerald-700' :
-                            'bg-slate-200 text-slate-600'
-                        }">${r.status}</span>
+
+        <div class="px-4 -mt-6 pb-6 space-y-3">
+            ${data.resgates.length === 0 ? `
+                <div class="bg-white rounded-2xl shadow-md border border-slate-100 p-8 text-center">
+                    <div class="w-14 h-14 mx-auto rounded-full bg-slate-100 flex items-center justify-center mb-3">
+                        <i class="ri-coupon-line text-3xl text-slate-400"></i>
                     </div>
-                    <p class="text-amber-600 text-sm mt-2">−${fmtNum(r.pontos_usados)} pts</p>
+                    <p class="text-sm text-slate-500 font-medium">Nenhum resgate ainda</p>
+                    <p class="text-xs text-slate-400 mt-1">Troque seus pontos no catálogo de prêmios</p>
+                    <button onclick="showScreen('catalogo')"
+                            class="mt-4 px-4 py-2 text-white rounded-xl text-sm font-semibold"
+                            style="background:linear-gradient(135deg,${cor},${corSec})">
+                        Ver prêmios
+                    </button>
                 </div>
-            `).join('')}
+            ` : ''}
+            ${data.resgates.map(r => {
+                const info = statusInfo(r.status);
+                const utilizavel = ['pendente','aprovado'].includes(r.status);
+                return `
+                <div class="bg-white border border-slate-200 rounded-2xl p-4">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background:${cor}15">
+                            <i class="ri-gift-line text-xl" style="color:${cor}"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="font-semibold text-slate-800 truncate">${r.recompensa}</p>
+                            <p class="text-xs text-slate-500 mt-0.5">${r.data}</p>
+                            <div class="flex items-center gap-2 mt-2">
+                                <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 ${info.cls}">
+                                    <i class="${info.icon}"></i> ${info.label}
+                                </span>
+                                <span class="text-xs text-amber-700">−${fmtNum(r.pontos_usados)} pts</span>
+                            </div>
+                        </div>
+                    </div>
+                    ${utilizavel ? `
+                        <div class="mt-3 p-3 bg-amber-50 border-2 border-dashed border-amber-300 rounded-xl text-center">
+                            <p class="text-[11px] text-amber-700 mb-1 uppercase tracking-wider">Apresente no caixa</p>
+                            <p class="text-2xl font-bold font-mono tracking-wider text-amber-800">${r.codigo}</p>
+                        </div>
+                    ` : `
+                        <p class="text-[11px] font-mono text-slate-400 mt-2">${r.codigo}</p>
+                    `}
+                </div>
+            `}).join('')}
         </div>
     </div>`;
 }
@@ -1529,51 +1578,64 @@ window.excluirAvaliacao = async (id) => {
 // Tela 11: Parceiros e benefícios
 async function telaParceiros() {
     const data = await api('/parceiros');
+    const e = STATE.empresa;
+    const cor = e.cor_primaria, corSec = e.cor_secundaria;
+
     screenContainer.innerHTML = `
-    <div class="fade-in flex-1 flex flex-col overflow-y-auto">
-        <div class="p-5 text-white" style="background:linear-gradient(135deg,${STATE.empresa.cor_primaria},${STATE.empresa.cor_secundaria})">
-            <div class="flex justify-between items-start">
-                <div>
-                    <h1 class="text-xl font-bold">Parceiros</h1>
-                    <p class="text-white/80 text-sm">Cupons exclusivos de empresas parceiras</p>
+    <div class="fade-in flex-1 flex flex-col overflow-y-auto bg-slate-50">
+        <div class="px-5 pt-6 pb-10 text-white" style="background:linear-gradient(135deg,${cor},${corSec})">
+            <div class="flex justify-between items-start gap-3">
+                <div class="flex-1 min-w-0">
+                    <h1 class="text-2xl font-bold">Parceiros</h1>
+                    <p class="text-white/80 text-sm mt-1">Cupons exclusivos de empresas parceiras</p>
                 </div>
-                <button onclick="showScreen('meusCupons')" class="bg-white/20 px-3 py-1.5 rounded-full text-xs">
+                <button onclick="showScreen('meusCupons')" class="bg-white/20 backdrop-blur hover:bg-white/30 px-3 py-2 rounded-full text-xs font-medium flex items-center gap-1 transition flex-shrink-0">
                     <i class="ri-coupon-3-line"></i> Meus cupons
                 </button>
             </div>
         </div>
-        <div class="p-4 space-y-4">
-            ${data.parceiros.length === 0 ? `<p class="text-center text-slate-400 py-10">Nenhum parceiro com benefícios ativos.</p>` : ''}
+
+        <div class="px-4 -mt-6 pb-6 space-y-4">
+            ${data.parceiros.length === 0 ? `
+                <div class="bg-white rounded-2xl shadow-md border border-slate-100 p-8 text-center">
+                    <div class="w-14 h-14 mx-auto rounded-full bg-slate-100 flex items-center justify-center mb-3">
+                        <i class="ri-shake-hands-line text-3xl text-slate-400"></i>
+                    </div>
+                    <p class="text-sm text-slate-500 font-medium">Nenhum parceiro com benefícios ativos</p>
+                </div>
+            ` : ''}
             ${data.parceiros.map(p => `
-                <div class="bg-white border border-slate-200 rounded-xl overflow-hidden">
-                    <div class="p-4 flex items-start gap-3 border-b border-slate-100">
+                <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+                    <div class="p-4 flex items-start gap-3 bg-slate-50 border-b border-slate-100">
                         ${p.logo
-                            ? `<img src="${p.logo}" class="w-12 h-12 rounded-lg object-cover">`
-                            : `<div class="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-xl"><i class="ri-building-line"></i></div>`}
+                            ? `<img src="${p.logo}" class="w-12 h-12 rounded-xl object-cover flex-shrink-0">`
+                            : `<div class="w-12 h-12 rounded-xl flex items-center justify-center text-white text-xl flex-shrink-0" style="background:linear-gradient(135deg,${cor},${corSec})"><i class="ri-store-2-line"></i></div>`}
                         <div class="flex-1 min-w-0">
-                            <p class="font-semibold">${p.nome}</p>
+                            <p class="font-semibold text-slate-800 truncate">${p.nome}</p>
                             ${p.categoria ? `<p class="text-xs text-slate-500">${p.categoria}</p>` : ''}
-                            ${p.endereco ? `<p class="text-xs text-slate-500"><i class="ri-map-pin-line"></i> ${p.endereco}</p>` : ''}
+                            ${p.endereco ? `<p class="text-xs text-slate-500 mt-0.5 flex items-start gap-1"><i class="ri-map-pin-line mt-0.5 flex-shrink-0"></i> <span class="truncate">${p.endereco}</span></p>` : ''}
                         </div>
                     </div>
-                    <div class="p-4 space-y-2">
+                    <div class="p-4 space-y-2.5">
                         ${p.beneficios.map(b => `
-                            <div class="border border-slate-200 rounded-lg p-3 ${!b.pode_resgatar ? 'opacity-60' : ''}">
-                                <div class="flex justify-between items-start gap-2">
+                            <div class="rounded-xl border border-slate-200 p-3 ${!b.pode_resgatar ? 'opacity-60 bg-slate-50' : ''}">
+                                <div class="flex justify-between items-start gap-3">
                                     <div class="flex-1 min-w-0">
-                                        <div class="flex items-center gap-2">
-                                            <p class="font-semibold text-sm">${b.nome}</p>
-                                            ${b.destaque ? '<span class="text-[10px] bg-amber-100 text-amber-700 px-1.5 rounded-full">Destaque</span>' : ''}
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <p class="font-semibold text-sm text-slate-800">${b.nome}</p>
+                                            ${b.destaque ? '<span class="text-[10px] font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full"><i class="ri-star-fill"></i> Destaque</span>' : ''}
                                         </div>
-                                        <p class="text-emerald-700 font-bold text-xs mt-0.5">${b.tipo_descricao}</p>
-                                        ${b.descricao ? `<p class="text-xs text-slate-600 mt-1">${b.descricao}</p>` : ''}
-                                        ${b.condicoes ? `<p class="text-[11px] text-slate-500 mt-1"><i class="ri-information-line"></i> ${b.condicoes}</p>` : ''}
-                                        ${b.valido_ate ? `<p class="text-[11px] text-slate-500 mt-1">Válido até ${b.valido_ate}</p>` : ''}
+                                        <p class="text-emerald-700 font-bold text-xs mt-1 flex items-center gap-1">
+                                            <i class="ri-percent-line"></i> ${b.tipo_descricao}
+                                        </p>
+                                        ${b.descricao ? `<p class="text-xs text-slate-600 mt-1.5">${b.descricao}</p>` : ''}
+                                        ${b.condicoes ? `<p class="text-[11px] text-slate-500 mt-1.5 flex items-start gap-1"><i class="ri-information-line mt-0.5 flex-shrink-0"></i> <span>${b.condicoes}</span></p>` : ''}
+                                        ${b.valido_ate ? `<p class="text-[11px] text-slate-500 mt-1"><i class="ri-time-line"></i> Válido até ${b.valido_ate}</p>` : ''}
                                     </div>
                                     <button onclick="ativarCupom(${b.id}, '${b.nome.replace(/'/g, "\\'")}')"
                                             ${!b.pode_resgatar ? 'disabled' : ''}
-                                            class="text-xs px-3 py-2 rounded-lg text-white font-semibold disabled:bg-slate-300 shrink-0"
-                                            style="background:${b.pode_resgatar ? STATE.empresa.cor_primaria : ''}">
+                                            class="text-xs px-3 py-2 rounded-xl text-white font-semibold disabled:bg-slate-300 disabled:text-slate-500 shrink-0 hover:shadow-md transition"
+                                            style="${b.pode_resgatar ? `background:linear-gradient(135deg,${cor},${corSec})` : ''}">
                                         ${b.pode_resgatar ? 'Ativar' : 'Indisponível'}
                                     </button>
                                 </div>
@@ -1598,40 +1660,70 @@ window.ativarCupom = async (beneficioId, nome) => {
 // Tela 12: Meus cupons (parceiros)
 async function telaMeusCupons() {
     const data = await api('/parceiros/meus-cupons');
+    const e = STATE.empresa;
+    const cor = e.cor_primaria, corSec = e.cor_secundaria;
+
+    const statusInfo = (s) => ({
+        disponivel: { label: 'Disponível', cls: 'bg-emerald-100 text-emerald-700', icon: 'ri-check-line' },
+        usado:      { label: 'Usado',      cls: 'bg-slate-200 text-slate-600',     icon: 'ri-checkbox-circle-line' },
+        expirado:   { label: 'Expirado',   cls: 'bg-rose-100 text-rose-700',       icon: 'ri-close-circle-line' },
+    }[s] || { label: s, cls: 'bg-slate-200 text-slate-600', icon: 'ri-question-line' });
+
     screenContainer.innerHTML = `
-    <div class="fade-in flex-1 flex flex-col overflow-y-auto">
-        <div class="p-5 text-white" style="background:linear-gradient(135deg,${STATE.empresa.cor_primaria},${STATE.empresa.cor_secundaria})">
-            <button onclick="showScreen('parceiros')" class="text-white/80 mb-2"><i class="ri-arrow-left-line"></i> Voltar</button>
-            <h1 class="text-xl font-bold">Meus cupons</h1>
+    <div class="fade-in flex-1 flex flex-col overflow-y-auto bg-slate-50">
+        <div class="px-5 pt-6 pb-10 text-white" style="background:linear-gradient(135deg,${cor},${corSec})">
+            <button onclick="showScreen('parceiros')" class="text-white/80 mb-3 flex items-center gap-1 text-sm hover:text-white transition">
+                <i class="ri-arrow-left-line"></i> Voltar
+            </button>
+            <h1 class="text-2xl font-bold">Meus cupons</h1>
+            <p class="text-white/80 text-sm mt-1">${data.cupons.length} ${data.cupons.length === 1 ? 'cupom' : 'cupons'}</p>
         </div>
-        <div class="p-4 space-y-3">
-            ${data.cupons.length === 0 ? `<p class="text-center text-slate-400 py-10">Nenhum cupom ativo.</p>` : ''}
-            ${data.cupons.map(c => `
-                <div class="bg-white border border-slate-200 rounded-xl p-4">
-                    <div class="flex items-start gap-3">
+
+        <div class="px-4 -mt-6 pb-6 space-y-3">
+            ${data.cupons.length === 0 ? `
+                <div class="bg-white rounded-2xl shadow-md border border-slate-100 p-8 text-center">
+                    <div class="w-14 h-14 mx-auto rounded-full bg-slate-100 flex items-center justify-center mb-3">
+                        <i class="ri-coupon-3-line text-3xl text-slate-400"></i>
+                    </div>
+                    <p class="text-sm text-slate-500 font-medium">Nenhum cupom ativo</p>
+                    <p class="text-xs text-slate-400 mt-1">Ative cupons na tela Parceiros</p>
+                    <button onclick="showScreen('parceiros')"
+                            class="mt-4 px-4 py-2 text-white rounded-xl text-sm font-semibold"
+                            style="background:linear-gradient(135deg,${cor},${corSec})">
+                        Ver parceiros
+                    </button>
+                </div>
+            ` : ''}
+            ${data.cupons.map(c => {
+                const info = statusInfo(c.status);
+                return `
+                <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+                    <div class="p-4 flex items-start gap-3">
                         ${c.parceiro_logo
-                            ? `<img src="${c.parceiro_logo}" class="w-10 h-10 rounded-lg object-cover">`
-                            : `<div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500"><i class="ri-building-line"></i></div>`}
+                            ? `<img src="${c.parceiro_logo}" class="w-11 h-11 rounded-xl object-cover flex-shrink-0">`
+                            : `<div class="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 flex-shrink-0"><i class="ri-store-2-line text-xl"></i></div>`}
                         <div class="flex-1 min-w-0">
-                            <p class="font-semibold text-sm">${c.beneficio}</p>
+                            <p class="font-semibold text-slate-800 truncate">${c.beneficio}</p>
                             <p class="text-xs text-slate-500">${c.parceiro}</p>
                         </div>
-                        <span class="text-xs px-2 py-0.5 rounded-full ${
-                            c.status === 'disponivel' ? 'bg-emerald-100 text-emerald-700' :
-                            c.status === 'usado' ? 'bg-slate-200 text-slate-600' :
-                            'bg-rose-100 text-rose-700'
-                        }">${c.status}</span>
+                        <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 ${info.cls} flex-shrink-0">
+                            <i class="${info.icon}"></i> ${info.label}
+                        </span>
                     </div>
                     ${c.utilizavel ? `
-                        <div class="mt-3 p-3 bg-amber-50 border-2 border-dashed border-amber-300 rounded text-center">
-                            <p class="text-xs text-amber-700 mb-1">Apresente este código no parceiro</p>
-                            <p class="text-2xl font-bold font-mono tracking-wider text-amber-800">${c.codigo}</p>
-                            <p class="text-xs text-amber-600 mt-1">Válido até ${c.valido_ate}</p>
+                        <div class="mx-4 mb-4 p-4 bg-amber-50 border-2 border-dashed border-amber-300 rounded-xl text-center">
+                            <p class="text-[11px] text-amber-700 mb-1.5 uppercase tracking-wider font-semibold">Apresente no parceiro</p>
+                            <p class="text-3xl font-bold font-mono tracking-wider text-amber-800">${c.codigo}</p>
+                            <p class="text-[11px] text-amber-600 mt-2"><i class="ri-time-line"></i> Válido até ${c.valido_ate}</p>
                         </div>
                     ` : ''}
-                    ${c.usado_em ? `<p class="text-xs text-slate-500 mt-2 text-right">Usado em ${c.usado_em}</p>` : ''}
+                    ${c.usado_em ? `
+                        <div class="mx-4 mb-4 px-3 py-2 bg-slate-50 rounded-lg text-xs text-slate-500 text-center">
+                            <i class="ri-checkbox-circle-line"></i> Usado em ${c.usado_em}
+                        </div>
+                    ` : ''}
                 </div>
-            `).join('')}
+            `}).join('')}
         </div>
     </div>`;
 }
