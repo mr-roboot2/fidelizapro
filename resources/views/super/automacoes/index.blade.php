@@ -41,7 +41,7 @@
                             @endswitch
                         </p>
 
-                        <div class="mt-3 p-3 bg-slate-50 rounded text-xs text-slate-700 whitespace-pre-line line-clamp-3">{{ $auto->mensagem ?: '(sem mensagem)' }}</div>
+                        <div class="mt-3 p-3 bg-slate-50 rounded text-xs text-slate-700 whitespace-pre-line break-words">{{ $auto->mensagem ?: '(sem mensagem)' }}</div>
 
                         @if ($auto->exists && $auto->total_enviados > 0)
                             <p class="text-xs text-slate-500 mt-2">
