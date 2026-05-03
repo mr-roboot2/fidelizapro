@@ -50,7 +50,10 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
     Route::get('indicacoes', [IndicacaoController::class, 'index']);
     Route::post('indicacoes', [IndicacaoController::class, 'indicar']);
 
+    Route::get('pesquisas/minha-geral', [PesquisaController::class, 'minhaGeral']);
     Route::post('pesquisas', [PesquisaController::class, 'responder']);
+    Route::put('pesquisas/{id}', [PesquisaController::class, 'atualizar']);
+    Route::delete('pesquisas/{id}', [PesquisaController::class, 'excluir']);
 
     Route::get('parceiros', [BeneficioController::class, 'listar']);
     Route::post('parceiros/cupons', [BeneficioController::class, 'gerarCupom']);

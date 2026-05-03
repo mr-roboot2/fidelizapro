@@ -1268,39 +1268,69 @@ window.compartilharIndicacao = async (link, nomeEmpresa) => {
 
 // Tela 10: Pesquisa de satisfação
 async function telaPesquisa() {
+    const e = STATE.empresa;
+    const cor = e.cor_primaria, corSec = e.cor_secundaria;
+    const data = await api('/pesquisas/minha-geral');
+    const existente = data.pesquisa;
+    const notaInicial = existente?.nota || 0;
+    const comentarioInicial = existente?.comentario || '';
+
     screenContainer.innerHTML = `
-    <div class="fade-in flex-1 flex flex-col overflow-y-auto">
-        <div class="p-5 text-white" style="background:linear-gradient(135deg,${STATE.empresa.cor_primaria},${STATE.empresa.cor_secundaria})">
-            <button onclick="showScreen('perfil')" class="text-white/80 mb-2"><i class="ri-arrow-left-line"></i> Voltar</button>
-            <h1 class="text-xl font-bold">Avalie nosso atendimento</h1>
-            <p class="text-white/80 text-sm">Sua opinião é muito importante</p>
+    <div class="fade-in flex-1 flex flex-col overflow-y-auto bg-slate-50">
+        <div class="px-5 pt-6 pb-10 text-white" style="background:linear-gradient(135deg,${cor},${corSec})">
+            <button onclick="showScreen('perfil')" class="text-white/80 mb-3 flex items-center gap-1 text-sm hover:text-white transition">
+                <i class="ri-arrow-left-line"></i> Voltar
+            </button>
+            <h1 class="text-2xl font-bold">${existente ? 'Sua avaliação' : 'Avalie nosso atendimento'}</h1>
+            <p class="text-white/80 text-sm mt-1">${existente ? 'Você pode editar ou excluir abaixo' : 'Sua opinião é muito importante'}</p>
         </div>
-        <form id="form-pesquisa" class="p-6 space-y-4">
-            <div>
-                <p class="text-center mb-3 text-slate-700">Como você avalia sua experiência?</p>
-                <div class="flex justify-center gap-3" id="estrelas">
-                    ${[1,2,3,4,5].map(n => `
-                        <button type="button" data-nota="${n}" class="estrela text-4xl text-slate-300 hover:text-amber-400 transition">
-                            <i class="ri-star-fill"></i>
-                        </button>
-                    `).join('')}
+
+        <form id="form-pesquisa" class="px-4 -mt-6 pb-6">
+            <div class="bg-white rounded-2xl shadow-md border border-slate-100 p-6 space-y-5">
+                <div>
+                    <p class="text-center text-sm text-slate-700 mb-3">Como você avalia sua experiência?</p>
+                    <div class="flex justify-center gap-2" id="estrelas">
+                        ${[1,2,3,4,5].map(n => `
+                            <button type="button" data-nota="${n}" class="estrela text-4xl ${n <= notaInicial ? 'text-amber-400' : 'text-slate-300'} hover:text-amber-400 transition">
+                                <i class="ri-star-fill"></i>
+                            </button>
+                        `).join('')}
+                    </div>
+                    <input type="hidden" name="nota" id="nota-input" value="${notaInicial}" required>
                 </div>
-                <input type="hidden" name="nota" id="nota-input" required>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Comentário (opcional)</label>
+                    <textarea name="comentario" rows="5" maxlength="1000" placeholder="Conte como foi sua experiência..."
+                              class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-slate-400 focus:outline-none transition">${comentarioInicial.replace(/</g, '&lt;')}</textarea>
+                </div>
+
+                ${existente ? `
+                <p class="text-xs text-slate-500 text-center">
+                    <i class="ri-information-line"></i> Avaliação enviada em ${new Date(existente.created_at).toLocaleDateString('pt-BR')}
+                </p>` : ''}
             </div>
-            <div>
-                <label class="text-sm font-medium">Comentário (opcional)</label>
-                <textarea name="comentario" rows="4" placeholder="Conte como foi sua experiência..."
-                          class="mt-1 w-full px-4 py-3 border border-slate-300 rounded-xl"></textarea>
-            </div>
-            <button class="w-full py-3 text-white rounded-xl font-semibold" style="background:${STATE.empresa.cor_primaria}">
-                Enviar avaliação
+
+            <button type="submit" class="w-full mt-4 py-3.5 text-white rounded-2xl font-semibold flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition"
+                    style="background:linear-gradient(135deg,${cor},${corSec})">
+                <i class="ri-${existente ? 'save' : 'send-plane'}-line"></i> ${existente ? 'Salvar alterações' : 'Enviar avaliação'}
+            </button>
+
+            ${existente ? `
+            <button type="button" onclick="excluirAvaliacao(${existente.id})"
+                    class="w-full mt-2 py-3 text-rose-600 font-medium rounded-2xl border-2 border-rose-200 bg-white hover:bg-rose-50 transition flex items-center justify-center gap-2">
+                <i class="ri-delete-bin-line"></i> Excluir avaliação
+            </button>` : ''}
+
+            <button type="button" onclick="showScreen('perfil')" class="w-full mt-2 py-3 text-slate-600 font-medium rounded-2xl hover:bg-slate-100 transition">
+                Cancelar
             </button>
         </form>
     </div>`;
 
-    document.querySelectorAll('.estrela').forEach((e) => {
-        e.addEventListener('click', () => {
-            const n = +e.dataset.nota;
+    document.querySelectorAll('.estrela').forEach((el) => {
+        el.addEventListener('click', () => {
+            const n = +el.dataset.nota;
             $('#nota-input').value = n;
             document.querySelectorAll('.estrela').forEach((s, i) => {
                 s.classList.toggle('text-amber-400', i < n);
@@ -1312,14 +1342,28 @@ async function telaPesquisa() {
     $('#form-pesquisa').addEventListener('submit', async (ev) => {
         ev.preventDefault();
         const fd = Object.fromEntries(new FormData(ev.target));
-        if (!fd.nota) return toast('Selecione uma nota', 'error');
+        if (!fd.nota || fd.nota === '0') return toast('Selecione uma nota', 'error');
         try {
-            await api('/pesquisas', { method: 'POST', body: JSON.stringify(fd) });
-            toast('Obrigado pela avaliação!', 'success');
-            setTimeout(() => showScreen('home'), 1000);
+            if (existente) {
+                await api('/pesquisas/'+existente.id, { method: 'PUT', body: JSON.stringify(fd) });
+                toast('Avaliação atualizada!', 'success');
+            } else {
+                await api('/pesquisas', { method: 'POST', body: JSON.stringify(fd) });
+                toast('Obrigado pela avaliação!', 'success');
+            }
+            setTimeout(() => showScreen('home'), 800);
         } catch (e) { toast(e.message, 'error'); }
     });
 }
+
+window.excluirAvaliacao = async (id) => {
+    if (!confirm('Excluir sua avaliação? Você poderá criar outra depois.')) return;
+    try {
+        await api('/pesquisas/'+id, { method: 'DELETE' });
+        toast('Avaliação removida', 'success');
+        setTimeout(() => showScreen('perfil'), 600);
+    } catch (e) { toast(e.message, 'error'); }
+};
 
 // Tela 11: Parceiros e benefícios
 async function telaParceiros() {

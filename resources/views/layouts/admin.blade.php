@@ -35,6 +35,7 @@
                 ['admin.resgates.index', 'ri-coupon-line', 'Resgates'],
                 ['admin.transacoes.index', 'ri-exchange-line', 'Transações'],
                 ['admin.cashback.index', 'ri-money-dollar-circle-line', 'Cashback'],
+                ['admin.avaliacoes.index', 'ri-star-line', 'Avaliações'],
                 ['admin.parceiros.index', 'ri-handshake-line', 'Parceiros'],
                 ['admin.campanhas.index', 'ri-whatsapp-line', 'Campanhas'],
                 ['admin.automacoes.index', 'ri-magic-line', 'Automações'],

@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\ConfiguracaoController;
 use App\Http\Controllers\Admin\CaixaController;
 use App\Http\Controllers\Admin\ImportacaoController;
 use App\Http\Controllers\Admin\WhatsappController;
+use App\Http\Controllers\Admin\AvaliacaoController;
 use App\Http\Controllers\Admin\AutomacaoController;
 use App\Http\Controllers\Admin\AtividadeSuspeitaController;
 use App\Http\Controllers\Admin\MeuPlanoController;
@@ -79,6 +80,9 @@ Route::middleware(['admin.auth', 'empresa.scope'])->prefix('admin')->name('admin
     Route::resource('compras', CompraController::class)->only(['index', 'create', 'store', 'show']);
     Route::resource('regras', RegraPontuacaoController::class)->except(['show']);
     Route::resource('recompensas', RecompensaController::class)->except(['show']);
+
+    Route::get('avaliacoes', [AvaliacaoController::class, 'index'])->name('avaliacoes.index');
+    Route::delete('avaliacoes/{avaliacao}', [AvaliacaoController::class, 'destroy'])->name('avaliacoes.destroy');
 
     Route::get('resgates', [ResgateController::class, 'index'])->name('resgates.index');
     Route::get('resgates/{resgate}', [ResgateController::class, 'show'])->name('resgates.show');
