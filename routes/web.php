@@ -48,10 +48,6 @@ Route::middleware('install.gate')->prefix('install')->group(function () {
 });
 Route::get('/install/complete', [InstallController::class, 'complete']);
 
-// Documentos legais (públicos)
-Route::get('/politica-privacidade', [DocumentoLegalPublicoController::class, 'show'])->defaults('slug', 'privacidade')->name('documentos.privacidade');
-Route::get('/termos-de-uso', [DocumentoLegalPublicoController::class, 'show'])->defaults('slug', 'termos')->name('documentos.termos');
-
 Route::get('/', fn() => redirect()->route('admin.login'));
 
 // Autenticação admin
@@ -152,8 +148,11 @@ Route::middleware(['super.auth'])->prefix('super')->name('super.')->group(functi
     Route::resource('planos', SuperPlanoController::class)->except(['show']);
 
     Route::get('documentos', [SuperDocumentoLegalController::class, 'index'])->name('documentos.index');
+    Route::get('documentos/criar', [SuperDocumentoLegalController::class, 'create'])->name('documentos.create');
+    Route::post('documentos', [SuperDocumentoLegalController::class, 'store'])->name('documentos.store');
     Route::get('documentos/{slug}/editar', [SuperDocumentoLegalController::class, 'edit'])->name('documentos.edit');
     Route::put('documentos/{slug}', [SuperDocumentoLegalController::class, 'update'])->name('documentos.update');
+    Route::delete('documentos/{slug}', [SuperDocumentoLegalController::class, 'destroy'])->name('documentos.destroy');
 
     Route::get('assinaturas', [SuperAssinaturaController::class, 'index'])->name('assinaturas.index');
     Route::get('assinaturas/criar', [SuperAssinaturaController::class, 'create'])->name('assinaturas.create');
@@ -170,3 +169,9 @@ Route::post('/webhook/pagamento/{gateway}', [WebhookPagamentoController::class, 
 // Mock de pagamento (dev)
 Route::get('/pagamento-mock/{cobranca}', [WebhookPagamentoController::class, 'pagamentoMock'])->name('pagamento.mock');
 Route::post('/pagamento-mock/{cobranca}/confirmar', [WebhookPagamentoController::class, 'confirmarPagamentoMock'])->name('pagamento.mock.confirmar');
+
+// Páginas legais/institucionais (slug livre, editáveis pelo super admin).
+// Tem que ser a ÚLTIMA rota — só captura segmentos que não bateram em nada antes.
+Route::get('/{slug}', [DocumentoLegalPublicoController::class, 'show'])
+    ->where('slug', '[a-z][a-z0-9-]*')
+    ->name('documento.publico');

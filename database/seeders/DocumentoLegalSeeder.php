@@ -9,12 +9,12 @@ class DocumentoLegalSeeder extends Seeder
 {
     public function run(): void
     {
-        DocumentoLegal::updateOrCreate(['slug' => 'privacidade'], [
+        DocumentoLegal::updateOrCreate(['slug' => 'politica-privacidade'], [
             'titulo' => 'Política de Privacidade',
             'conteudo' => $this->politicaPadrao(),
         ]);
 
-        DocumentoLegal::updateOrCreate(['slug' => 'termos'], [
+        DocumentoLegal::updateOrCreate(['slug' => 'termos-de-uso'], [
             'titulo' => 'Termos de Uso',
             'conteudo' => $this->termosPadrao(),
         ]);
