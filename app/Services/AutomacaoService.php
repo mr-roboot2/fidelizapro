@@ -83,16 +83,19 @@ class AutomacaoService
         $msg = $this->whatsapp->personalizarMensagem($auto->mensagem, $cliente, $extras);
         $mapping = $this->eventoTemplateParaTipo($auto->tipo, $cliente, $extras);
 
+        // Automações são globais (sem empresa_id) — usa a empresa do cliente
+        $empresa = $cliente->empresa;
+
         if ($mapping) {
             $sucesso = $this->whatsapp->enviarEvento(
-                $auto->empresa,
+                $empresa,
                 $cliente->telefone,
                 $mapping['evento'],
                 $mapping['params'],
                 $msg
             );
         } else {
-            $sucesso = $this->whatsapp->enviar($auto->empresa, $cliente->telefone, $msg);
+            $sucesso = $this->whatsapp->enviar($empresa, $cliente->telefone, $msg);
         }
 
         AutomacaoLog::create([

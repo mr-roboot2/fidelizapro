@@ -8,7 +8,10 @@ use App\Services\CashbackService;
 use App\Services\CompraService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class CaixaController extends Controller
 {
@@ -79,19 +82,34 @@ class CaixaController extends Controller
             return response()->json(['message' => 'Cashback maior que o valor da compra.'], 422);
         }
 
-        // Debita cashback (se solicitado) e registra compra com desconto
-        if ($usarCashback > 0) {
-            $cashbackService->debitar($cliente, $usarCashback, 'utilizacao', null,
-                "Cashback usado em compra (R$ ".number_format($valorBruto, 2, ',', '.').")");
-        }
+        // Débito do cashback + registro da compra precisam ser atômicos —
+        // se a compra falhar, o débito é revertido junto.
+        try {
+            $compra = DB::transaction(function () use ($cliente, $usarCashback, $valorBruto, $dados, $cashbackService, $compraService) {
+                if ($usarCashback > 0) {
+                    $cashbackService->debitar($cliente, $usarCashback, 'utilizacao', null,
+                        "Cashback usado em compra (R$ ".number_format($valorBruto, 2, ',', '.').")");
+                }
 
-        $compra = $compraService->registrar($cliente, [
-            'user_id' => Auth::id(),
-            'valor' => $valorBruto,
-            'desconto' => $usarCashback,
-            'descricao' => $dados['descricao'] ?? null,
-            'origem' => 'manual',
-        ]);
+                return $compraService->registrar($cliente, [
+                    'user_id' => Auth::id(),
+                    'valor' => $valorBruto,
+                    'desconto' => $usarCashback,
+                    'descricao' => $dados['descricao'] ?? null,
+                    'origem' => 'manual',
+                ]);
+            });
+        } catch (Throwable $e) {
+            Log::error('[Caixa] Falha ao lançar compra: '.$e->getMessage(), [
+                'cliente_id' => $cliente->id,
+                'valor' => $valorBruto,
+                'usar_cashback' => $usarCashback,
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'message' => 'Erro ao registrar compra: '.$e->getMessage(),
+            ], 500);
+        }
 
         $cliente->refresh();
 

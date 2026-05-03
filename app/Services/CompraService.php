@@ -6,6 +6,8 @@ use App\Models\Cliente;
 use App\Models\Compra;
 use App\Services\AutomacaoService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class CompraService
 {
@@ -54,11 +56,19 @@ class CompraService
             $cliente->ultima_compra = now();
             $cliente->save();
 
-            // Dispara automação pós-compra (se configurada)
-            $this->automacaoService->disparar($empresa, 'pos_compra', $cliente->fresh(), [
-                '{valor_compra}' => 'R$ '.number_format($valor, 2, ',', '.'),
-                '{pontos_ganhos}' => number_format($pontos, 0, ',', '.'),
-            ]);
+            // Dispara automação pós-compra (se configurada). Side-effect: nunca
+            // pode derrubar o registro da compra se o WhatsApp falhar.
+            try {
+                $this->automacaoService->disparar($empresa, 'pos_compra', $cliente->fresh(), [
+                    '{valor_compra}' => 'R$ '.number_format($valor, 2, ',', '.'),
+                    '{pontos_ganhos}' => number_format($pontos, 0, ',', '.'),
+                ]);
+            } catch (Throwable $e) {
+                Log::warning('[Compra] Falha ao disparar automação pos_compra: '.$e->getMessage(), [
+                    'compra_id' => $compra->id,
+                    'cliente_id' => $cliente->id,
+                ]);
+            }
 
             return $compra;
         });
