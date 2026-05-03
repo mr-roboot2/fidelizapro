@@ -36,6 +36,7 @@
                 ['super.planos.index', 'ri-stack-line', 'Planos'],
                 ['super.auditoria.index', 'ri-history-line', 'Auditoria'],
                 ['super.documentos.index', 'ri-file-text-line', 'Documentos legais'],
+                ['super.configuracoes.edit', 'ri-settings-3-line', 'Configurações'],
             ];
         @endphp
         @foreach ($itens as [$rota, $icone, $rotulo])

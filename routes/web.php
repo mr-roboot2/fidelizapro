@@ -34,6 +34,7 @@ use App\Http\Controllers\WebhookPagamentoController;
 use App\Http\Controllers\InstallController;
 use App\Http\Controllers\DocumentoLegalPublicoController;
 use App\Http\Controllers\SuperAdmin\DocumentoLegalController as SuperDocumentoLegalController;
+use App\Http\Controllers\SuperAdmin\ConfiguracaoSistemaController;
 
 // Instalador web (auto-trava após concluir via storage/installed.lock)
 Route::middleware('install.gate')->prefix('install')->group(function () {
@@ -146,6 +147,9 @@ Route::middleware(['super.auth'])->prefix('super')->name('super.')->group(functi
     Route::get('auditoria/{log}', [SuperAuditoriaController::class, 'show'])->name('auditoria.show');
 
     Route::resource('planos', SuperPlanoController::class)->except(['show']);
+
+    Route::get('configuracoes', [ConfiguracaoSistemaController::class, 'edit'])->name('configuracoes.edit');
+    Route::put('configuracoes', [ConfiguracaoSistemaController::class, 'update'])->name('configuracoes.update');
 
     Route::get('documentos', [SuperDocumentoLegalController::class, 'index'])->name('documentos.index');
     Route::get('documentos/criar', [SuperDocumentoLegalController::class, 'create'])->name('documentos.create');

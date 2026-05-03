@@ -3,15 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - FidelizaPro</title>
+    <title>Login - {{ $sistema->nome_sistema ?? 'FidelizaPro' }}</title>
+    @if (!empty($sistema?->faviconUrl()))
+        <link rel="icon" href="{{ $sistema->faviconUrl() }}">
+    @endif
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css">
 </head>
-<body class="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 min-h-screen flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+@php
+    $cor1 = $sistema->cor_primaria ?? '#6366f1';
+    $cor2 = $sistema->cor_secundaria ?? '#8b5cf6';
+    $nome = $sistema->nome_sistema ?? 'FidelizaPro';
+@endphp
+<body class="min-h-screen flex items-center justify-center p-4 text-white" style="background:linear-gradient(135deg,{{ $cor1 }},{{ $cor2 }})">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 text-slate-800">
         <div class="text-center mb-8">
-            <div class="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-3xl font-bold mb-3">F</div>
-            <h1 class="text-2xl font-bold text-slate-800">FidelizaPro</h1>
+            @if ($sistema?->logoUrl())
+                <img src="{{ $sistema->logoUrl() }}" alt="{{ $nome }}" class="w-16 h-16 mx-auto rounded-2xl object-contain mb-3 p-2" style="background:linear-gradient(135deg,{{ $cor1 }},{{ $cor2 }})">
+            @else
+                <div class="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center text-white text-3xl font-bold mb-3" style="background:linear-gradient(135deg,{{ $cor1 }},{{ $cor2 }})">{{ strtoupper(substr($nome, 0, 1)) }}</div>
+            @endif
+            <h1 class="text-2xl font-bold text-slate-800">{{ $nome }}</h1>
             <p class="text-slate-500 text-sm">Painel Administrativo</p>
         </div>
 
@@ -43,7 +55,7 @@
                 <input type="checkbox" name="remember" class="rounded border-slate-300 text-indigo-600">
                 <span class="ml-2">Lembrar de mim</span>
             </label>
-            <button type="submit" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-2.5 rounded-lg font-semibold hover:from-indigo-700 hover:to-purple-700 transition">
+            <button type="submit" class="w-full text-white py-2.5 rounded-lg font-semibold transition hover:opacity-95" style="background:linear-gradient(135deg,{{ $cor1 }},{{ $cor2 }})">
                 Entrar
             </button>
         </form>
