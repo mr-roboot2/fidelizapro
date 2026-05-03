@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Super Admin') - FidelizaPro</title>
+    <title>@yield('title', 'Super Admin') - {{ $sistema->nome_sistema ?? 'FidelizaPro' }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -19,7 +19,7 @@
             <div class="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold bg-gradient-to-br from-rose-500 to-orange-500">S</div>
             <div>
                 <span class="font-bold text-sm block leading-tight">Super Admin</span>
-                <span class="text-xs text-slate-400">FidelizaPro</span>
+                <span class="text-xs text-slate-400">{{ $sistema->nome_sistema ?? 'FidelizaPro' }}</span>
             </div>
         </div>
         <button @click="open=!open" class="text-slate-400 hover:text-white">

@@ -81,7 +81,7 @@
                 </div>
             </div>
         </div>
-        <p class="text-center text-xs text-slate-400 mt-4">Powered by FidelizaPro</p>
+        <p class="text-center text-xs text-slate-400 mt-4">Powered by {{ $sistema->nome_sistema ?? 'FidelizaPro' }}</p>
     </div>
 </body>
 </html>

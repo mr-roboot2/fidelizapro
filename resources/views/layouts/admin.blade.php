@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Painel') - FidelizaPro</title>
+    <title>@yield('title', 'Painel') - {{ $sistema->nome_sistema ?? 'FidelizaPro' }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -14,10 +14,15 @@
 <body class="bg-slate-100 text-slate-800 min-h-screen flex">
 <aside x-data="{open:true}" :class="open?'w-64':'w-20'" class="bg-slate-900 text-slate-200 transition-all duration-200 flex flex-col">
     <div class="p-4 flex items-center justify-between border-b border-slate-800">
+        @php $nomeSistema = $sistema->nome_sistema ?? 'FidelizaPro'; @endphp
         <div class="flex items-center gap-2" x-show="open">
-            <div class="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold"
-                 style="background:{{ $empresaAtiva->cor_primaria ?? '#6366f1' }}">F</div>
-            <span class="font-bold">FidelizaPro</span>
+            @if (!empty($sistema) && $sistema->logoUrl())
+                <img src="{{ $sistema->logoUrl() }}" alt="{{ $nomeSistema }}" class="w-8 h-8 rounded-lg object-contain bg-white/10">
+            @else
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold"
+                     style="background:{{ $empresaAtiva->cor_primaria ?? '#6366f1' }}">{{ mb_strtoupper(mb_substr($nomeSistema, 0, 1)) }}</div>
+            @endif
+            <span class="font-bold">{{ $nomeSistema }}</span>
         </div>
         <button @click="open=!open" class="text-slate-400 hover:text-white">
             <i class="ri-menu-line text-xl"></i>
