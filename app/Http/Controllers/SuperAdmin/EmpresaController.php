@@ -117,6 +117,11 @@ class EmpresaController extends Controller
             'validade_pontos_dias' => 'required|integer|min:30',
             'logo' => 'nullable|image|max:1024',
             'ativo' => 'boolean',
+            'rate_limit_auth' => 'nullable|integer|min:1|max:1000',
+            'rate_limit_pdv'  => 'nullable|integer|min:1|max:5000',
+            'otp_max_por_telefone' => 'nullable|integer|min:1|max:50',
+            'otp_max_tentativas'   => 'nullable|integer|min:1|max:50',
+            'max_resgates_24h'     => 'nullable|integer|min:1|max:100',
         ]);
 
         if ($request->hasFile('logo')) {

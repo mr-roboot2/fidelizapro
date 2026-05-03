@@ -35,13 +35,14 @@ class ResgateService
                 throw new \DomainException('Pontos insuficientes para resgatar.');
             }
 
-            // Antifraude: max 3 resgates por cliente em 24h
+            // Antifraude: max N resgates por cliente em 24h (configurável)
+            $maxResgates = (int) ($cliente->empresa->max_resgates_24h ?: 3);
             $resgatesUltimas24h = Resgate::where('cliente_id', $cliente->id)
                 ->where('created_at', '>=', now()->subDay())
                 ->where('status', '!=', 'cancelado')
                 ->count();
-            if ($resgatesUltimas24h >= 3) {
-                throw new \DomainException('Limite de 3 resgates em 24h atingido. Tente novamente amanhã.');
+            if ($resgatesUltimas24h >= $maxResgates) {
+                throw new \DomainException("Limite de {$maxResgates} resgates em 24h atingido. Tente novamente amanhã.");
             }
 
             $resgate = Resgate::create([

@@ -17,16 +17,18 @@ Route::prefix('v1')->group(function () {
     Route::get('empresas', [EmpresaController::class, 'publicas']);
     Route::get('qr/{codigo}', [ClienteController::class, 'qr'])->where('codigo', '[A-Za-z0-9-]+');
 
-    // Auth com throttle (anti brute-force): max 10 tentativas/minuto por IP
-    Route::middleware('throttle:10,1')->group(function () {
+    // Auth com throttle anti brute-force. Limite por empresa (campo
+    // rate_limit_auth) — default 10/min/IP se a empresa não for resolvida.
+    Route::middleware('empresa.throttle:auth')->group(function () {
         Route::post('auth/login', [AuthController::class, 'login']);
         Route::post('auth/registrar', [AuthController::class, 'registrar']);
         Route::post('auth/otp/solicitar', [OtpController::class, 'solicitar']);
         Route::post('auth/otp/validar', [OtpController::class, 'validar']);
     });
 
-    // PDV externo (autenticado por X-Pdv-Secret) — throttle 60/min
-    Route::middleware('throttle:60,1')->group(function () {
+    // PDV externo (autenticado por X-Pdv-Secret). Limite configurável por
+    // empresa (rate_limit_pdv) — default 60/min/IP.
+    Route::middleware('empresa.throttle:pdv')->group(function () {
         Route::post('pdv/{slug}/compras', [PdvController::class, 'lancarCompra']);
     });
 });

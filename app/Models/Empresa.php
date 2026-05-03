@@ -22,6 +22,8 @@ class Empresa extends Model
         'whatsapp_provider', 'whatsapp_api_url', 'whatsapp_api_token',
         'whatsapp_instance', 'whatsapp_phone_id', 'whatsapp_ativo',
         'whatsapp_webhook_verify_token', 'whatsapp_waba_id',
+        'rate_limit_auth', 'rate_limit_pdv',
+        'otp_max_por_telefone', 'otp_max_tentativas', 'max_resgates_24h',
     ];
 
     protected $casts = [
@@ -29,6 +31,11 @@ class Empresa extends Model
         'cashback_percentual' => 'decimal:2',
         'ativo' => 'boolean',
         'whatsapp_ativo' => 'boolean',
+        'rate_limit_auth' => 'integer',
+        'rate_limit_pdv' => 'integer',
+        'otp_max_por_telefone' => 'integer',
+        'otp_max_tentativas' => 'integer',
+        'max_resgates_24h' => 'integer',
     ];
 
     protected static function booted(): void

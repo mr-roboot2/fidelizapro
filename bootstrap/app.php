@@ -5,6 +5,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use App\Http\Middleware\AdminAuth;
 use App\Http\Middleware\EmpresaScope;
+use App\Http\Middleware\EmpresaThrottle;
 use App\Http\Middleware\SuperAdminAuth;
 use App\Http\Middleware\EnsureNotInstalled;
 
@@ -21,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'empresa.scope' => EmpresaScope::class,
             'super.auth' => SuperAdminAuth::class,
             'install.gate' => EnsureNotInstalled::class,
+            'empresa.throttle' => EmpresaThrottle::class,
         ]);
 
         // API consumida via Bearer token (sem cookies/CSRF). Não usar statefulApi(),

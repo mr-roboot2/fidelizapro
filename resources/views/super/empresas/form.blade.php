@@ -87,6 +87,51 @@
             </div>
         </div>
 
+        @if ($empresa->exists)
+            <h3 class="font-semibold mt-6 mb-1 text-slate-700">Antifraude e limites</h3>
+            <p class="text-xs text-slate-500 mb-4">
+                Controles definidos pelo super admin. Os admins da empresa só visualizam — quem ajusta é você.
+                Valores muito altos facilitam ataques, muito baixos atrapalham clientes legítimos.
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="text-sm font-medium">Login/Registro/OTP por minuto</label>
+                    <input type="number" name="rate_limit_auth" min="1" max="1000"
+                           value="{{ old('rate_limit_auth', $empresa->rate_limit_auth ?: 10) }}"
+                           class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg">
+                    <p class="text-xs text-slate-500 mt-1">Tentativas por IP/min. Padrão: 10.</p>
+                </div>
+                <div>
+                    <label class="text-sm font-medium">Webhook PDV por minuto</label>
+                    <input type="number" name="rate_limit_pdv" min="1" max="5000"
+                           value="{{ old('rate_limit_pdv', $empresa->rate_limit_pdv ?: 60) }}"
+                           class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg">
+                    <p class="text-xs text-slate-500 mt-1">Lançamentos PDV por IP/min. Padrão: 60.</p>
+                </div>
+                <div>
+                    <label class="text-sm font-medium">OTPs por telefone (15 min)</label>
+                    <input type="number" name="otp_max_por_telefone" min="1" max="50"
+                           value="{{ old('otp_max_por_telefone', $empresa->otp_max_por_telefone ?: 3) }}"
+                           class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg">
+                    <p class="text-xs text-slate-500 mt-1">Códigos por telefone em 15 min. Padrão: 3.</p>
+                </div>
+                <div>
+                    <label class="text-sm font-medium">Tentativas por código OTP</label>
+                    <input type="number" name="otp_max_tentativas" min="1" max="50"
+                           value="{{ old('otp_max_tentativas', $empresa->otp_max_tentativas ?: 5) }}"
+                           class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg">
+                    <p class="text-xs text-slate-500 mt-1">Erros antes de invalidar. Padrão: 5.</p>
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="text-sm font-medium">Resgates por cliente em 24h</label>
+                    <input type="number" name="max_resgates_24h" min="1" max="100"
+                           value="{{ old('max_resgates_24h', $empresa->max_resgates_24h ?: 3) }}"
+                           class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg">
+                    <p class="text-xs text-slate-500 mt-1">Prêmios por cliente por dia. Padrão: 3.</p>
+                </div>
+            </div>
+        @endif
+
         @if (!$empresa->exists)
             <h3 class="font-semibold mt-6 mb-4 text-slate-700">Admin inicial da empresa</h3>
             <p class="text-xs text-slate-500 mb-3">Esse usuário poderá gerenciar a empresa pelo painel admin.</p>
