@@ -67,11 +67,12 @@ class CaixaController extends Controller
         $cliente = Cliente::where('id', $dados['cliente_id'])
             ->where('empresa_id', $empresaId)->firstOrFail();
 
-        $valorBruto = (float) $dados['valor'];
-        $usarCashback = (float) ($dados['usar_cashback'] ?? 0);
+        $valorBruto = round((float) $dados['valor'], 2);
+        $usarCashback = round((float) ($dados['usar_cashback'] ?? 0), 2);
+        $saldoDisponivel = round((float) $cliente->cashback_atual, 2);
 
-        // Limita ao saldo disponível
-        if ($usarCashback > $cliente->cashback_atual) {
+        // Limita ao saldo disponível (compara em centavos pra evitar erro de float)
+        if ($usarCashback > $saldoDisponivel) {
             return response()->json(['message' => 'Cashback solicitado maior que o disponível.'], 422);
         }
         if ($usarCashback > $valorBruto) {

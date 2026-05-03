@@ -34,11 +34,12 @@ class CashbackService
 
             $liberadoEm = now()->addDays($dias);
 
-            $saldoAnterior = (float) $cliente->cashback_atual;
-            $saldoPosterior = $pendente ? $saldoAnterior : ($saldoAnterior + $valor);
+            $valor = round((float) $valor, 2);
+            $saldoAnterior = round((float) $cliente->cashback_atual, 2);
+            $saldoPosterior = $pendente ? $saldoAnterior : round($saldoAnterior + $valor, 2);
 
             if ($pendente) {
-                $cliente->cashback_pendente = (float) $cliente->cashback_pendente + $valor;
+                $cliente->cashback_pendente = round((float) $cliente->cashback_pendente + $valor, 2);
             } else {
                 $cliente->cashback_atual = $saldoPosterior;
             }
@@ -71,13 +72,14 @@ class CashbackService
     ): MovimentoCashback {
         return DB::transaction(function () use ($cliente, $valor, $origem, $referencia, $descricao) {
             $cliente->refresh();
-            $saldoAnterior = (float) $cliente->cashback_atual;
+            $saldoAnterior = round((float) $cliente->cashback_atual, 2);
+            $valor = round((float) $valor, 2);
 
-            if ($saldoAnterior < $valor) {
+            if (round($saldoAnterior - $valor, 2) < 0) {
                 throw new \DomainException('Saldo de cashback insuficiente.');
             }
 
-            $saldoPosterior = $saldoAnterior - $valor;
+            $saldoPosterior = round($saldoAnterior - $valor, 2);
             $cliente->cashback_atual = $saldoPosterior;
             $cliente->save();
 
@@ -117,10 +119,10 @@ class CashbackService
             DB::transaction(function () use ($mov, &$contador, &$clientesNotificar) {
                 $cliente = $mov->cliente;
                 $cliente->refresh();
-                $valor = (float) $mov->valor;
+                $valor = round((float) $mov->valor, 2);
 
-                $cliente->cashback_pendente = max(0, (float) $cliente->cashback_pendente - $valor);
-                $cliente->cashback_atual = (float) $cliente->cashback_atual + $valor;
+                $cliente->cashback_pendente = round(max(0, (float) $cliente->cashback_pendente - $valor), 2);
+                $cliente->cashback_atual = round((float) $cliente->cashback_atual + $valor, 2);
                 $cliente->save();
 
                 $mov->update(['processado' => true, 'saldo_posterior' => $cliente->cashback_atual]);
