@@ -160,6 +160,52 @@
     </div>
 
     <div class="bg-white rounded-xl shadow-sm p-6">
+        <h2 class="font-semibold text-slate-800 mb-1 flex items-center gap-2">
+            <i class="ri-shield-check-line text-rose-600"></i> Antifraude e limites
+        </h2>
+        <p class="text-xs text-slate-500 mb-5">
+            Aplicado globalmente a todas as empresas. Valores muito altos facilitam ataques, muito baixos atrapalham clientes legítimos.
+        </p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Login/Registro/OTP por minuto *</label>
+                <input type="number" name="rate_limit_auth" min="1" max="1000" required
+                       value="{{ old('rate_limit_auth', $config->rate_limit_auth ?: 10) }}"
+                       class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:outline-none">
+                <p class="text-xs text-slate-500 mt-1">Tentativas por IP por minuto. Padrão: 10.</p>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Webhook PDV por minuto *</label>
+                <input type="number" name="rate_limit_pdv" min="1" max="5000" required
+                       value="{{ old('rate_limit_pdv', $config->rate_limit_pdv ?: 60) }}"
+                       class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:outline-none">
+                <p class="text-xs text-slate-500 mt-1">Lançamentos pelo PDV externo por IP por minuto. Padrão: 60.</p>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">OTPs por telefone (15 min) *</label>
+                <input type="number" name="otp_max_por_telefone" min="1" max="50" required
+                       value="{{ old('otp_max_por_telefone', $config->otp_max_por_telefone ?: 3) }}"
+                       class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:outline-none">
+                <p class="text-xs text-slate-500 mt-1">Códigos OTP por telefone em 15 min. Padrão: 3.</p>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Tentativas por código OTP *</label>
+                <input type="number" name="otp_max_tentativas" min="1" max="50" required
+                       value="{{ old('otp_max_tentativas', $config->otp_max_tentativas ?: 5) }}"
+                       class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:outline-none">
+                <p class="text-xs text-slate-500 mt-1">Erros antes do código ser invalidado. Padrão: 5.</p>
+            </div>
+            <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-slate-700 mb-1">Resgates por cliente em 24h *</label>
+                <input type="number" name="max_resgates_24h" min="1" max="100" required
+                       value="{{ old('max_resgates_24h', $config->max_resgates_24h ?: 3) }}"
+                       class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:outline-none">
+                <p class="text-xs text-slate-500 mt-1">Quantos prêmios o mesmo cliente pode resgatar por dia. Padrão: 3.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm p-6">
         <h2 class="font-semibold text-slate-800 mb-1">Rodapé público</h2>
         <p class="text-xs text-slate-500 mb-5">HTML pequeno que aparece no rodapé das páginas públicas (login, documentos legais).</p>
         <textarea name="rodape_html" rows="3" maxlength="1000"

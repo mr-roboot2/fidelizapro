@@ -35,8 +35,8 @@ class ResgateService
                 throw new \DomainException('Pontos insuficientes para resgatar.');
             }
 
-            // Antifraude: max N resgates por cliente em 24h (configurável)
-            $maxResgates = (int) ($cliente->empresa->max_resgates_24h ?: 3);
+            // Antifraude: max N resgates por cliente em 24h (config global do super admin)
+            $maxResgates = (int) (\App\Models\ConfiguracaoSistema::instancia()->max_resgates_24h ?: 3);
             $resgatesUltimas24h = Resgate::where('cliente_id', $cliente->id)
                 ->where('created_at', '>=', now()->subDay())
                 ->where('status', '!=', 'cancelado')

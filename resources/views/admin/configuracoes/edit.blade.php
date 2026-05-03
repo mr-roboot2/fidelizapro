@@ -87,38 +87,6 @@
         <button class="mt-6 px-5 py-2 bg-indigo-600 text-white rounded-lg">Salvar configurações</button>
     </form>
 
-    <div class="mt-8 p-5 bg-slate-50 border border-slate-200 rounded-xl">
-        <h3 class="font-semibold text-slate-700 mb-1 flex items-center gap-2">
-            <i class="ri-shield-check-line text-indigo-600"></i> Limites antifraude ativos
-        </h3>
-        <p class="text-xs text-slate-500 mb-4">
-            Controles definidos pelo administrador master para esta empresa.
-            Para ajustar, fale com o suporte.
-        </p>
-        <dl class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-            <div class="flex justify-between bg-white p-3 rounded border border-slate-200">
-                <dt class="text-slate-600">Login/Registro/OTP por min</dt>
-                <dd class="font-mono font-semibold">{{ $empresa->rate_limit_auth ?: 10 }}</dd>
-            </div>
-            <div class="flex justify-between bg-white p-3 rounded border border-slate-200">
-                <dt class="text-slate-600">Webhook PDV por min</dt>
-                <dd class="font-mono font-semibold">{{ $empresa->rate_limit_pdv ?: 60 }}</dd>
-            </div>
-            <div class="flex justify-between bg-white p-3 rounded border border-slate-200">
-                <dt class="text-slate-600">OTPs por telefone (15 min)</dt>
-                <dd class="font-mono font-semibold">{{ $empresa->otp_max_por_telefone ?: 3 }}</dd>
-            </div>
-            <div class="flex justify-between bg-white p-3 rounded border border-slate-200">
-                <dt class="text-slate-600">Tentativas por código OTP</dt>
-                <dd class="font-mono font-semibold">{{ $empresa->otp_max_tentativas ?: 5 }}</dd>
-            </div>
-            <div class="flex justify-between bg-white p-3 rounded border border-slate-200 sm:col-span-2">
-                <dt class="text-slate-600">Resgates por cliente em 24h</dt>
-                <dd class="font-mono font-semibold">{{ $empresa->max_resgates_24h ?: 3 }}</dd>
-            </div>
-        </dl>
-    </div>
-
     <div class="mt-8 p-4 bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl">
         <h3 class="font-semibold text-slate-700 mb-2">
             <i class="ri-smartphone-line"></i> Link white label para clientes

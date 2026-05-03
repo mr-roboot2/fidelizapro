@@ -40,8 +40,8 @@ class OtpController extends Controller
             throw ValidationException::withMessages(['telefone' => 'Cliente não encontrado nesta empresa.']);
         }
 
-        // Throttle: max N códigos em 15 min (configurável por empresa)
-        $maxOtps = (int) ($empresa->otp_max_por_telefone ?: 3);
+        // Throttle: max N códigos em 15 min (config global do super admin)
+        $maxOtps = (int) (\App\Models\ConfiguracaoSistema::instancia()->otp_max_por_telefone ?: 3);
         $recentes = OtpCodigo::where('empresa_id', $empresa->id)
             ->where('telefone', $telefoneDigits)
             ->where('created_at', '>=', now()->subMinutes(15))
@@ -116,7 +116,7 @@ class OtpController extends Controller
             throw ValidationException::withMessages(['codigo' => 'Código expirado. Solicite um novo.']);
         }
 
-        $maxTentativas = (int) ($empresa->otp_max_tentativas ?: 5);
+        $maxTentativas = (int) (\App\Models\ConfiguracaoSistema::instancia()->otp_max_tentativas ?: 5);
         $otp->increment('tentativas');
         if ($otp->tentativas > $maxTentativas) {
             $otp->update(['usado' => true]);

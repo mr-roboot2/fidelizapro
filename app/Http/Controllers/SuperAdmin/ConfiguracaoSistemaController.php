@@ -38,6 +38,11 @@ class ConfiguracaoSistemaController extends Controller
             'favicon'          => 'nullable|image|mimes:png,jpg,jpeg,svg,webp,ico|max:256',
             'remover_logo'     => 'nullable|in:1',
             'remover_favicon'  => 'nullable|in:1',
+            'rate_limit_auth'      => 'required|integer|min:1|max:1000',
+            'rate_limit_pdv'       => 'required|integer|min:1|max:5000',
+            'otp_max_por_telefone' => 'required|integer|min:1|max:50',
+            'otp_max_tentativas'   => 'required|integer|min:1|max:50',
+            'max_resgates_24h'     => 'required|integer|min:1|max:100',
         ]);
 
         if ($request->boolean('remover_logo') && $config->logo) {
