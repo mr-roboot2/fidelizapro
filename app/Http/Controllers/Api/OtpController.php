@@ -67,8 +67,14 @@ class OtpController extends Controller
             'ip' => $request->ip(),
         ]);
 
-        $mensagem = "🔐 Seu código {$empresa->nome}: *{$codigo}*\n\nVálido por 5 minutos.\nNão compartilhe com ninguém.";
-        $whatsapp->enviar($empresa, $cliente->telefone, $mensagem);
+        $textoFallback = "🔐 Seu código {$empresa->nome}: *{$codigo}*\n\nVálido por 5 minutos.\nNão compartilhe com ninguém.";
+        $whatsapp->enviarEvento(
+            $empresa,
+            $cliente->telefone,
+            'otp',
+            ['codigo' => $codigo],
+            $textoFallback
+        );
 
         return response()->json([
             'message' => 'Código enviado via WhatsApp.',

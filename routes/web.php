@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\ConfiguracaoController;
 use App\Http\Controllers\Admin\CaixaController;
 use App\Http\Controllers\Admin\ImportacaoController;
 use App\Http\Controllers\Admin\WhatsappController;
+use App\Http\Controllers\Admin\WhatsappTemplateController;
 use App\Http\Controllers\Admin\AvaliacaoController;
 use App\Http\Controllers\Admin\AutomacaoController;
 use App\Http\Controllers\Admin\AtividadeSuspeitaController;
@@ -111,6 +112,9 @@ Route::middleware(['admin.auth', 'empresa.scope'])->prefix('admin')->name('admin
     Route::put('whatsapp', [WhatsappController::class, 'update'])->name('whatsapp.update');
     Route::post('whatsapp/testar', [WhatsappController::class, 'testar'])->name('whatsapp.testar');
     Route::post('whatsapp/regenerar-webhook-token', [WhatsappController::class, 'regenerarWebhookToken'])->name('whatsapp.regenerar-webhook-token');
+
+    Route::get('whatsapp-templates', [WhatsappTemplateController::class, 'index'])->name('whatsapp-templates.index');
+    Route::put('whatsapp-templates/{evento}', [WhatsappTemplateController::class, 'update'])->name('whatsapp-templates.update');
 
     Route::resource('automacoes', AutomacaoController::class);
     Route::post('automacoes/{automacao}/toggle', [AutomacaoController::class, 'toggle'])->name('automacoes.toggle');

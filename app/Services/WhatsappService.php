@@ -6,6 +6,7 @@ use App\Models\Campanha;
 use App\Models\CampanhaEnvio;
 use App\Models\Cliente;
 use App\Models\Empresa;
+use App\Models\WhatsappTemplate;
 use App\Services\Whatsapp\EvolutionDriver;
 use App\Services\Whatsapp\MetaCloudDriver;
 use App\Services\Whatsapp\MockDriver;
@@ -34,6 +35,42 @@ class WhatsappService
     public function enviar(Empresa $empresa, string $telefone, string $mensagem): bool
     {
         return $this->driverFor($empresa)->enviar($empresa, $telefone, $mensagem);
+    }
+
+    /**
+     * Envia mensagem por evento (otp, aniversario, boas_vindas, etc.).
+     *
+     * Se a empresa tem template aprovado configurado para esse evento e o
+     * provedor é meta_cloud, usa template (chega sempre, mesmo fora da
+     * janela de 24h). Senão, faz fallback pro texto livre fornecido em
+     * $textoFallback (ou monta a partir do exemplo do evento).
+     */
+    public function enviarEvento(Empresa $empresa, string $telefone, string $evento, array $parametros = [], ?string $textoFallback = null): bool
+    {
+        $driver = $this->driverFor($empresa);
+
+        if ($empresa->whatsapp_provider === 'meta_cloud' && $empresa->whatsapp_ativo) {
+            $tpl = WhatsappTemplate::where('empresa_id', $empresa->id)
+                ->where('evento', $evento)
+                ->where('ativo', true)
+                ->first();
+
+            if ($tpl && $driver instanceof MetaCloudDriver) {
+                return $driver->enviarTemplate($empresa, $telefone, $tpl->nome_template, $tpl->idioma, $parametros);
+            }
+        }
+
+        if ($textoFallback === null) {
+            $def = WhatsappTemplate::EVENTOS[$evento] ?? null;
+            $textoFallback = $def['exemplo'] ?? '';
+            $i = 1;
+            foreach ($parametros as $valor) {
+                $textoFallback = str_replace("{{{$i}}}", (string) $valor, $textoFallback);
+                $i++;
+            }
+        }
+
+        return $driver->enviar($empresa, $telefone, $textoFallback);
     }
 
     public function testar(Empresa $empresa, string $telefoneDestino): array

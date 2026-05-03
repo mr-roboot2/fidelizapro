@@ -98,6 +98,50 @@ class MetaCloudDriver implements WhatsappDriverInterface
         }
     }
 
+    /**
+     * Envia mensagem usando um template aprovado pela Meta.
+     * Os parâmetros devem estar na mesma ordem dos {{1}}, {{2}}... do template.
+     */
+    public function enviarTemplate(Empresa $empresa, string $telefone, string $nomeTemplate, string $idioma, array $parametros): bool
+    {
+        if (!$empresa->whatsapp_api_token || !$empresa->whatsapp_phone_id) {
+            Log::warning("[Meta Cloud] Config incompleta empresa {$empresa->id}");
+            return false;
+        }
+
+        $components = [];
+        if (!empty($parametros)) {
+            $components[] = [
+                'type' => 'body',
+                'parameters' => array_map(fn($v) => ['type' => 'text', 'text' => (string) $v], array_values($parametros)),
+            ];
+        }
+
+        try {
+            $response = Http::withToken($empresa->whatsapp_api_token)
+                ->timeout(15)
+                ->post("https://graph.facebook.com/v18.0/{$empresa->whatsapp_phone_id}/messages", [
+                    'messaging_product' => 'whatsapp',
+                    'to'   => $this->normalizar($telefone),
+                    'type' => 'template',
+                    'template' => array_filter([
+                        'name'       => $nomeTemplate,
+                        'language'   => ['code' => $idioma],
+                        'components' => $components ?: null,
+                    ]),
+                ]);
+
+            if (!$response->successful()) {
+                Log::warning("[Meta Cloud] Falha enviando template {$nomeTemplate} para {$telefone}: ".$response->body());
+                return false;
+            }
+            return true;
+        } catch (\Throwable $e) {
+            Log::error("[Meta Cloud] Exceção template: ".$e->getMessage());
+            return false;
+        }
+    }
+
     protected function normalizar(string $telefone): string
     {
         $apenas = preg_replace('/\D/', '', $telefone);
