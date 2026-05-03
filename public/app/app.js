@@ -253,38 +253,64 @@ async function telaLogin() {
 async function telaLoginOtp() {
     const e = STATE.empresa;
     screenContainer.innerHTML = `
-    <div class="fade-in flex-1 flex flex-col">
-        <div class="p-6 text-white" style="background:linear-gradient(135deg,${e?.cor_primaria||'#10b981'},${e?.cor_secundaria||'#059669'})">
-            <button onclick="showScreen('login')" class="text-white/80 mb-3"><i class="ri-arrow-left-line"></i> Voltar</button>
-            <h1 class="text-2xl font-bold flex items-center gap-2"><i class="ri-whatsapp-line"></i> Entrar com WhatsApp</h1>
-            <p class="text-white/80 text-sm">Você receberá um código por WhatsApp</p>
+    <div class="fade-in flex-1 flex flex-col bg-slate-50">
+        <div class="px-5 pt-6 pb-10 text-white" style="background:linear-gradient(135deg,#10b981,#059669)">
+            <button onclick="showScreen('login')" class="text-white/80 mb-3 flex items-center gap-1 text-sm hover:text-white transition">
+                <i class="ri-arrow-left-line"></i> Voltar
+            </button>
+            <div class="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-3xl mb-3">
+                <i class="ri-whatsapp-line"></i>
+            </div>
+            <h1 class="text-2xl font-bold">Entrar com WhatsApp</h1>
+            <p class="text-white/80 text-sm mt-1">Receba um código de 6 dígitos no seu WhatsApp</p>
         </div>
 
-        <div id="otp-fase-1" class="p-6 space-y-4 flex-1">
-            <div>
-                <label class="text-sm font-medium">Telefone com DDD</label>
-                <input id="otp-tel" type="tel" required placeholder="(11) 99999-9999"
-                       class="mt-1 w-full px-4 py-3 border border-slate-300 rounded-xl">
+        <div id="otp-fase-1" class="px-4 -mt-6 pb-6">
+            <div class="bg-white rounded-2xl shadow-md border border-slate-100 p-5 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Telefone com DDD</label>
+                    <div class="relative">
+                        <i class="ri-smartphone-line absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input id="otp-tel" type="tel" required placeholder="(11) 99999-9999"
+                               class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-emerald-400 focus:outline-none transition">
+                    </div>
+                    <p class="text-[11px] text-slate-500 mt-1 ml-1">O número precisa estar cadastrado nesta empresa</p>
+                </div>
+
+                <button onclick="solicitarOtp()" id="otp-btn-solicitar"
+                        class="w-full py-3.5 text-white rounded-xl font-semibold flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition"
+                        style="background:linear-gradient(135deg,#10b981,#059669)">
+                    <i class="ri-send-plane-line"></i> Enviar código
+                </button>
             </div>
-            <button onclick="solicitarOtp()" id="otp-btn-solicitar"
-                    class="w-full py-3 text-white rounded-xl font-semibold" style="background:#10b981">
-                <i class="ri-send-plane-line"></i> Enviar código
-            </button>
-            <p class="text-xs text-slate-500 text-center">Você receberá um código de 6 dígitos por WhatsApp</p>
         </div>
 
-        <div id="otp-fase-2" class="p-6 space-y-4 flex-1 hidden">
-            <p class="text-sm text-center text-slate-700">Digite o código de 6 dígitos enviado por WhatsApp para <strong id="otp-tel-show"></strong></p>
-            <input id="otp-codigo" type="text" inputmode="numeric" maxlength="6" placeholder="000000"
-                   class="w-full px-4 py-4 border border-slate-300 rounded-xl text-center text-3xl font-mono tracking-[0.5em]">
-            <button onclick="validarOtp()" class="w-full py-3 text-white rounded-xl font-semibold" style="background:#10b981">
-                Confirmar código
-            </button>
-            <div class="flex justify-between text-sm">
-                <button onclick="resetOtp()" class="text-slate-500">← Trocar telefone</button>
-                <button onclick="solicitarOtp(true)" id="otp-btn-reenviar" class="text-emerald-600 font-medium">Reenviar</button>
+        <div id="otp-fase-2" class="px-4 -mt-6 pb-6 hidden">
+            <div class="bg-white rounded-2xl shadow-md border border-slate-100 p-5 space-y-4">
+                <p class="text-sm text-slate-700 text-center">
+                    Código enviado para <strong id="otp-tel-show" class="text-emerald-600"></strong>
+                </p>
+
+                <input id="otp-codigo" type="text" inputmode="numeric" maxlength="6" placeholder="000000"
+                       class="w-full px-4 py-4 bg-slate-50 border-2 border-slate-200 rounded-xl text-center text-3xl font-mono tracking-[0.5em] focus:bg-white focus:border-emerald-400 focus:outline-none transition">
+
+                <button onclick="validarOtp()"
+                        class="w-full py-3.5 text-white rounded-xl font-semibold shadow-md hover:shadow-lg transition flex items-center justify-center gap-2"
+                        style="background:linear-gradient(135deg,#10b981,#059669)">
+                    <i class="ri-check-line"></i> Confirmar código
+                </button>
+
+                <div class="flex justify-between text-sm pt-1 border-t border-slate-100 -mx-1">
+                    <button onclick="resetOtp()" class="text-slate-500 hover:text-slate-700 px-2 pt-3">
+                        <i class="ri-arrow-left-line"></i> Trocar telefone
+                    </button>
+                    <button onclick="solicitarOtp(true)" id="otp-btn-reenviar" class="text-emerald-600 font-semibold hover:underline px-2 pt-3">
+                        Reenviar
+                    </button>
+                </div>
+
+                <p id="otp-dev" class="text-xs text-amber-600 text-center font-mono"></p>
             </div>
-            <p id="otp-dev" class="text-xs text-amber-600 text-center"></p>
         </div>
     </div>`;
 }
