@@ -22,11 +22,15 @@ class AutomacaoService
         $resumo = ['enviados' => 0, 'falhas' => 0, 'automacoes' => 0];
 
         Automacao::where('ativo', true)->get()->each(function (Automacao $auto) use (&$resumo) {
+            // Personalizadas com gatilho 'manual' não rodam em batch — só
+            // pelo botão "Executar agora".
+            if ($auto->personalizada && $auto->gatilho === 'manual') return;
+
             $clientes = $this->buscarClientesAlvo($auto);
             if ($clientes->isEmpty()) return;
 
             foreach ($clientes as $cliente) {
-                if ($this->jaEnviadoHoje($auto, $cliente)) continue;
+                if ($this->jaEnviadoParaCliente($auto, $cliente)) continue;
 
                 $sucesso = $this->enviarMensagemAutomacao($auto, $cliente);
                 $sucesso ? $resumo['enviados']++ : $resumo['falhas']++;
@@ -45,7 +49,12 @@ class AutomacaoService
      */
     public function executarUma(Automacao $auto): array
     {
-        $clientes = $this->buscarClientesAlvo($auto);
+        // Pra gatilho manual, ignora gatilhos automáticos: dispara
+        // pra todos os clientes ativos com whatsapp.
+        $clientes = $auto->personalizada && $auto->gatilho === 'manual'
+            ? Cliente::where('ativo', true)->where('aceita_whatsapp', true)->get()
+            : $this->buscarClientesAlvo($auto);
+
         $enviados = 0; $falhas = 0;
 
         foreach ($clientes as $cliente) {
@@ -137,6 +146,10 @@ class AutomacaoService
         $base = Cliente::where('ativo', true)
             ->where('aceita_whatsapp', true);
 
+        if ($auto->personalizada) {
+            return $this->buscarPorGatilho($auto, $base);
+        }
+
         return match ($auto->tipo) {
             'aniversario' => $base->whereMonth('data_nascimento', now()->month)
                 ->whereDay('data_nascimento', now()->day)->get(),
@@ -161,6 +174,46 @@ class AutomacaoService
             // Tipos de evento individual: não rodam em batch
             default => collect(),
         };
+    }
+
+    protected function buscarPorGatilho(Automacao $auto, $base): Collection
+    {
+        return match ($auto->gatilho) {
+            'manual' => collect(),
+
+            'inativo_dias' => $base->whereNotNull('ultima_compra')
+                ->where('ultima_compra', '<=', now()->subDays((int) ($auto->dias_offset ?: 30)))->get(),
+
+            'compras_total' => $base->where('total_compras', '>=', (int) ($auto->valor_referencia ?: 1))->get(),
+
+            'gasto_total' => $base->where('total_gasto', '>=', (float) ($auto->valor_referencia ?: 0))->get(),
+
+            'cadastro_offset' => $base->whereDate('created_at', '=',
+                now()->subDays((int) ($auto->dias_offset ?: 7))->toDateString())->get(),
+
+            'pontos_acumulados' => $base->where('pontos_atual', '>=', (float) ($auto->valor_referencia ?: 0))->get(),
+
+            default => collect(),
+        };
+    }
+
+    /**
+     * Decide se já foi enviado pra esse cliente. Pra gatilhos de estado
+     * permanente (atingiu N compras, X pontos, etc.), checa o histórico
+     * inteiro. Pros demais, só evita repetição no mesmo dia.
+     */
+    protected function jaEnviadoParaCliente(Automacao $auto, Cliente $cliente): bool
+    {
+        $unicaVez = $auto->personalizada && in_array($auto->gatilho, Automacao::GATILHOS_UNICA_VEZ);
+
+        $query = AutomacaoLog::where('automacao_id', $auto->id)
+            ->where('cliente_id', $cliente->id);
+
+        if ($unicaVez) {
+            return $query->where('sucesso', true)->exists();
+        }
+
+        return $query->whereDate('created_at', today())->exists();
     }
 
     protected function jaEnviadoHoje(Automacao $auto, Cliente $cliente): bool

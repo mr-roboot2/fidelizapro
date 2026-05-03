@@ -10,15 +10,22 @@ class Automacao extends Model
     protected $table = 'automacoes';
 
     protected $fillable = [
-        'tipo', 'nome', 'mensagem', 'dias_offset',
+        'tipo', 'nome', 'mensagem', 'dias_offset', 'valor_referencia',
+        'personalizada', 'gatilho',
         'ativo', 'ultima_execucao', 'total_enviados',
     ];
 
     protected $casts = [
         'ativo' => 'boolean',
+        'personalizada' => 'boolean',
         'ultima_execucao' => 'datetime',
+        'valor_referencia' => 'decimal:2',
     ];
 
+    /**
+     * Tipos fixos com gatilho automático embutido (1 registro por tipo).
+     * Para criar várias automações, use tipo='personalizada' + gatilho.
+     */
     public const TIPOS = [
         'boas_vindas' => 'Boas-vindas (após cadastro)',
         'aniversario' => 'Aniversário do cliente',
@@ -27,7 +34,25 @@ class Automacao extends Model
         'inativo_60d' => 'Cliente inativo (60 dias sem compra)',
         'pos_compra' => 'Após compra (agradecimento)',
         'agradecimento_resgate' => 'Após resgate de prêmio',
+        'personalizada' => 'Automação personalizada',
     ];
+
+    /** Gatilhos disponíveis para automações personalizadas. */
+    public const GATILHOS = [
+        'manual'            => ['rotulo' => 'Manual (só executa quando eu mandar)',         'campo' => null],
+        'inativo_dias'      => ['rotulo' => 'Cliente sem comprar há X dias',                'campo' => 'dias_offset'],
+        'compras_total'     => ['rotulo' => 'Cliente atingiu N compras totais',             'campo' => 'valor_referencia'],
+        'gasto_total'       => ['rotulo' => 'Cliente atingiu R$ X em compras',              'campo' => 'valor_referencia'],
+        'cadastro_offset'   => ['rotulo' => 'X dias após o cadastro do cliente',            'campo' => 'dias_offset'],
+        'pontos_acumulados' => ['rotulo' => 'Cliente com saldo de X pontos ou mais',        'campo' => 'valor_referencia'],
+    ];
+
+    /**
+     * Gatilhos que disparam só uma vez por cliente (estado permanente).
+     * Os demais (manual, inativo_dias, cadastro_offset) podem repetir
+     * conforme a checagem de "já enviado hoje".
+     */
+    public const GATILHOS_UNICA_VEZ = ['compras_total', 'gasto_total', 'pontos_acumulados', 'cadastro_offset'];
 
     public const TEMPLATES_PADRAO = [
         'boas_vindas' => "Olá {primeiro_nome}! 🎉\nSeja bem-vindo(a) ao programa de fidelidade da {empresa}!\n\nA cada compra você acumula pontos e pode trocar por prêmios incríveis. Acesse seu app a qualquer momento.",

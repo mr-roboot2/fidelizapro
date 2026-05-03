@@ -1,16 +1,16 @@
 @extends("layouts.super")
-@section('title', $automacao->exists ? 'Editar automação' : 'Configurar automação')
+@section('title', $automacao->exists ? 'Editar automação' : 'Nova automação')
 @section('content')
 @php
     $tipoValido      = $automacao->tipo && array_key_exists($automacao->tipo, \App\Models\Automacao::TIPOS);
     $tipoLabel       = $tipoValido ? \App\Models\Automacao::TIPOS[$automacao->tipo] : '(tipo não reconhecido)';
-    $nomeDefault     = $automacao->nome ?: $tipoLabel;
-    $mensagemDefault = $automacao->mensagem ?: (\App\Models\Automacao::TEMPLATES_PADRAO[$automacao->tipo ?? ''] ?? '');
+    $isPersonalizada = $automacao->tipo === 'personalizada' || $automacao->personalizada;
+    $nomeDefault     = $automacao->nome ?: ($isPersonalizada ? '' : $tipoLabel);
+    $mensagemDefault = $automacao->mensagem ?: ($isPersonalizada ? '' : (\App\Models\Automacao::TEMPLATES_PADRAO[$automacao->tipo ?? ''] ?? ''));
 @endphp
 
 @if ($automacao->exists && !$tipoValido)
-    {{-- Registro órfão: tipo não está mais entre os tipos suportados.
-         Não dá pra editar (validação do update rejeita), só remover. --}}
+    {{-- Registro órfão --}}
     <div class="bg-white rounded-xl shadow-sm p-6 max-w-3xl">
         <div class="bg-rose-50 border-l-4 border-rose-500 text-rose-800 px-4 py-3 rounded mb-4">
             <p class="font-semibold flex items-center gap-2">
@@ -19,18 +19,11 @@
             <p class="text-sm mt-1">
                 A automação <strong>#{{ $automacao->id }}</strong> está com tipo
                 <code class="bg-white/60 px-1 rounded">{{ $automacao->tipo ?: 'NULL' }}</code>,
-                que não corresponde a nenhum tipo conhecido pelo sistema.
-                Provavelmente é resíduo de uma versão anterior. Pode remover sem perda.
+                que não corresponde a nenhum tipo conhecido. Pode remover sem perda.
             </p>
         </div>
-        <dl class="text-sm text-slate-600 mb-4 grid grid-cols-2 gap-2">
-            <div><dt class="text-xs uppercase text-slate-400">Nome</dt><dd>{{ $automacao->nome ?: '—' }}</dd></div>
-            <div><dt class="text-xs uppercase text-slate-400">Total enviados</dt><dd>{{ $automacao->total_enviados }}</dd></div>
-            <div><dt class="text-xs uppercase text-slate-400">Última execução</dt><dd>{{ $automacao->ultima_execucao?->format('d/m/Y H:i') ?: 'nunca' }}</dd></div>
-            <div><dt class="text-xs uppercase text-slate-400">Criado em</dt><dd>{{ $automacao->created_at?->format('d/m/Y H:i') ?: '—' }}</dd></div>
-        </dl>
         <div class="flex gap-2">
-            <form action="{{ route('super.automacoes.destroy', $automacao) }}" method="POST" onsubmit="return confirm('Remover este registro órfão? Não há mais como recuperar.')">
+            <form action="{{ route('super.automacoes.destroy', $automacao) }}" method="POST" onsubmit="return confirm('Remover este registro órfão?')">
                 @csrf @method('DELETE')
                 <button class="px-5 py-2 bg-rose-600 text-white rounded-lg font-semibold">
                     <i class="ri-delete-bin-line"></i> Remover registro órfão
@@ -40,7 +33,10 @@
         </div>
     </div>
 @else
-<div class="bg-white rounded-xl shadow-sm p-6 max-w-3xl">
+<div class="bg-white rounded-xl shadow-sm p-6 max-w-3xl" x-data="automacaoForm({
+    gatilho: '{{ old('gatilho', $automacao->gatilho ?? 'manual') }}',
+    isPersonalizada: {{ $isPersonalizada ? 'true' : 'false' }}
+})">
     <form method="POST" action="{{ $automacao->exists ? route('super.automacoes.update', $automacao) : route('super.automacoes.store') }}">
         @csrf
         @if ($automacao->exists) @method('PUT') @endif
@@ -50,9 +46,12 @@
 
         <div class="bg-slate-50 rounded-lg p-3 mb-4 text-sm">
             <p class="font-semibold">{{ $tipoLabel }}</p>
+            @if ($isPersonalizada)
+                <p class="text-xs text-slate-500 mt-1">Você define o gatilho e a mensagem desta automação.</p>
+            @endif
         </div>
 
-        @if ($automacao->exists && (empty($automacao->nome) || empty($automacao->mensagem)))
+        @if ($automacao->exists && !$isPersonalizada && (empty($automacao->nome) || empty($automacao->mensagem)))
             <div class="bg-amber-50 border-l-4 border-amber-500 text-amber-800 px-3 py-2 mb-4 text-xs rounded">
                 <i class="ri-information-line"></i>
                 Este registro estava com campos em branco. Carregamos os valores padrão pra você revisar e salvar.
@@ -61,14 +60,61 @@
 
         <div class="space-y-4">
             <div>
-                <label class="text-sm font-medium">Nome interno *</label>
+                <label class="text-sm font-medium">Nome *</label>
                 <input type="text" name="nome" required value="{{ old('nome', $nomeDefault) }}"
+                       placeholder="{{ $isPersonalizada ? 'Ex: Resgate VIPs com 100+ compras' : '' }}"
                        class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg">
             </div>
 
+            @if ($isPersonalizada)
+                <div>
+                    <label class="text-sm font-medium">Quando disparar? *</label>
+                    <select name="gatilho" x-model="gatilho"
+                            class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg bg-white">
+                        @foreach (\App\Models\Automacao::GATILHOS as $key => $info)
+                            <option value="{{ $key }}">{{ $info['rotulo'] }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div x-show="['inativo_dias','cadastro_offset'].includes(gatilho)" x-cloak>
+                    <label class="text-sm font-medium">
+                        <span x-show="gatilho === 'inativo_dias'">Dias sem comprar</span>
+                        <span x-show="gatilho === 'cadastro_offset'">Dias após o cadastro</span>
+                        *
+                    </label>
+                    <input type="number" name="dias_offset" min="1" max="3650"
+                           value="{{ old('dias_offset', $automacao->dias_offset ?: 30) }}"
+                           class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg">
+                </div>
+
+                <div x-show="['compras_total','gasto_total','pontos_acumulados'].includes(gatilho)" x-cloak>
+                    <label class="text-sm font-medium">
+                        <span x-show="gatilho === 'compras_total'">Número de compras</span>
+                        <span x-show="gatilho === 'gasto_total'">Valor total gasto (R$)</span>
+                        <span x-show="gatilho === 'pontos_acumulados'">Pontos acumulados</span>
+                        *
+                    </label>
+                    <input type="number" name="valor_referencia" min="0" step="0.01"
+                           value="{{ old('valor_referencia', $automacao->valor_referencia) }}"
+                           class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg">
+                    <p class="text-xs text-slate-500 mt-1">
+                        <i class="ri-information-line"></i>
+                        Disparada uma única vez por cliente quando atingir o valor.
+                    </p>
+                </div>
+
+                <div x-show="gatilho === 'manual'" x-cloak class="bg-purple-50 border-l-4 border-purple-500 text-purple-800 px-3 py-2 text-xs rounded">
+                    <i class="ri-information-line"></i>
+                    Esta automação não roda automaticamente. Use o botão <strong>Executar agora</strong> da listagem pra disparar pra todos os clientes ativos.
+                </div>
+            @endif
+
             <div>
                 <label class="text-sm font-medium">Mensagem WhatsApp *</label>
-                <textarea name="mensagem" required rows="8" class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg font-mono text-sm">{{ old('mensagem', $mensagemDefault) }}</textarea>
+                <textarea name="mensagem" required rows="8"
+                          placeholder="{{ $isPersonalizada ? 'Olá {primeiro_nome}, ...' : '' }}"
+                          class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg font-mono text-sm">{{ old('mensagem', $mensagemDefault) }}</textarea>
                 <div class="text-xs text-slate-500 mt-1">
                     Variáveis disponíveis:
                     <code>{nome}</code>,
@@ -85,7 +131,7 @@
                 </div>
             </div>
 
-            @if (in_array($automacao->tipo, ['pontos_vencendo']))
+            @if ($automacao->tipo === 'pontos_vencendo')
                 <div>
                     <label class="text-sm font-medium">Avisar quantos dias antes? *</label>
                     <input type="number" name="dias_offset" required min="1" max="60"
@@ -113,5 +159,14 @@
         </div>
     </form>
 </div>
+
+<script>
+function automacaoForm(init) {
+    return {
+        gatilho: init.gatilho,
+        isPersonalizada: init.isPersonalizada,
+    };
+}
+</script>
 @endif
 @endsection

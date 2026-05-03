@@ -8,12 +8,13 @@
         </h2>
         <p class="text-white/80 text-sm mt-1">
             Mensagens enviadas automaticamente em momentos chave: cadastro, aniversário, pós-compra, clientes inativos.
-            Rodam diariamente às 09:00 (configurável no servidor).
+            Rodam diariamente no horário configurado.
         </p>
     </div>
 
-    <div class="space-y-3">
-        @foreach ($tipos as $tipo => $auto)
+    <h3 class="text-sm font-semibold text-slate-600 uppercase tracking-wide mb-2">Automações fixas</h3>
+    <div class="space-y-3 mb-8">
+        @foreach ($tiposFixos as $tipo => $auto)
             <div class="bg-white rounded-xl shadow-sm p-5">
                 <div class="flex items-start justify-between gap-4">
                     <div class="flex-1">
@@ -80,9 +81,83 @@
         @endforeach
     </div>
 
+    <div class="flex items-center justify-between mb-2">
+        <h3 class="text-sm font-semibold text-slate-600 uppercase tracking-wide">Automações personalizadas</h3>
+        <a href="{{ route('super.automacoes.create', ['tipo' => 'personalizada']) }}"
+           class="text-xs px-3 py-1.5 bg-purple-600 text-white rounded hover:bg-purple-700">
+            <i class="ri-add-line"></i> Nova personalizada
+        </a>
+    </div>
+
+    @if ($personalizadas->isEmpty())
+        <div class="bg-white rounded-xl shadow-sm p-8 text-center text-slate-400 mb-6">
+            <i class="ri-magic-line text-3xl block mb-2"></i>
+            <p class="text-sm">Você ainda não tem automações personalizadas.</p>
+            <p class="text-xs mt-1">Crie regras como "Cliente atingiu 10 compras" ou "Cliente inativo há 90 dias".</p>
+        </div>
+    @else
+        <div class="space-y-3 mb-6">
+            @foreach ($personalizadas as $auto)
+                @php
+                    $gatilhoInfo = \App\Models\Automacao::GATILHOS[$auto->gatilho] ?? ['rotulo' => '(gatilho desconhecido)'];
+                @endphp
+                <div class="bg-white rounded-xl shadow-sm p-5 border-l-4 border-purple-400">
+                    <div class="flex items-start justify-between gap-4">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h3 class="font-semibold">{{ $auto->nome ?: '(sem nome)' }}</h3>
+                                @if ($auto->ativo)
+                                    <span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">Ativa</span>
+                                @else
+                                    <span class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">Pausada</span>
+                                @endif
+                                <span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">{{ $gatilhoInfo['rotulo'] }}</span>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-1">
+                                @switch($auto->gatilho)
+                                    @case('inativo_dias') Sem comprar há <strong>{{ $auto->dias_offset }}</strong> dias @break
+                                    @case('cadastro_offset') <strong>{{ $auto->dias_offset }}</strong> dias após cadastro @break
+                                    @case('compras_total') Atingiu <strong>{{ (int) $auto->valor_referencia }}</strong> compras @break
+                                    @case('gasto_total') Gastou <strong>R$ {{ number_format((float) $auto->valor_referencia, 2, ',', '.') }}</strong> @break
+                                    @case('pontos_acumulados') Saldo de <strong>{{ number_format((float) $auto->valor_referencia, 0, ',', '.') }}</strong> pts @break
+                                    @case('manual') Sem disparo automático — só pelo botão @break
+                                @endswitch
+                            </p>
+
+                            <div class="mt-3 p-3 bg-slate-50 rounded text-xs text-slate-700 whitespace-pre-line break-words">{{ $auto->mensagem ?: '(sem mensagem)' }}</div>
+
+                            @if ($auto->total_enviados > 0)
+                                <p class="text-xs text-slate-500 mt-2">
+                                    <i class="ri-send-plane-line"></i> {{ $auto->total_enviados }} mensagens enviadas
+                                    @if ($auto->ultima_execucao) • última execução {{ $auto->ultima_execucao->diffForHumans() }} @endif
+                                </p>
+                            @endif
+                        </div>
+
+                        <div class="flex flex-col gap-2 shrink-0">
+                            <a href="{{ route('super.automacoes.edit', $auto) }}" class="text-xs px-3 py-1.5 bg-indigo-100 text-indigo-700 rounded">Editar</a>
+                            <form action="{{ route('super.automacoes.toggle', $auto) }}" method="POST">
+                                @csrf
+                                <button class="text-xs px-3 py-1.5 {{ $auto->ativo ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700' }} rounded w-full">
+                                    {{ $auto->ativo ? 'Pausar' : 'Ativar' }}
+                                </button>
+                            </form>
+                            <form action="{{ route('super.automacoes.executar', $auto) }}" method="POST" onsubmit="return confirm('Executar agora? Vai enviar mensagens reais.')">
+                                @csrf
+                                <button class="text-xs px-3 py-1.5 bg-purple-100 text-purple-700 rounded w-full">
+                                    <i class="ri-play-line"></i> Executar agora
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    @endif
+
     <div class="mt-6 p-4 bg-slate-50 rounded-xl text-sm">
         <p class="font-semibold text-slate-700 mb-2">⏰ Como funciona o agendamento</p>
-        <p class="text-slate-600 text-xs">As automações em batch (aniversário, inativos, pontos vencendo) rodam via cron do sistema. Para que rode automaticamente, configure no servidor:</p>
+        <p class="text-slate-600 text-xs">As automações em batch (aniversário, inativos, pontos vencendo, personalizadas) rodam via cron do sistema. Para que rode automaticamente, configure no servidor:</p>
         <pre class="mt-2 bg-white p-2 rounded border border-slate-200 text-xs">* * * * * cd /path/fidelizapro && php artisan schedule:run >> /dev/null 2>&1</pre>
         <p class="text-slate-600 text-xs mt-2">Em dev (XAMPP), você pode disparar manualmente clicando em "Executar agora" ou rodando: <code>php artisan automacoes:executar</code></p>
     </div>
