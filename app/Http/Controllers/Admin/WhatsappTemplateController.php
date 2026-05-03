@@ -31,38 +31,29 @@ class WhatsappTemplateController extends Controller
     {
         $empresa = Auth::user()->empresa;
 
-        if ($empresa->whatsapp_provider !== 'meta_cloud' || !$empresa->whatsapp_api_token || !$empresa->whatsapp_phone_id) {
+        if ($empresa->whatsapp_provider !== 'meta_cloud' || !$empresa->whatsapp_api_token) {
             return back()->with('error', 'Só funciona com provedor Meta Cloud configurado.');
         }
 
-        // Descobrir o WABA ID a partir do Phone Number ID
+        if (!$empresa->whatsapp_waba_id) {
+            return back()->with('error', 'Cadastre o WABA ID em /admin/whatsapp primeiro. Encontre no painel Meta → WhatsApp → API setup → "WhatsApp Business Account ID".');
+        }
+
         try {
-            $phoneInfo = Http::withToken($empresa->whatsapp_api_token)
-                ->timeout(10)
-                ->get("https://graph.facebook.com/v18.0/{$empresa->whatsapp_phone_id}", [
-                    'fields' => 'whatsapp_business_account_id',
-                ]);
-
-            if (!$phoneInfo->successful()) {
-                return back()->with('error', 'Não consegui buscar a WABA: '.$phoneInfo->json('error.message'));
-            }
-
-            $wabaId = $phoneInfo->json('whatsapp_business_account_id');
-
             $templates = Http::withToken($empresa->whatsapp_api_token)
                 ->timeout(15)
-                ->get("https://graph.facebook.com/v18.0/{$wabaId}/message_templates", [
+                ->get("https://graph.facebook.com/v18.0/{$empresa->whatsapp_waba_id}/message_templates", [
                     'fields' => 'name,status,language,category',
                     'limit'  => 100,
                 ]);
 
             if (!$templates->successful()) {
-                return back()->with('error', 'Falha ao listar templates: '.$templates->json('error.message'));
+                return back()->with('error', 'Falha ao listar templates: '.($templates->json('error.message') ?? $templates->body()));
             }
 
             return view('admin.whatsapp-templates.meta', [
                 'templates' => $templates->json('data', []),
-                'waba_id'   => $wabaId,
+                'waba_id'   => $empresa->whatsapp_waba_id,
             ]);
         } catch (\Throwable $e) {
             return back()->with('error', 'Erro: '.$e->getMessage());

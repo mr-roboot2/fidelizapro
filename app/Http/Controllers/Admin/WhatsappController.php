@@ -40,6 +40,7 @@ class WhatsappController extends Controller
             'whatsapp_api_token' => 'nullable|string|max:2000',
             'whatsapp_instance' => 'nullable|string|max:255',
             'whatsapp_phone_id' => 'nullable|string|max:255',
+            'whatsapp_waba_id' => 'nullable|string|max:50',
             'whatsapp_ativo' => 'boolean',
         ]);
 

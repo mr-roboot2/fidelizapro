@@ -56,6 +56,13 @@
                            class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg font-mono text-sm">
                     <p class="text-[11px] text-slate-500 mt-1">ID do telefone WhatsApp (no painel Meta → WhatsApp → API setup)</p>
                 </div>
+
+                <div x-show="provedor === 'meta_cloud'">
+                    <label class="text-sm font-medium">WhatsApp Business Account ID</label>
+                    <input type="text" name="whatsapp_waba_id" value="{{ old('whatsapp_waba_id', $empresa->whatsapp_waba_id) }}"
+                           class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg font-mono text-sm">
+                    <p class="text-[11px] text-slate-500 mt-1">WABA ID — necessário pra listar templates. No painel Meta → WhatsApp → API setup, logo abaixo do Phone Number ID.</p>
+                </div>
             </div>
 
             <div x-show="provedor === 'meta_cloud'" class="bg-indigo-50 border border-indigo-100 rounded-lg p-3 text-xs text-indigo-800">
