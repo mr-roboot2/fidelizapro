@@ -32,6 +32,7 @@ use App\Http\Controllers\SuperAdmin\ImpersonateController;
 use App\Http\Controllers\SuperAdmin\AuditoriaController as SuperAuditoriaController;
 use App\Http\Controllers\SuperAdmin\AssinaturaController as SuperAssinaturaController;
 use App\Http\Controllers\WebhookPagamentoController;
+use App\Http\Controllers\WhatsappWebhookController;
 use App\Http\Controllers\InstallController;
 use App\Http\Controllers\DocumentoLegalPublicoController;
 use App\Http\Controllers\SuperAdmin\DocumentoLegalController as SuperDocumentoLegalController;
@@ -109,6 +110,7 @@ Route::middleware(['admin.auth', 'empresa.scope'])->prefix('admin')->name('admin
     Route::get('whatsapp', [WhatsappController::class, 'edit'])->name('whatsapp.edit');
     Route::put('whatsapp', [WhatsappController::class, 'update'])->name('whatsapp.update');
     Route::post('whatsapp/testar', [WhatsappController::class, 'testar'])->name('whatsapp.testar');
+    Route::post('whatsapp/regenerar-webhook-token', [WhatsappController::class, 'regenerarWebhookToken'])->name('whatsapp.regenerar-webhook-token');
 
     Route::resource('automacoes', AutomacaoController::class);
     Route::post('automacoes/{automacao}/toggle', [AutomacaoController::class, 'toggle'])->name('automacoes.toggle');
@@ -173,6 +175,10 @@ Route::middleware(['super.auth'])->prefix('super')->name('super.')->group(functi
 
 // Webhooks de gateway de pagamento (públicos)
 Route::post('/webhook/pagamento/{gateway}', [WebhookPagamentoController::class, 'receber'])->name('webhook.pagamento');
+
+// Webhook WhatsApp Cloud API (Meta) — verify (GET) + receber eventos (POST)
+Route::get('/webhook/whatsapp/meta/{slug}',  [WhatsappWebhookController::class, 'verificar'])->name('webhook.whatsapp.verificar');
+Route::post('/webhook/whatsapp/meta/{slug}', [WhatsappWebhookController::class, 'receber'])->name('webhook.whatsapp.receber');
 
 // Mock de pagamento (dev)
 Route::get('/pagamento-mock/{cobranca}', [WebhookPagamentoController::class, 'pagamentoMock'])->name('pagamento.mock');

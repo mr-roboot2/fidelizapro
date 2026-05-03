@@ -66,6 +66,58 @@
             </button>
         </form>
         <p class="text-xs text-slate-500 mt-2">Em modo Mock, a "mensagem" cai em <code>storage/logs/laravel.log</code>.</p>
+
+        @if ($empresa->whatsapp_provider === 'meta_cloud')
+            <hr class="my-6">
+
+            <h3 class="font-semibold mb-2 flex items-center gap-2">
+                <i class="ri-link-m text-indigo-600"></i> Webhook (configurar no painel Meta)
+            </h3>
+            <p class="text-xs text-slate-600 mb-3">
+                Cole estes valores em <strong>WhatsApp → Configuração → Webhooks</strong> no Meta Developer Console.
+            </p>
+
+            <div class="space-y-3">
+                <div>
+                    <label class="text-xs font-semibold text-slate-700 uppercase tracking-wider">URL de callback</label>
+                    <div class="flex gap-2 mt-1">
+                        <input type="text" readonly id="webhook-url"
+                               value="{{ url('/webhook/whatsapp/meta/'.$empresa->slug) }}"
+                               class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg font-mono text-xs">
+                        <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('webhook-url').value); this.innerText='Copiado!'; setTimeout(()=>this.innerText='Copiar', 1500)"
+                                class="px-3 py-2 bg-indigo-600 text-white rounded-lg text-xs hover:bg-indigo-700">Copiar</button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-xs font-semibold text-slate-700 uppercase tracking-wider">Verificar token</label>
+                    <div class="flex gap-2 mt-1">
+                        <input type="text" readonly id="webhook-token"
+                               value="{{ $empresa->whatsapp_webhook_verify_token }}"
+                               class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg font-mono text-xs">
+                        <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('webhook-token').value); this.innerText='Copiado!'; setTimeout(()=>this.innerText='Copiar', 1500)"
+                                class="px-3 py-2 bg-indigo-600 text-white rounded-lg text-xs hover:bg-indigo-700">Copiar</button>
+                    </div>
+                </div>
+            </div>
+
+            <form method="POST" action="{{ route('admin.whatsapp.regenerar-webhook-token') }}" class="mt-3"
+                  onsubmit="return confirm('Gerar um token novo? Você precisará atualizar no painel da Meta também.');">
+                @csrf
+                <button type="submit" class="text-xs text-rose-600 hover:underline">
+                    <i class="ri-refresh-line"></i> Gerar novo token
+                </button>
+            </form>
+
+            <div class="mt-4 bg-amber-50 border border-amber-100 rounded-lg p-3 text-xs text-amber-800">
+                <p class="font-semibold mb-1"><i class="ri-information-line"></i> Depois de salvar lá no Meta:</p>
+                <ol class="list-decimal list-inside space-y-0.5">
+                    <li>Selecione <strong>WhatsApp Business Account</strong> no produto</li>
+                    <li>Cole a URL e o token acima → <em>Verificar e salvar</em></li>
+                    <li>Em <strong>Inscrever campos</strong>, marque pelo menos <code>messages</code> (mensagens entrantes)</li>
+                </ol>
+            </div>
+        @endif
     </div>
 
     <!-- Documentação -->

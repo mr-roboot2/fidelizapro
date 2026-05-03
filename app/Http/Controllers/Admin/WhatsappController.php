@@ -6,13 +6,28 @@ use App\Http\Controllers\Controller;
 use App\Services\WhatsappService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class WhatsappController extends Controller
 {
     public function edit()
     {
         $empresa = Auth::user()->empresa;
+
+        // Garante que tenha um verify_token (caso a empresa seja antiga e a
+        // migration não tenha pegado, ou alguém tenha apagado).
+        if (empty($empresa->whatsapp_webhook_verify_token)) {
+            $empresa->update(['whatsapp_webhook_verify_token' => 'wh_'.Str::random(32)]);
+        }
+
         return view('admin.whatsapp.edit', compact('empresa'));
+    }
+
+    public function regenerarWebhookToken()
+    {
+        $empresa = Auth::user()->empresa;
+        $empresa->update(['whatsapp_webhook_verify_token' => 'wh_'.Str::random(32)]);
+        return back()->with('success', 'Novo token gerado. Atualize também no painel da Meta.');
     }
 
     public function update(Request $request)

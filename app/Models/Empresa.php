@@ -21,6 +21,7 @@ class Empresa extends Model
         'pdv_secret', 'plano_id',
         'whatsapp_provider', 'whatsapp_api_url', 'whatsapp_api_token',
         'whatsapp_instance', 'whatsapp_phone_id', 'whatsapp_ativo',
+        'whatsapp_webhook_verify_token',
     ];
 
     protected $casts = [

@@ -29,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Webhooks de gateways externos não têm CSRF token
         $middleware->validateCsrfTokens(except: [
             'webhook/pagamento/*',
+            'webhook/whatsapp/*',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
