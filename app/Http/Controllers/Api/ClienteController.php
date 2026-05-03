@@ -104,6 +104,57 @@ class ClienteController extends Controller
         return response()->json(['cliente' => $cliente->fresh(), 'message' => 'Perfil atualizado!']);
     }
 
+    /**
+     * Retorna dados da empresa atual + outras empresas onde o mesmo telefone
+     * está cadastrado (cliente pode ter contas separadas em múltiplas empresas).
+     */
+    public function minhasEmpresas(Request $request)
+    {
+        $cliente = $request->user();
+        $cliente->load('empresa');
+
+        $empresaAtual = [
+            'id'                  => $cliente->empresa->id,
+            'slug'                => $cliente->empresa->slug,
+            'nome'                => $cliente->empresa->nome,
+            'logo'                => $cliente->empresa->logo ? asset('storage/'.$cliente->empresa->logo) : null,
+            'telefone'            => $cliente->empresa->telefone,
+            'email'               => $cliente->empresa->email,
+            'endereco'            => $cliente->empresa->endereco,
+            'cor_primaria'        => $cliente->empresa->cor_primaria,
+            'cor_secundaria'      => $cliente->empresa->cor_secundaria,
+            'pontos_por_real'     => (float) $cliente->empresa->pontos_por_real,
+            'cashback_percentual' => (float) $cliente->empresa->cashback_percentual,
+            'pontos'              => (float) $cliente->pontos_atual,
+            'cashback'            => (float) $cliente->cashback_atual,
+            'cliente_desde'       => $cliente->created_at?->format('d/m/Y'),
+        ];
+
+        $vinculadas = Cliente::whereTelefone($cliente->telefone)
+            ->where('empresa_id', '!=', $cliente->empresa_id)
+            ->where('ativo', true)
+            ->with('empresa:id,slug,nome,logo,cor_primaria,cor_secundaria,ativo')
+            ->get()
+            ->filter(fn($c) => $c->empresa && $c->empresa->ativo)
+            ->map(fn($c) => [
+                'empresa_id'     => $c->empresa->id,
+                'slug'           => $c->empresa->slug,
+                'nome'           => $c->empresa->nome,
+                'logo'           => $c->empresa->logo ? asset('storage/'.$c->empresa->logo) : null,
+                'cor_primaria'   => $c->empresa->cor_primaria,
+                'cor_secundaria' => $c->empresa->cor_secundaria,
+                'pontos'         => (float) $c->pontos_atual,
+                'cashback'       => (float) $c->cashback_atual,
+                'url'            => url('/app/'.$c->empresa->slug.'/'),
+            ])
+            ->values();
+
+        return response()->json([
+            'empresa_atual' => $empresaAtual,
+            'vinculadas'    => $vinculadas,
+        ]);
+    }
+
     public function alterarSenha(Request $request)
     {
         $dados = $request->validate([

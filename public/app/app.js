@@ -111,6 +111,7 @@ async function showScreen(nome, params = {}) {
         perfil: telaPerfil,
         editarPerfil: telaEditarPerfil,
         alterarSenha: telaAlterarSenha,
+        empresa: telaEmpresa,
         extrato: telaExtrato,
         resgates: telaResgates,
         indicacoes: telaIndicacoes,
@@ -767,6 +768,13 @@ async function telaPerfil() {
                     <span class="flex-1 text-left font-medium text-slate-700">Extrato</span>
                     <i class="ri-arrow-right-s-line text-slate-400 text-xl"></i>
                 </button>
+                <button onclick="showScreen('empresa')" class="w-full p-4 flex items-center gap-3 hover:bg-slate-50 transition">
+                    <div class="w-9 h-9 rounded-lg bg-purple-50 flex items-center justify-center">
+                        <i class="ri-store-2-line text-purple-600"></i>
+                    </div>
+                    <span class="flex-1 text-left font-medium text-slate-700">Sobre a empresa</span>
+                    <i class="ri-arrow-right-s-line text-slate-400 text-xl"></i>
+                </button>
                 <button onclick="showScreen('resgates')" class="w-full p-4 flex items-center gap-3 hover:bg-slate-50 transition">
                     <div class="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center">
                         <i class="ri-coupon-line text-amber-600"></i>
@@ -988,6 +996,102 @@ async function telaAlterarSenha() {
             showScreen('perfil');
         } catch (e) { toast(e.message, 'error'); }
     });
+}
+
+// Tela 7.8: Sobre a empresa atual + minhas outras empresas
+async function telaEmpresa() {
+    const data = await api('/cliente/empresas');
+    const e = data.empresa_atual;
+    const cor = e.cor_primaria, corSec = e.cor_secundaria;
+
+    screenContainer.innerHTML = `
+    <div class="fade-in flex-1 flex flex-col overflow-y-auto bg-slate-50">
+        <div class="px-5 pt-6 pb-12 text-white text-center" style="background:linear-gradient(135deg,${cor},${corSec})">
+            <button onclick="showScreen('perfil')" class="text-white/80 mb-3 flex items-center gap-1 text-sm hover:text-white transition mx-auto">
+                <i class="ri-arrow-left-line"></i> Voltar
+            </button>
+            ${e.logo
+                ? `<img src="${e.logo}" alt="${e.nome}" class="w-20 h-20 mx-auto rounded-2xl bg-white/20 backdrop-blur p-2 mb-3 object-contain">`
+                : `<div class="w-20 h-20 mx-auto rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-3xl font-bold mb-3">${e.nome.charAt(0)}</div>`
+            }
+            <h1 class="text-2xl font-bold">${e.nome}</h1>
+            <p class="text-white/80 text-xs mt-1">Cliente desde ${e.cliente_desde || '—'}</p>
+        </div>
+
+        <div class="px-4 -mt-8 pb-6 space-y-4">
+            <div class="bg-white rounded-2xl shadow-md border border-slate-100 p-5">
+                <h3 class="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-3">Programa de fidelidade</h3>
+                <div class="grid grid-cols-2 gap-3 text-center">
+                    <div class="bg-slate-50 rounded-xl p-3">
+                        <p class="text-xs text-slate-500">Pontos por real</p>
+                        <p class="text-xl font-bold mt-1" style="color:${cor}">${e.pontos_por_real} <span class="text-xs text-slate-500 font-normal">/ R$1</span></p>
+                    </div>
+                    <div class="bg-slate-50 rounded-xl p-3">
+                        <p class="text-xs text-slate-500">Cashback</p>
+                        <p class="text-xl font-bold text-emerald-600 mt-1">${Number(e.cashback_percentual).toFixed(1).replace('.', ',')}<span class="text-sm font-normal">%</span></p>
+                    </div>
+                </div>
+                <div class="mt-3 pt-3 border-t border-slate-100 grid grid-cols-2 gap-2 text-center">
+                    <div>
+                        <p class="text-[11px] text-slate-500 uppercase">Seu saldo</p>
+                        <p class="text-sm font-bold text-slate-800">${fmtNum(e.pontos)} pts</p>
+                    </div>
+                    <div>
+                        <p class="text-[11px] text-slate-500 uppercase">Seu cashback</p>
+                        <p class="text-sm font-bold text-emerald-600">${fmtBRL(e.cashback)}</p>
+                    </div>
+                </div>
+            </div>
+
+            ${(e.telefone || e.email || e.endereco) ? `
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+                <h3 class="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-3">Contato</h3>
+                <div class="space-y-3 text-sm">
+                    ${e.telefone ? `
+                        <a href="tel:${e.telefone.replace(/\\D/g, '')}" class="flex items-center gap-3 hover:bg-slate-50 -mx-2 px-2 py-1 rounded-lg">
+                            <i class="ri-phone-line text-slate-400"></i>
+                            <span class="text-slate-700">${e.telefone}</span>
+                        </a>` : ''}
+                    ${e.email ? `
+                        <a href="mailto:${e.email}" class="flex items-center gap-3 hover:bg-slate-50 -mx-2 px-2 py-1 rounded-lg">
+                            <i class="ri-mail-line text-slate-400"></i>
+                            <span class="text-slate-700 truncate">${e.email}</span>
+                        </a>` : ''}
+                    ${e.endereco ? `
+                        <div class="flex items-start gap-3">
+                            <i class="ri-map-pin-line text-slate-400 mt-0.5"></i>
+                            <span class="text-slate-700">${e.endereco}</span>
+                        </div>` : ''}
+                </div>
+            </div>` : ''}
+
+            ${data.vinculadas.length > 0 ? `
+            <div>
+                <h3 class="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-2 px-1">Minhas outras empresas (${data.vinculadas.length})</h3>
+                <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden divide-y divide-slate-100">
+                    ${data.vinculadas.map(v => `
+                        <a href="${v.url}" class="block p-4 flex items-center gap-3 hover:bg-slate-50 transition">
+                            ${v.logo
+                                ? `<img src="${v.logo}" alt="${v.nome}" class="w-11 h-11 rounded-xl object-contain bg-slate-50">`
+                                : `<div class="w-11 h-11 rounded-xl flex items-center justify-center text-white font-semibold" style="background:linear-gradient(135deg,${v.cor_primaria},${v.cor_secundaria})">${v.nome.charAt(0)}</div>`
+                            }
+                            <div class="flex-1 min-w-0">
+                                <p class="font-semibold text-slate-800 truncate">${v.nome}</p>
+                                <div class="flex gap-3 text-xs text-slate-500 mt-0.5">
+                                    <span><i class="ri-coin-line"></i> ${fmtNum(v.pontos)}</span>
+                                    <span class="text-emerald-600"><i class="ri-money-dollar-circle-line"></i> ${fmtBRL(v.cashback)}</span>
+                                </div>
+                            </div>
+                            <i class="ri-arrow-right-s-line text-slate-400 text-xl"></i>
+                        </a>
+                    `).join('')}
+                </div>
+                <p class="text-[11px] text-slate-400 px-2 mt-2">
+                    <i class="ri-information-line"></i> Cada empresa tem login e senha próprios.
+                </p>
+            </div>` : ''}
+        </div>
+    </div>`;
 }
 
 // Máscara CPF (000.000.000-00)

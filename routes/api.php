@@ -39,6 +39,7 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
     Route::get('cliente/dashboard', [ClienteController::class, 'dashboard']);
     Route::get('cliente/compras', [ClienteController::class, 'historicoCompras']);
     Route::get('cliente/extrato', [ClienteController::class, 'extrato']);
+    Route::get('cliente/empresas', [ClienteController::class, 'minhasEmpresas']);
     Route::put('cliente/perfil', [ClienteController::class, 'atualizarPerfil']);
     Route::put('cliente/senha', [ClienteController::class, 'alterarSenha']);
 
