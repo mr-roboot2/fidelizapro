@@ -109,6 +109,7 @@ async function showScreen(nome, params = {}) {
         catalogo: telaCatalogo,
         qrcode: telaQrCode,
         perfil: telaPerfil,
+        editarPerfil: telaEditarPerfil,
         resgates: telaResgates,
         indicacoes: telaIndicacoes,
         pesquisa: telaPesquisa,
@@ -765,7 +766,7 @@ async function telaPerfil() {
                     <span class="flex-1 text-left font-medium text-slate-700">Meus cupons</span>
                     <i class="ri-arrow-right-s-line text-slate-400 text-xl"></i>
                 </button>
-                <button onclick="editarPerfil()" class="w-full p-4 flex items-center gap-3 hover:bg-slate-50 transition">
+                <button onclick="showScreen('editarPerfil')" class="w-full p-4 flex items-center gap-3 hover:bg-slate-50 transition">
                     <div class="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center">
                         <i class="ri-edit-line text-slate-600"></i>
                     </div>
@@ -803,14 +804,110 @@ async function telaPerfil() {
     </div>`;
 }
 
-window.editarPerfil = () => {
+// Tela 7.5: Editar perfil
+async function telaEditarPerfil() {
     const c = STATE.cliente;
-    const novo = prompt('Editar e-mail:', c.email || '');
-    if (novo === null) return;
-    api('/cliente/perfil', { method: 'PUT', body: JSON.stringify({ email: novo }) })
-        .then(() => { STATE.cliente.email = novo; persistir(); toast('Atualizado!', 'success'); })
-        .catch(e => toast(e.message, 'error'));
-};
+    const e = STATE.empresa;
+    const cor = e.cor_primaria, corSec = e.cor_secundaria;
+    screenContainer.innerHTML = `
+    <div class="fade-in flex-1 flex flex-col overflow-y-auto bg-slate-50">
+        <div class="px-5 pt-6 pb-10 text-white" style="background:linear-gradient(135deg,${cor},${corSec})">
+            <button onclick="showScreen('perfil')" class="text-white/80 mb-3 flex items-center gap-1 text-sm hover:text-white transition">
+                <i class="ri-arrow-left-line"></i> Voltar
+            </button>
+            <h1 class="text-2xl font-bold">Editar dados</h1>
+            <p class="text-white/80 text-sm mt-1">Atualize suas informações</p>
+        </div>
+
+        <form id="form-editar-perfil" class="px-4 -mt-6 pb-6">
+            <div class="bg-white rounded-2xl shadow-md border border-slate-100 p-5 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Nome completo</label>
+                    <div class="relative">
+                        <i class="ri-user-line absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input name="nome" value="${(c.nome || '').replace(/"/g, '&quot;')}" required
+                               class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-slate-400 focus:outline-none transition">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Telefone</label>
+                    <div class="relative">
+                        <i class="ri-smartphone-line absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input value="${c.telefone || ''}" disabled
+                               class="w-full pl-11 pr-4 py-3 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 cursor-not-allowed">
+                    </div>
+                    <p class="text-[11px] text-slate-500 mt-1 ml-1">O telefone não pode ser alterado por aqui</p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">E-mail</label>
+                    <div class="relative">
+                        <i class="ri-mail-line absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input name="email" type="email" value="${(c.email || '').replace(/"/g, '&quot;')}" placeholder="seu@email.com"
+                               class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-slate-400 focus:outline-none transition">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">CPF</label>
+                    <div class="relative">
+                        <i class="ri-id-card-line absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input name="cpf" value="${c.cpf || ''}" placeholder="000.000.000-00" maxlength="14"
+                               class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-slate-400 focus:outline-none transition">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Data de nascimento</label>
+                    <div class="relative">
+                        <i class="ri-cake-2-line absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 z-10"></i>
+                        <input name="data_nascimento" type="date" value="${c.data_nascimento || ''}"
+                               class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-slate-400 focus:outline-none transition text-slate-700">
+                    </div>
+                    <p class="text-[11px] text-slate-500 mt-1 ml-1">Receba um presente no seu aniversário</p>
+                </div>
+            </div>
+
+            <button type="submit" class="w-full mt-4 py-3.5 text-white rounded-2xl font-semibold flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition"
+                    style="background:linear-gradient(135deg,${cor},${corSec})">
+                <i class="ri-save-line"></i> Salvar alterações
+            </button>
+
+            <button type="button" onclick="showScreen('perfil')" class="w-full mt-2 py-3 text-slate-600 font-medium rounded-2xl hover:bg-slate-100 transition">
+                Cancelar
+            </button>
+        </form>
+    </div>`;
+
+    $('#form-editar-perfil').addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        const fd = Object.fromEntries(new FormData(ev.target));
+        Object.keys(fd).forEach(k => { if (fd[k] === '') fd[k] = null; });
+        try {
+            const res = await api('/cliente/perfil', { method: 'PUT', body: JSON.stringify(fd) });
+            STATE.cliente = { ...STATE.cliente, ...res.cliente };
+            persistir();
+            toast('Dados atualizados!', 'success');
+            showScreen('perfil');
+        } catch (e) { toast(e.message, 'error'); }
+    });
+}
+
+// Máscara CPF (000.000.000-00)
+document.addEventListener('input', (ev) => {
+    const el = ev.target;
+    if (!el.matches || !el.matches('input[name="cpf"]')) return;
+    const v = el.value.replace(/\D/g, '').slice(0, 11);
+    let formatted = v;
+    if (v.length > 9) formatted = v.slice(0,3)+'.'+v.slice(3,6)+'.'+v.slice(6,9)+'-'+v.slice(9);
+    else if (v.length > 6) formatted = v.slice(0,3)+'.'+v.slice(3,6)+'.'+v.slice(6);
+    else if (v.length > 3) formatted = v.slice(0,3)+'.'+v.slice(3);
+    if (formatted !== el.value) {
+        el.value = formatted;
+        el.setSelectionRange(formatted.length, formatted.length);
+    }
+});
 
 window.logout = async () => {
     try { await api('/auth/logout', { method: 'POST' }); } catch {}
