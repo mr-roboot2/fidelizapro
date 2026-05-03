@@ -8,42 +8,58 @@
             <i class="ri-whatsapp-line text-emerald-600"></i> Configuração do provedor
         </h2>
 
-        <form method="POST" action="{{ route('admin.whatsapp.update') }}" class="space-y-4">
+        <form method="POST" action="{{ route('admin.whatsapp.update') }}" class="space-y-4"
+              x-data="{ provedor: '{{ old('whatsapp_provider', $empresa->whatsapp_provider) }}' }">
             @csrf @method('PUT')
 
             <div>
                 <label class="text-sm font-medium">Provedor</label>
-                <select name="whatsapp_provider" x-data x-on:change="window.location.hash = $event.target.value"
+                <select name="whatsapp_provider" x-model="provedor"
                         class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg">
-                    <option value="mock" @selected($empresa->whatsapp_provider === 'mock')>🧪 Mock (apenas logs — modo dev)</option>
-                    <option value="evolution" @selected($empresa->whatsapp_provider === 'evolution')>Evolution API (open-source)</option>
-                    <option value="zapi" @selected($empresa->whatsapp_provider === 'zapi')>Z-API (z-api.io)</option>
-                    <option value="meta_cloud" @selected($empresa->whatsapp_provider === 'meta_cloud')>WhatsApp Cloud API (Meta oficial)</option>
+                    <option value="mock">🧪 Mock (apenas logs — modo dev)</option>
+                    <option value="evolution">Evolution API (open-source)</option>
+                    <option value="zapi">Z-API (z-api.io)</option>
+                    <option value="meta_cloud">WhatsApp Cloud API (Meta oficial)</option>
                 </select>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
+                <div x-show="provedor === 'evolution' || provedor === 'zapi'">
                     <label class="text-sm font-medium">API URL</label>
                     <input type="url" name="whatsapp_api_url" value="{{ old('whatsapp_api_url', $empresa->whatsapp_api_url) }}"
                            placeholder="https://..."
                            class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg font-mono text-sm">
+                    <p class="text-[11px] text-slate-500 mt-1" x-show="provedor === 'evolution'">URL da sua instância Evolution (ex: <code>https://evolution.seudominio.com.br</code>)</p>
+                    <p class="text-[11px] text-slate-500 mt-1" x-show="provedor === 'zapi'"><code>https://api.z-api.io</code></p>
                 </div>
-                <div>
+
+                <div x-show="provedor !== 'mock'">
                     <label class="text-sm font-medium">API Token</label>
                     <input type="text" name="whatsapp_api_token" value="{{ old('whatsapp_api_token', $empresa->whatsapp_api_token) }}"
                            class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg font-mono text-sm">
+                    <p class="text-[11px] text-slate-500 mt-1" x-show="provedor === 'meta_cloud'">System User Token (Bearer) gerado no Meta Business Manager</p>
+                    <p class="text-[11px] text-slate-500 mt-1" x-show="provedor === 'evolution'">apikey gerada na criação da instância</p>
+                    <p class="text-[11px] text-slate-500 mt-1" x-show="provedor === 'zapi'">Client-Token do painel Z-API</p>
                 </div>
-                <div>
-                    <label class="text-sm font-medium">Instance ID (Evolution / Z-API)</label>
+
+                <div x-show="provedor === 'evolution' || provedor === 'zapi'">
+                    <label class="text-sm font-medium">Instance ID</label>
                     <input type="text" name="whatsapp_instance" value="{{ old('whatsapp_instance', $empresa->whatsapp_instance) }}"
                            class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg font-mono text-sm">
+                    <p class="text-[11px] text-slate-500 mt-1" x-show="provedor === 'evolution'">Nome da instância criada no Evolution</p>
+                    <p class="text-[11px] text-slate-500 mt-1" x-show="provedor === 'zapi'">ID + token da sua instância Z-API</p>
                 </div>
-                <div>
-                    <label class="text-sm font-medium">Phone Number ID (Meta Cloud)</label>
+
+                <div x-show="provedor === 'meta_cloud'">
+                    <label class="text-sm font-medium">Phone Number ID</label>
                     <input type="text" name="whatsapp_phone_id" value="{{ old('whatsapp_phone_id', $empresa->whatsapp_phone_id) }}"
                            class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg font-mono text-sm">
+                    <p class="text-[11px] text-slate-500 mt-1">ID do telefone WhatsApp (no painel Meta → WhatsApp → API setup)</p>
                 </div>
+            </div>
+
+            <div x-show="provedor === 'meta_cloud'" class="bg-indigo-50 border border-indigo-100 rounded-lg p-3 text-xs text-indigo-800">
+                <i class="ri-information-line"></i> Para Meta Cloud, o <strong>API URL</strong> não é necessário — o sistema usa <code>graph.facebook.com</code> automaticamente.
             </div>
 
             <label class="flex items-center gap-2 pt-2">
