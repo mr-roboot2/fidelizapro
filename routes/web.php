@@ -73,6 +73,11 @@ Route::get('/app/{slug}/', [PwaController::class, 'app'])->where('slug', '[a-z0-
 Route::get('/app/{slug}/manifest.json', [PwaController::class, 'manifest'])->where('slug', '[a-z0-9-]+');
 Route::get('/app/{slug}/sw.js', [PwaController::class, 'serviceWorker'])->where('slug', '[a-z0-9-]+');
 
+// PWA da loja (atendente/caixa) — login com User da empresa
+Route::get('/loja', fn() => redirect('/loja/'));
+Route::get('/loja/', [\App\Http\Controllers\LojaPwaController::class, 'app']);
+Route::get('/loja/manifest.json', [\App\Http\Controllers\LojaPwaController::class, 'manifest']);
+
 // Painel admin
 Route::middleware(['admin.auth', 'empresa.scope'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');

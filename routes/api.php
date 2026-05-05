@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\EmpresaController;
 use App\Http\Controllers\Api\PdvController;
 use App\Http\Controllers\Api\OtpController;
 use App\Http\Controllers\Api\BeneficioController;
+use App\Http\Controllers\Api\LojaController;
 
 // Públicas
 Route::prefix('v1')->group(function () {
@@ -24,6 +25,7 @@ Route::prefix('v1')->group(function () {
         Route::post('auth/registrar', [AuthController::class, 'registrar']);
         Route::post('auth/otp/solicitar', [OtpController::class, 'solicitar']);
         Route::post('auth/otp/validar', [OtpController::class, 'validar']);
+        Route::post('loja/login', [LojaController::class, 'login']);
     });
 
     // PDV externo (autenticado por X-Pdv-Secret). Limite configurável por
@@ -63,4 +65,12 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
     Route::get('parceiros', [BeneficioController::class, 'listar']);
     Route::post('parceiros/cupons', [BeneficioController::class, 'gerarCupom']);
     Route::get('parceiros/meus-cupons', [BeneficioController::class, 'meusCupons']);
+
+    // PWA da loja — operadores autenticados via Sanctum (User com empresa_id)
+    Route::post('loja/logout', [LojaController::class, 'logout']);
+    Route::get('loja/me', [LojaController::class, 'me']);
+    Route::get('loja/clientes', [LojaController::class, 'buscarClientes']);
+    Route::get('loja/clientes/qr/{codigo}', [LojaController::class, 'clientePorQr'])->where('codigo', '[A-Za-z0-9-]+');
+    Route::post('loja/clientes', [LojaController::class, 'criarCliente']);
+    Route::post('loja/compras', [LojaController::class, 'lancarCompra']);
 });

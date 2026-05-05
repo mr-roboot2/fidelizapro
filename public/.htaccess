@@ -15,6 +15,12 @@
     RewriteCond %{REQUEST_URI} ^/app/manifest\.json$
     RewriteRule ^ index.php [L]
 
+    # PWA da loja (operador): index e manifest dinâmicos no Laravel
+    RewriteCond %{REQUEST_URI} ^/loja/$
+    RewriteRule ^ index.php [L]
+    RewriteCond %{REQUEST_URI} ^/loja/manifest\.json$
+    RewriteRule ^ index.php [L]
+
     # PWA white label: NÃO redirecionar trailing slash em /app/{slug}/
     RewriteCond %{REQUEST_URI} (^|/)app/[a-z0-9-]+/$
     RewriteRule ^ index.php [L]
