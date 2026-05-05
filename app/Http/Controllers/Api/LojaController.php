@@ -151,7 +151,7 @@ class LojaController extends Controller
                     'valor'     => $valorBruto,
                     'desconto'  => $usarCashback,
                     'descricao' => $dados['descricao'] ?? null,
-                    'origem'    => 'pwa_loja',
+                    'origem'    => 'manual',
                 ]);
             });
         } catch (Throwable $e) {
