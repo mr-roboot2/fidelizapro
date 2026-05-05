@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Cliente;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use SimpleSoftwareIO\QrCode\Generator as QrGenerator;
 
@@ -102,6 +103,39 @@ class ClienteController extends Controller
 
         $cliente->update($dados);
         return response()->json(['cliente' => $cliente->fresh(), 'message' => 'Perfil atualizado!']);
+    }
+
+    public function uploadFoto(Request $request)
+    {
+        $request->validate([
+            'foto' => 'required|image|mimes:jpg,jpeg,png,webp|max:4096',
+        ]);
+
+        $cliente = $request->user();
+
+        if ($cliente->foto) {
+            Storage::disk('public')->delete($cliente->foto);
+        }
+
+        $caminho = $request->file('foto')->store('clientes_fotos', 'public');
+        $cliente->update(['foto' => $caminho]);
+
+        return response()->json([
+            'foto' => asset('storage/'.$caminho),
+            'message' => 'Foto atualizada!',
+        ]);
+    }
+
+    public function removerFoto(Request $request)
+    {
+        $cliente = $request->user();
+
+        if ($cliente->foto) {
+            Storage::disk('public')->delete($cliente->foto);
+            $cliente->update(['foto' => null]);
+        }
+
+        return response()->json(['message' => 'Foto removida.']);
     }
 
     /**

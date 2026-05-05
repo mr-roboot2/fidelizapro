@@ -43,6 +43,8 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
     Route::get('cliente/extrato', [ClienteController::class, 'extrato']);
     Route::get('cliente/empresas', [ClienteController::class, 'minhasEmpresas']);
     Route::put('cliente/perfil', [ClienteController::class, 'atualizarPerfil']);
+    Route::post('cliente/perfil/foto', [ClienteController::class, 'uploadFoto']);
+    Route::delete('cliente/perfil/foto', [ClienteController::class, 'removerFoto']);
     Route::put('cliente/senha', [ClienteController::class, 'alterarSenha']);
 
     Route::get('recompensas', [RecompensaController::class, 'catalogo']);

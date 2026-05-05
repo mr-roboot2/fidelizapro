@@ -144,6 +144,7 @@ class AuthController extends Controller
             'nome' => $c->nome,
             'telefone' => $c->telefone,
             'email' => $c->email,
+            'foto' => $c->foto ? asset('storage/'.$c->foto) : null,
             'cpf' => $c->cpf,
             'data_nascimento' => $c->data_nascimento?->toDateString(),
             'pontos' => (float) $c->pontos_atual,

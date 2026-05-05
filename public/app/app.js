@@ -97,7 +97,9 @@ function confirmar(opts = {}) {
 }
 
 async function api(path, opts = {}) {
-    const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+    const headers = { 'Accept': 'application/json' };
+    // FormData precisa do boundary multipart definido pelo browser — não setar Content-Type
+    if (!(opts.body instanceof FormData)) headers['Content-Type'] = 'application/json';
     if (STATE.token) headers['Authorization'] = 'Bearer ' + STATE.token;
     const res = await fetch(API + path, { ...opts, headers: { ...headers, ...(opts.headers || {}) } });
     const data = await res.json().catch(() => ({}));
@@ -658,8 +660,10 @@ async function telaHome() {
                     <p class="text-white/70 text-xs uppercase tracking-wider">Olá,</p>
                     <h1 class="text-2xl font-bold mt-0.5">${c.nome.split(' ')[0]} 👋</h1>
                 </div>
-                <button onclick="showScreen('perfil')" class="w-11 h-11 rounded-full bg-white/20 backdrop-blur flex items-center justify-center font-bold text-lg hover:bg-white/30 transition">
-                    ${c.nome.charAt(0).toUpperCase()}
+                <button onclick="showScreen('perfil')" class="w-11 h-11 rounded-full bg-white/20 backdrop-blur flex items-center justify-center font-bold text-lg hover:bg-white/30 transition overflow-hidden">
+                    ${c.foto
+                        ? `<img src="${c.foto}" class="w-full h-full object-cover" alt="">`
+                        : c.nome.charAt(0).toUpperCase()}
                 </button>
             </div>
 
@@ -936,8 +940,10 @@ async function telaPerfil() {
     screenContainer.innerHTML = `
     <div class="fade-in flex-1 flex flex-col overflow-y-auto bg-slate-50">
         <div class="px-5 pt-8 pb-12 text-white text-center" style="background:linear-gradient(135deg,${e.cor_primaria},${e.cor_secundaria})">
-            <div class="w-24 h-24 mx-auto rounded-full bg-white/20 backdrop-blur border-4 border-white/30 flex items-center justify-center text-4xl font-bold shadow-lg">
-                ${c.nome.charAt(0).toUpperCase()}
+            <div class="w-24 h-24 mx-auto rounded-full bg-white/20 backdrop-blur border-4 border-white/30 flex items-center justify-center text-4xl font-bold shadow-lg overflow-hidden">
+                ${c.foto
+                    ? `<img src="${c.foto}" class="w-full h-full object-cover" alt="">`
+                    : c.nome.charAt(0).toUpperCase()}
             </div>
             <h1 class="text-2xl font-bold mt-4">${c.nome}</h1>
             <p class="text-white/80 text-sm">${c.telefone}</p>
@@ -1052,7 +1058,28 @@ async function telaEditarPerfil() {
             <p class="text-white/80 text-sm mt-1">Atualize suas informações</p>
         </div>
 
-        <form id="form-editar-perfil" class="px-4 -mt-6 pb-6">
+        <div class="px-4 -mt-6">
+            <div class="bg-white rounded-2xl shadow-md border border-slate-100 p-5 flex flex-col items-center gap-3">
+                <div id="avatar-preview" class="w-24 h-24 rounded-full border-4 border-slate-100 flex items-center justify-center text-4xl font-bold text-white shadow-md overflow-hidden" style="background:linear-gradient(135deg,${cor},${corSec})">
+                    ${c.foto
+                        ? `<img src="${c.foto}" class="w-full h-full object-cover" alt="">`
+                        : c.nome.charAt(0).toUpperCase()}
+                </div>
+                <input type="file" id="input-foto" accept="image/png,image/jpeg,image/webp" class="hidden">
+                <div class="flex gap-2">
+                    <button type="button" id="btn-trocar-foto" class="px-4 py-2 text-sm font-medium rounded-xl border border-slate-200 hover:bg-slate-50 transition flex items-center gap-1.5">
+                        <i class="ri-camera-line"></i> ${c.foto ? 'Trocar foto' : 'Adicionar foto'}
+                    </button>
+                    ${c.foto ? `
+                    <button type="button" id="btn-remover-foto" class="px-4 py-2 text-sm font-medium rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 transition flex items-center gap-1.5">
+                        <i class="ri-delete-bin-line"></i> Remover
+                    </button>` : ''}
+                </div>
+                <p class="text-[11px] text-slate-500">JPG, PNG ou WEBP até 4MB</p>
+            </div>
+        </div>
+
+        <form id="form-editar-perfil" class="px-4 mt-4 pb-6">
             <div class="bg-white rounded-2xl shadow-md border border-slate-100 p-5 space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1.5">Nome completo</label>
@@ -1125,6 +1152,37 @@ async function telaEditarPerfil() {
             showScreen('perfil');
         } catch (e) { toast(e.message, 'error'); }
     });
+
+    const inputFoto = $('#input-foto');
+    $('#btn-trocar-foto').addEventListener('click', () => inputFoto.click());
+    inputFoto.addEventListener('change', async () => {
+        const file = inputFoto.files[0];
+        if (!file) return;
+        if (file.size > 4 * 1024 * 1024) { toast('Imagem muito grande (máx 4MB)', 'error'); return; }
+        const form = new FormData();
+        form.append('foto', file);
+        try {
+            const res = await api('/cliente/perfil/foto', { method: 'POST', body: form });
+            STATE.cliente.foto = res.foto;
+            persistir();
+            toast('Foto atualizada!', 'success');
+            showScreen('editarPerfil');
+        } catch (e) { toast(e.message, 'error'); }
+    });
+
+    const btnRemover = $('#btn-remover-foto');
+    if (btnRemover) {
+        btnRemover.addEventListener('click', async () => {
+            if (!confirm('Remover foto de perfil?')) return;
+            try {
+                await api('/cliente/perfil/foto', { method: 'DELETE' });
+                STATE.cliente.foto = null;
+                persistir();
+                toast('Foto removida.', 'success');
+                showScreen('editarPerfil');
+            } catch (e) { toast(e.message, 'error'); }
+        });
+    }
 }
 
 // Tela 7.6: Alterar senha
