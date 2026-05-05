@@ -91,7 +91,10 @@
     @endif
     <header class="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between">
         <h1 class="text-xl font-semibold text-slate-700">@yield('title', 'Painel')</h1>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-4">
+            <a href="{{ url('/loja/') }}" target="_blank" class="text-sm text-emerald-600 hover:underline">
+                <i class="ri-qr-scan-2-line"></i> PWA da Loja
+            </a>
             <a href="{{ isset($empresaAtiva->slug) ? url('/app/'.$empresaAtiva->slug.'/') : '/app/' }}" target="_blank" class="text-sm text-indigo-600 hover:underline">
                 <i class="ri-smartphone-line"></i> Ver portal cliente
             </a>

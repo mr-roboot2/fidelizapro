@@ -212,6 +212,23 @@ para:
 
 Clica **Save**. O nginx é recarregado automaticamente.
 
+### Regras nginx para PWAs (`/app/` e `/loja/`)
+
+O FidelizaPro tem rotas Laravel dinâmicas (`/app/`, `/app/manifest.json`, `/loja/`, `/loja/manifest.json`) que **coincidem com diretórios físicos** dentro de `public/`. Sem ajuste, o nginx tenta servir o índice do diretório e devolve 403/404.
+
+No CloudPanel: **Sites → seu site → Vhost** → adicione antes do `location /` final:
+
+```nginx
+# PWAs com rotas dinâmicas — força a passar pelo Laravel mesmo
+# quando a pasta física existe
+location = /app/                  { try_files $uri /index.php?$query_string; }
+location = /app/manifest.json     { try_files $uri /index.php?$query_string; }
+location = /loja/                 { try_files $uri /index.php?$query_string; }
+location = /loja/manifest.json    { try_files $uri /index.php?$query_string; }
+```
+
+Salva. O nginx recarrega automaticamente.
+
 ---
 
 ## 7. Configurar `.env` de produção
