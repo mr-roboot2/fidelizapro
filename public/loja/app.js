@@ -663,6 +663,20 @@ let _deferredInstall = null;
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     _deferredInstall = e;
+    $('#install-btn')?.classList.remove('hidden');
+});
+
+$('#install-btn')?.addEventListener('click', async () => {
+    if (!_deferredInstall) return;
+    _deferredInstall.prompt();
+    await _deferredInstall.userChoice;
+    _deferredInstall = null;
+    $('#install-btn').classList.add('hidden');
+});
+
+window.addEventListener('appinstalled', () => {
+    _deferredInstall = null;
+    $('#install-btn')?.classList.add('hidden');
 });
 
 if ('serviceWorker' in navigator) {

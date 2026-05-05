@@ -48,6 +48,9 @@
 </div>
 
 <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 hidden bg-slate-900 text-white px-4 py-2 rounded-full text-sm shadow-lg"></div>
+<button id="install-btn" class="hidden fixed bottom-20 right-4 text-white rounded-full px-4 py-3 shadow-lg z-40" style="background:linear-gradient(135deg,{{ $config->cor_primaria }},{{ $config->cor_secundaria }})">
+    <i class="ri-download-cloud-line"></i> Instalar app
+</button>
 
 <script>
     window.SISTEMA_NOME = @json($config->nome_sistema);
