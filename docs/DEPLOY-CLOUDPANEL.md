@@ -214,17 +214,19 @@ Clica **Save**. O nginx é recarregado automaticamente.
 
 ### Regras nginx para PWAs (`/app/` e `/loja/`)
 
-O FidelizaPro tem rotas Laravel dinâmicas (`/app/`, `/app/manifest.json`, `/loja/`, `/loja/manifest.json`) que **coincidem com diretórios físicos** dentro de `public/`. Sem ajuste, o nginx tenta servir o índice do diretório e devolve 403/404.
+O FidelizaPro tem rotas Laravel dinâmicas (`/app/`, `/app/manifest.json`, `/loja/`, `/loja/manifest.json`) que **coincidem com diretórios físicos** dentro de `public/`. Sem ajuste, o nginx tenta servir o índice do diretório e devolve 403.
 
-No CloudPanel: **Sites → seu site → Vhost** → adicione antes do `location /` final:
+⚠️ **CloudPanel usa dois servers no vhost**: um na `:443` (HTTPS, faz `proxy_pass` pro Varnish) e outro na `:8080` (backend, onde o PHP-FPM roda). As regras precisam ir no **server `:8080`**, não no `:443` — caso contrário o `try_files` reescreve o path antes do proxy e o Laravel recebe `/index.php` "pelado", caindo em `Route::get('/')` e redirecionando pro login.
+
+No CloudPanel: **Sites → seu site → Vhost** → encontre o bloco `server { listen 8080; ... }` e adicione **antes** do `location ~ \.php$`:
 
 ```nginx
 # PWAs com rotas dinâmicas — força a passar pelo Laravel mesmo
-# quando a pasta física existe
-location = /app/                  { try_files $uri /index.php?$query_string; }
-location = /app/manifest.json     { try_files $uri /index.php?$query_string; }
-location = /loja/                 { try_files $uri /index.php?$query_string; }
-location = /loja/manifest.json    { try_files $uri /index.php?$query_string; }
+# quando a pasta física existe (public/app/, public/loja/)
+location = /app/                  { try_files $uri /index.php?$args; }
+location = /app/manifest.json     { try_files $uri /index.php?$args; }
+location = /loja/                 { try_files $uri /index.php?$args; }
+location = /loja/manifest.json    { try_files $uri /index.php?$args; }
 ```
 
 Salva. O nginx recarrega automaticamente.
