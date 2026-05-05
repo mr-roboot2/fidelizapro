@@ -63,8 +63,10 @@ Route::get('/admin/login', [LoginController::class, 'showLogin'])->name('admin.l
 Route::post('/admin/login', [LoginController::class, 'login']);
 Route::post('/admin/logout', [LoginController::class, 'logout'])->name('admin.logout');
 
-// PWA cliente — modo genérico (servido estático em /public/app/)
+// PWA cliente — modo genérico (seleção de empresa, branding via super admin)
 Route::get('/app', fn() => redirect('/app/'));
+Route::get('/app/', [PwaController::class, 'appGenerico']);
+Route::get('/app/manifest.json', [PwaController::class, 'manifestGenerico']);
 
 // PWA white label (manifest + sw + view dinâmicos por empresa)
 Route::get('/app/{slug}/', [PwaController::class, 'app'])->where('slug', '[a-z0-9-]+');

@@ -1,9 +1,10 @@
-const CACHE = 'fidelizapro-v6';
+const CACHE = 'fidelizapro-v7';
 
-// Caminhos relativos ao escopo do SW (a própria pasta /app/)
+// Caminhos relativos ao escopo do SW (a própria pasta /app/).
+// O index e o manifest são servidos dinamicamente pelo Laravel — não pré-cachear
+// caminhos estáticos que não existem mais.
 const ASSETS = [
     './',
-    './index.html',
     './style.css',
     './app.js',
     './manifest.json',

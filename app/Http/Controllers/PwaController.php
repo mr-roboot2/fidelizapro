@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ConfiguracaoSistema;
 use App\Models\Empresa;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -9,12 +10,48 @@ use Illuminate\Http\Response;
 class PwaController extends Controller
 {
     /**
-     * Sem slug: redireciona para o menu de seleção de empresa.
+     * Menu genérico de seleção de empresa — branding vem de ConfiguracaoSistema
+     * (super admin), não de uma empresa específica.
      */
-    public function home()
+    public function appGenerico()
     {
-        // Redireciona para o app antigo (genérico) na pasta public/app/
-        return redirect('/app/');
+        $config = ConfiguracaoSistema::instancia();
+        return view('pwa.app_generico', compact('config'));
+    }
+
+    /**
+     * Manifest do menu genérico — usa branding do super admin.
+     */
+    public function manifestGenerico()
+    {
+        $config = ConfiguracaoSistema::instancia();
+
+        $logo = $config->logoUrl() ?? asset('app/icons/icon.svg');
+        $scopePath = parse_url(url('/app/'), PHP_URL_PATH);
+
+        $manifest = [
+            'name' => $config->nome_sistema,
+            'short_name' => $config->nome_sistema,
+            'description' => $config->slogan ?: 'Programa de fidelidade. Acumule pontos e troque por prêmios.',
+            'start_url' => $scopePath,
+            'scope' => $scopePath,
+            'display' => 'standalone',
+            'orientation' => 'portrait',
+            'background_color' => '#ffffff',
+            'theme_color' => $config->cor_primaria,
+            'lang' => 'pt-BR',
+            'icons' => [
+                [
+                    'src' => $logo,
+                    'sizes' => 'any',
+                    'type' => $config->logo ? 'image/'.pathinfo($config->logo, PATHINFO_EXTENSION) : 'image/svg+xml',
+                    'purpose' => 'any maskable',
+                ],
+            ],
+        ];
+
+        return response()->json($manifest)
+            ->header('Cache-Control', 'public, max-age=3600');
     }
 
     /**
