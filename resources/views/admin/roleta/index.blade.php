@@ -3,6 +3,12 @@
 @section('content')
 <div x-data="roletaAdmin()" class="space-y-6">
 
+    <div class="flex justify-end">
+        <a href="{{ route('admin.roleta.metricas') }}" class="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-900 text-white rounded-lg text-sm hover:bg-slate-800">
+            <i class="ri-bar-chart-2-line"></i> Ver métricas
+        </a>
+    </div>
+
     <div class="bg-white rounded-xl shadow-sm p-5" x-data="buscaCliente()">
         <h2 class="text-lg font-semibold mb-3">Creditar giro manualmente</h2>
         <form action="{{ route('admin.roleta.creditar', $roleta) }}" method="POST" class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end" @submit="if (!selecionado) { $event.preventDefault(); alert('Selecione um cliente da lista.'); }">

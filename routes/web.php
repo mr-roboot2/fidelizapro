@@ -133,6 +133,7 @@ Route::middleware(['admin.auth', 'empresa.scope'])->prefix('admin')->name('admin
     Route::delete('beneficios/{beneficio}', [BeneficioController::class, 'destroy'])->name('beneficios.destroy');
 
     Route::get('roleta', [RoletaController::class, 'index'])->name('roleta.index');
+    Route::get('roleta/metricas', [RoletaController::class, 'metricas'])->name('roleta.metricas');
     Route::put('roleta/{roleta}', [RoletaController::class, 'update'])->name('roleta.update');
     Route::post('roleta/{roleta}/premios', [RoletaController::class, 'premioStore'])->name('roleta.premios.store');
     Route::put('roleta/{roleta}/premios/{premio}', [RoletaController::class, 'premioUpdate'])->name('roleta.premios.update');

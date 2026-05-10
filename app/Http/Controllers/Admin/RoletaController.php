@@ -6,11 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Models\Cliente;
 use App\Models\Recompensa;
 use App\Models\Roleta;
+use App\Models\RoletaCredito;
 use App\Models\RoletaGatilho;
+use App\Models\RoletaGatilhoDisparo;
+use App\Models\RoletaGiro;
 use App\Models\RoletaPremio;
 use App\Services\RoletaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class RoletaController extends Controller
 {
@@ -31,6 +35,90 @@ class RoletaController extends Controller
         $gatilhosPorTipo = $roleta->gatilhos->keyBy('tipo');
 
         return view('admin.roleta.index', compact('roleta', 'recompensas', 'totalGiros', 'girosHoje', 'gatilhosPorTipo'));
+    }
+
+    public function metricas()
+    {
+        $empresaId = Auth::user()->empresa_id;
+        $roleta = Roleta::firstOrCreate(['empresa_id' => $empresaId]);
+
+        $hoje = now()->toDateString();
+        $inicioSemana = now()->subDays(6)->toDateString();
+        $inicio30d = now()->subDays(29)->toDateString();
+
+        $girosQuery = RoletaGiro::where('roleta_id', $roleta->id);
+
+        $kpi = [
+            'total'           => (clone $girosQuery)->count(),
+            'hoje'            => (clone $girosQuery)->whereDate('executado_em', $hoje)->count(),
+            'semana'          => (clone $girosQuery)->whereDate('executado_em', '>=', $inicioSemana)->count(),
+            'pontos_total'    => (int) (clone $girosQuery)->sum('pontos_concedidos'),
+            'pontos_hoje'     => (int) (clone $girosQuery)->whereDate('executado_em', $hoje)->sum('pontos_concedidos'),
+            'recompensas'     => (clone $girosQuery)->whereNotNull('resgate_id')->count(),
+            'saldo_pendente'  => (int) RoletaCredito::where('roleta_id', $roleta->id)->sum('giros_disponiveis'),
+            'clientes_unicos' => (clone $girosQuery)->distinct('cliente_id')->count('cliente_id'),
+        ];
+
+        // Série temporal 30d (sempre 30 pontos, dias vazios = 0)
+        $serieDb = (clone $girosQuery)
+            ->whereDate('executado_em', '>=', $inicio30d)
+            ->selectRaw('DATE(executado_em) as dia, COUNT(*) as total')
+            ->groupBy('dia')
+            ->pluck('total', 'dia');
+
+        $serie = [];
+        for ($i = 29; $i >= 0; $i--) {
+            $d = now()->subDays($i)->toDateString();
+            $serie[] = ['data' => $d, 'total' => (int) ($serieDb[$d] ?? 0)];
+        }
+
+        $distribuicao = (clone $girosQuery)
+            ->selectRaw('tipo_resultado, COUNT(*) as total')
+            ->groupBy('tipo_resultado')
+            ->pluck('total', 'tipo_resultado');
+
+        $topPremios = (clone $girosQuery)
+            ->whereNotNull('roleta_premio_id')
+            ->selectRaw('roleta_premio_id, COUNT(*) as total')
+            ->groupBy('roleta_premio_id')
+            ->orderByDesc('total')
+            ->limit(10)
+            ->get()
+            ->map(function ($g) use ($roleta) {
+                $p = $roleta->premios->firstWhere('id', $g->roleta_premio_id);
+                return [
+                    'label' => $p->label ?? '(removido)',
+                    'cor'   => $p->cor ?? '#94a3b8',
+                    'total' => (int) $g->total,
+                ];
+            });
+
+        $topGanhadores = (clone $girosQuery)
+            ->selectRaw('cliente_id, COUNT(*) as giros, SUM(pontos_concedidos) as pontos')
+            ->groupBy('cliente_id')
+            ->orderByDesc('giros')
+            ->limit(10)
+            ->with('cliente:id,nome,telefone')
+            ->get()
+            ->map(fn ($g) => [
+                'nome'     => $g->cliente->nome ?? '(removido)',
+                'telefone' => $g->cliente->telefone ?? '',
+                'giros'    => (int) $g->giros,
+                'pontos'   => (int) $g->pontos,
+            ]);
+
+        $gatilhosDisparados = RoletaGatilhoDisparo::where('roleta_id', $roleta->id)
+            ->where('created_at', '>=', $inicio30d.' 00:00:00')
+            ->selectRaw('tipo, COUNT(*) as total, SUM(giros_creditados) as giros')
+            ->groupBy('tipo')
+            ->orderByDesc('total')
+            ->get();
+
+        $roleta->loadMissing('premios');
+
+        return view('admin.roleta.metricas', compact(
+            'roleta', 'kpi', 'serie', 'distribuicao', 'topPremios', 'topGanhadores', 'gatilhosDisparados'
+        ));
     }
 
     public function gatilhoSalvar(Request $request, Roleta $roleta)
