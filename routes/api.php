@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\PdvController;
 use App\Http\Controllers\Api\OtpController;
 use App\Http\Controllers\Api\BeneficioController;
 use App\Http\Controllers\Api\LojaController;
+use App\Http\Controllers\Api\RoletaController;
 
 // Públicas
 Route::prefix('v1')->group(function () {
@@ -65,6 +66,9 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
     Route::get('parceiros', [BeneficioController::class, 'listar']);
     Route::post('parceiros/cupons', [BeneficioController::class, 'gerarCupom']);
     Route::get('parceiros/meus-cupons', [BeneficioController::class, 'meusCupons']);
+
+    Route::get('cliente/roleta/status', [RoletaController::class, 'status']);
+    Route::post('cliente/roleta/girar', [RoletaController::class, 'girar']);
 
     // PWA da loja — operadores autenticados via Sanctum (User com empresa_id)
     Route::post('loja/logout', [LojaController::class, 'logout']);

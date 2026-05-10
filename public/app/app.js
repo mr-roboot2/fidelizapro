@@ -193,6 +193,7 @@ async function showScreen(nome, params = {}) {
         pesquisa: telaPesquisa,
         parceiros: telaParceiros,
         meusCupons: telaMeusCupons,
+        roleta: telaRoleta,
     };
     screenContainer.innerHTML = '<div class="flex-1 flex items-center justify-center"><i class="ri-loader-4-line animate-spin text-3xl text-slate-400"></i></div>';
     try {
@@ -647,7 +648,10 @@ async function telaRegistrar() {
 
 // Tela 3: HOME
 async function telaHome() {
-    const data = await api('/cliente/dashboard');
+    const [data, roleta] = await Promise.all([
+        api('/cliente/dashboard'),
+        api('/cliente/roleta/status').catch(() => ({ ativa: false })),
+    ]);
     Object.assign(STATE.cliente, { pontos_atual: data.pontos, cashback_atual: data.cashback });
     persistir();
     const c = STATE.cliente, e = STATE.empresa;
@@ -690,6 +694,34 @@ async function telaHome() {
                 </button>
             </div>
         </div>
+
+        ${roleta.ativa && roleta.pode_girar ? `
+        <div class="px-4 -mt-3">
+            <button onclick="showScreen('roleta')" class="w-full text-left rounded-2xl p-4 text-white shadow-xl relative overflow-hidden transition active:scale-[0.99]"
+                    style="background:linear-gradient(135deg,#f59e0b,#ef4444 50%,#a855f7);">
+                <span class="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/20 animate-pulse"></span>
+                <span class="absolute right-3 top-3 bg-white text-rose-600 text-[10px] font-bold rounded-full px-2 py-0.5 shadow">${roleta.giros_disponiveis} ${roleta.giros_disponiveis === 1 ? 'giro' : 'giros'}</span>
+                <div class="flex items-center gap-3 relative">
+                    <div class="w-12 h-12 rounded-xl bg-white/25 backdrop-blur flex items-center justify-center text-3xl">🎰</div>
+                    <div>
+                        <p class="font-bold text-lg leading-tight">Você tem giros na roleta!</p>
+                        <p class="text-xs text-white/90">Toque pra girar e ganhar prêmios</p>
+                    </div>
+                </div>
+            </button>
+        </div>` : roleta.ativa ? `
+        <div class="px-4 -mt-3">
+            <button onclick="showScreen('roleta')" class="w-full text-left rounded-2xl p-3 bg-white border border-slate-200 transition active:scale-[0.99]">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style="background:${cor}15;color:${cor}">🎰</div>
+                    <div class="flex-1 min-w-0">
+                        <p class="font-semibold text-slate-700">${roleta.nome || 'Roleta da sorte'}</p>
+                        <p class="text-xs text-slate-400">Compre e ganhe giros</p>
+                    </div>
+                    <i class="ri-arrow-right-s-line text-slate-300 text-xl"></i>
+                </div>
+            </button>
+        </div>` : ''}
 
         <div class="p-4 mt-2">
             <h3 class="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-3 px-1">Acessar</h3>
@@ -1937,6 +1969,317 @@ async function telaMeusCupons() {
             `}).join('')}
         </div>
     </div>`;
+}
+
+// ============ ROLETA DA SORTE ============
+
+const ROLETA = {
+    audioCtx: null,
+    girando: false,
+};
+
+function roletaAudio() {
+    if (!ROLETA.audioCtx) {
+        try { ROLETA.audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+        catch (e) { return null; }
+    }
+    return ROLETA.audioCtx;
+}
+
+function roletaTic(freq = 1200) {
+    const ctx = roletaAudio(); if (!ctx) return;
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'square';
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(0.06, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.04);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(); o.stop(ctx.currentTime + 0.05);
+}
+
+function roletaWin() {
+    const ctx = roletaAudio(); if (!ctx) return;
+    const notas = [523.25, 659.25, 783.99, 1046.50]; // C5 E5 G5 C6
+    notas.forEach((f, i) => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = 'triangle';
+        o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, ctx.currentTime + i * 0.12);
+        g.gain.linearRampToValueAtTime(0.15, ctx.currentTime + i * 0.12 + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + i * 0.12 + 0.4);
+        o.connect(g); g.connect(ctx.destination);
+        o.start(ctx.currentTime + i * 0.12);
+        o.stop(ctx.currentTime + i * 0.12 + 0.45);
+    });
+}
+
+function roletaConsolacao() {
+    const ctx = roletaAudio(); if (!ctx) return;
+    [880, 740].forEach((f, i) => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = 'sine';
+        o.frequency.value = f;
+        g.gain.setValueAtTime(0.001, ctx.currentTime + i * 0.16);
+        g.gain.linearRampToValueAtTime(0.1, ctx.currentTime + i * 0.16 + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + i * 0.16 + 0.4);
+        o.connect(g); g.connect(ctx.destination);
+        o.start(ctx.currentTime + i * 0.16);
+        o.stop(ctx.currentTime + i * 0.16 + 0.45);
+    });
+}
+
+function roletaVibrar(padrao) {
+    if ('vibrate' in navigator) {
+        try { navigator.vibrate(padrao); } catch (e) {}
+    }
+}
+
+function roletaDesenhar(canvas, premios, anguloRad) {
+    const ctx = canvas.getContext('2d');
+    const size = canvas.width;
+    const cx = size / 2, cy = size / 2;
+    const raio = size / 2 - 6;
+    const n = premios.length;
+    const setor = (Math.PI * 2) / n;
+
+    ctx.clearRect(0, 0, size, size);
+
+    for (let i = 0; i < n; i++) {
+        const a0 = anguloRad + i * setor - Math.PI / 2;
+        const a1 = a0 + setor;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, raio, a0, a1);
+        ctx.closePath();
+        ctx.fillStyle = premios[i].cor;
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+        ctx.stroke();
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(a0 + setor / 2);
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 13px sans-serif';
+        ctx.shadowColor = 'rgba(0,0,0,0.3)';
+        ctx.shadowBlur = 3;
+        const txt = premios[i].label.length > 14 ? premios[i].label.slice(0, 13) + '…' : premios[i].label;
+        ctx.fillText(txt, raio - 12, 5);
+        ctx.restore();
+    }
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, 22, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+    ctx.stroke();
+}
+
+function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+
+async function roletaAnimar(canvas, premios, indicePremio, duracaoMs) {
+    const n = premios.length;
+    const setor = (Math.PI * 2) / n;
+    const voltas = 5 + Math.random() * 2;
+    const anguloFinal = voltas * Math.PI * 2 + (Math.PI * 2 - (indicePremio * setor + setor / 2));
+
+    let inicio = null;
+    let ultimoSetor = -1;
+    return new Promise((resolve) => {
+        function tick(ts) {
+            if (!inicio) inicio = ts;
+            const t = Math.min(1, (ts - inicio) / duracaoMs);
+            const e = easeOutCubic(t);
+            const ang = anguloFinal * e;
+            roletaDesenhar(canvas, premios, ang);
+
+            const setorAtual = Math.floor((ang % (Math.PI * 2)) / setor);
+            if (setorAtual !== ultimoSetor) {
+                ultimoSetor = setorAtual;
+                roletaTic(900 + (1 - t) * 600);
+                if (t > 0.6) roletaVibrar(8);
+            }
+
+            if (t < 1) requestAnimationFrame(tick);
+            else resolve();
+        }
+        requestAnimationFrame(tick);
+    });
+}
+
+function roletaConfete() {
+    if (typeof confetti !== 'function') return;
+    const dur = 2500, fim = Date.now() + dur;
+    (function frame() {
+        confetti({ particleCount: 4, angle: 60, spread: 65, origin: { x: 0 }, colors: ['#f59e0b','#ef4444','#a855f7','#22c55e','#3b82f6'] });
+        confetti({ particleCount: 4, angle: 120, spread: 65, origin: { x: 1 }, colors: ['#f59e0b','#ef4444','#a855f7','#22c55e','#3b82f6'] });
+        if (Date.now() < fim) requestAnimationFrame(frame);
+    })();
+}
+
+function roletaModalResultado(resultado, premio) {
+    const ehGanho = resultado.tipo_resultado !== 'consolacao';
+    const cor = ehGanho ? 'linear-gradient(135deg,#f59e0b,#ef4444 60%,#a855f7)' : 'linear-gradient(135deg,#6366f1,#8b5cf6)';
+    const icone = ehGanho ? '🎉' : '💛';
+    const titulo = ehGanho
+        ? (resultado.tipo_resultado === 'nova_chance' ? 'Nova chance!' : 'Você ganhou!')
+        : 'Quase lá!';
+
+    const wrap = document.createElement('div');
+    wrap.className = 'modal-overlay fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm';
+    wrap.innerHTML = `
+        <div class="modal-sheet bg-white w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden">
+            <div class="p-8 text-center text-white" style="background:${cor}">
+                <div class="text-6xl mb-3 animate-bounce">${icone}</div>
+                <h2 class="text-2xl font-bold">${titulo}</h2>
+                <p class="text-white/95 mt-2 text-sm">${resultado.mensagem}</p>
+            </div>
+            <div class="p-5 flex flex-col gap-2" style="padding-bottom: max(1.25rem, env(safe-area-inset-bottom));">
+                ${resultado.resgate_id ? `
+                    <button data-acao="resgates" class="w-full py-3 rounded-xl text-white font-semibold text-sm shadow"
+                            style="background:var(--cor-primaria,#6366f1)">
+                        Ver meu prêmio <i class="ri-arrow-right-line"></i>
+                    </button>` : ''}
+                <button data-acao="fechar" class="w-full py-3 rounded-xl bg-slate-100 text-slate-700 font-semibold text-sm">
+                    ${resultado.tipo_resultado === 'nova_chance' ? 'Girar de novo' : 'Continuar'}
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(wrap);
+    return new Promise((resolve) => {
+        wrap.addEventListener('click', (ev) => {
+            const acao = ev.target.closest('[data-acao]')?.dataset.acao;
+            if (!acao && ev.target !== wrap) return;
+            wrap.remove();
+            resolve(acao || 'fechar');
+        });
+    });
+}
+
+async function telaRoleta() {
+    const status = await api('/cliente/roleta/status');
+    const e = STATE.empresa;
+    const cor = e.cor_primaria, corSec = e.cor_secundaria;
+
+    if (!status.ativa) {
+        screenContainer.innerHTML = `
+        <div class="fade-in flex-1 flex flex-col items-center justify-center bg-slate-50 p-8 text-center">
+            <div class="text-6xl mb-3">🎰</div>
+            <h2 class="text-xl font-bold text-slate-700">Roleta indisponível</h2>
+            <p class="text-sm text-slate-500 mt-1">Esta loja ainda não ativou a roleta.</p>
+            <button onclick="showScreen('home')" class="mt-6 px-6 py-2 rounded-xl bg-slate-200 text-slate-700 text-sm font-semibold">Voltar</button>
+        </div>`;
+        return;
+    }
+
+    const premios = status.premios || [];
+    const semGiros = !status.pode_girar;
+
+    screenContainer.innerHTML = `
+    <div class="fade-in flex-1 flex flex-col bg-slate-50 overflow-y-auto">
+        <div class="px-5 pt-6 pb-12 text-white" style="background:linear-gradient(135deg,${cor},${corSec})">
+            <div class="flex items-center justify-between">
+                <button onclick="showScreen('home')" class="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
+                    <i class="ri-arrow-left-line text-xl"></i>
+                </button>
+                <h1 class="text-lg font-bold">${status.nome}</h1>
+                <div class="w-10"></div>
+            </div>
+            <div class="mt-4 bg-white/15 backdrop-blur rounded-2xl border border-white/20 p-3 flex items-center justify-around">
+                <div class="text-center">
+                    <p class="text-[10px] text-white/70 uppercase">Giros disponíveis</p>
+                    <p class="text-2xl font-bold">${status.giros_disponiveis}</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-[10px] text-white/70 uppercase">Hoje</p>
+                    <p class="text-2xl font-bold">${status.giros_usados_hoje}/${status.limite_giros_dia}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="-mt-8 mx-auto relative">
+            <div class="relative" style="width:320px;height:320px;">
+                <canvas id="roleta-canvas" width="320" height="320" class="rounded-full shadow-2xl bg-white"></canvas>
+                <div class="absolute left-1/2 -translate-x-1/2 -top-2 w-0 h-0" style="border-left:14px solid transparent;border-right:14px solid transparent;border-top:24px solid #1e293b;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3))"></div>
+            </div>
+        </div>
+
+        <div class="p-5 mt-4">
+            <button id="btn-girar" ${semGiros ? 'disabled' : ''}
+                    class="w-full py-4 rounded-2xl text-white font-bold text-lg shadow-lg transition active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                    style="background:linear-gradient(135deg,#f59e0b,#ef4444 50%,#a855f7);">
+                ${semGiros ? (status.giros_disponiveis === 0 ? 'Sem giros disponíveis' : 'Limite diário atingido') : '🎰 GIRAR AGORA'}
+            </button>
+            ${semGiros && status.giros_disponiveis === 0 ? `
+                <p class="text-xs text-slate-500 text-center mt-3">
+                    Faça compras pra ganhar mais giros!
+                </p>` : ''}
+            <div class="mt-5">
+                <p class="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-2">Prêmios possíveis</p>
+                <div class="space-y-1">
+                    ${premios.map(p => `
+                        <div class="flex items-center gap-2 text-sm">
+                            <span class="inline-block w-3 h-3 rounded-full" style="background:${p.cor}"></span>
+                            <span class="text-slate-700">${p.label}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            <p class="text-[11px] text-slate-400 text-center mt-6 px-4">
+                Você nunca perde! Mesmo sem ganhar o prêmio principal, sempre tem uma surpresa.
+            </p>
+        </div>
+    </div>`;
+
+    const canvas = document.getElementById('roleta-canvas');
+    roletaDesenhar(canvas, premios, 0);
+
+    const btn = document.getElementById('btn-girar');
+    if (btn && !btn.disabled) {
+        btn.onclick = async () => {
+            if (ROLETA.girando) return;
+            ROLETA.girando = true;
+            btn.disabled = true;
+            btn.classList.add('opacity-50');
+            try {
+                roletaTic(1500); roletaVibrar(20);
+                const resp = await api('/cliente/roleta/girar', { method: 'POST' });
+                const idx = resp.premio
+                    ? premios.findIndex(p => p.id === resp.premio.id)
+                    : -1;
+                const idxAnimar = idx >= 0 ? idx : 0;
+                const dur = status.tempo_min_ms + Math.random() * (status.tempo_max_ms - status.tempo_min_ms);
+                await roletaAnimar(canvas, premios, idxAnimar, dur);
+
+                if (resp.resultado.tipo_resultado === 'recompensa' || resp.resultado.tipo_resultado === 'pontos') {
+                    roletaWin(); roletaVibrar([60, 40, 60, 40, 120]); roletaConfete();
+                } else if (resp.resultado.tipo_resultado === 'nova_chance') {
+                    roletaWin(); roletaVibrar([40, 30, 40]);
+                } else {
+                    roletaConsolacao(); roletaVibrar(40);
+                }
+
+                const acao = await roletaModalResultado(resp.resultado, resp.premio);
+                if (acao === 'resgates') return showScreen('resgates');
+                showScreen('roleta');
+            } catch (e) {
+                toast(e.message || 'Erro ao girar', 'error');
+                ROLETA.girando = false;
+                btn.disabled = false;
+                btn.classList.remove('opacity-50');
+            } finally {
+                ROLETA.girando = false;
+            }
+        };
+    }
 }
 
 // ============ PWA INSTALL ============

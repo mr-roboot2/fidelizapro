@@ -1,0 +1,248 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Cliente;
+use App\Models\Resgate;
+use App\Models\Roleta;
+use App\Models\RoletaCredito;
+use App\Models\RoletaGiro;
+use App\Models\RoletaPremio;
+use Illuminate\Support\Facades\DB;
+
+class RoletaService
+{
+    public function __construct(private PontuacaoService $pontuacao) {}
+
+    public function statusParaCliente(Cliente $cliente): array
+    {
+        $roleta = Roleta::where('empresa_id', $cliente->empresa_id)
+            ->where('ativa', true)
+            ->with(['premios' => fn ($q) => $q->where('ativo', true)])
+            ->first();
+
+        if (!$roleta) {
+            return ['ativa' => false];
+        }
+
+        $credito = $this->creditoDoCliente($roleta, $cliente);
+        $girosHoje = RoletaGiro::where('roleta_id', $roleta->id)
+            ->where('cliente_id', $cliente->id)
+            ->whereDate('executado_em', now()->toDateString())
+            ->count();
+
+        return [
+            'ativa'             => true,
+            'roleta_id'         => $roleta->id,
+            'nome'              => $roleta->nome,
+            'tempo_min_ms'      => $roleta->tempo_min_ms,
+            'tempo_max_ms'      => $roleta->tempo_max_ms,
+            'giros_disponiveis' => $credito?->valido() ? $credito->giros_disponiveis : 0,
+            'giros_usados_hoje' => $girosHoje,
+            'limite_giros_dia'  => $roleta->limite_giros_dia,
+            'pode_girar'        => $this->podeGirar($roleta, $cliente, $credito, $girosHoje),
+            'premios'           => $roleta->premios->map(fn (RoletaPremio $p) => [
+                'id'    => $p->id,
+                'ordem' => $p->ordem,
+                'label' => $p->label,
+                'cor'   => $p->cor,
+                'tipo'  => $p->tipo,
+            ])->values(),
+        ];
+    }
+
+    public function girar(Cliente $cliente, ?string $ip = null): array
+    {
+        return DB::transaction(function () use ($cliente, $ip) {
+            $roleta = Roleta::where('empresa_id', $cliente->empresa_id)
+                ->where('ativa', true)
+                ->with(['premios' => fn ($q) => $q->where('ativo', true)])
+                ->lockForUpdate()
+                ->first();
+
+            if (!$roleta) {
+                throw new \DomainException('Roleta indisponível.');
+            }
+
+            $credito = $this->creditoDoCliente($roleta, $cliente, lock: true);
+            $girosHoje = RoletaGiro::where('roleta_id', $roleta->id)
+                ->where('cliente_id', $cliente->id)
+                ->whereDate('executado_em', now()->toDateString())
+                ->where('tipo_resultado', '!=', 'nova_chance')
+                ->count();
+
+            if (!$this->podeGirar($roleta, $cliente, $credito, $girosHoje)) {
+                throw new \DomainException('Você não tem giros disponíveis agora.');
+            }
+
+            $premio = $this->sortear($roleta->premios->all());
+            $resultado = $this->aplicar($roleta, $cliente, $premio, $ip);
+
+            $credito->decrement('giros_disponiveis');
+
+            if ($resultado['tipo_resultado'] === 'nova_chance') {
+                $credito->increment('giros_disponiveis');
+            }
+
+            return [
+                'roleta_id'  => $roleta->id,
+                'premio'     => $premio ? [
+                    'id'    => $premio->id,
+                    'ordem' => $premio->ordem,
+                    'label' => $premio->label,
+                    'cor'   => $premio->cor,
+                    'tipo'  => $premio->tipo,
+                ] : null,
+                'resultado'  => $resultado,
+            ];
+        });
+    }
+
+    public function creditar(Roleta $roleta, Cliente $cliente, int $giros, string $origem = 'manual', ?\DateTimeInterface $expiraEm = null): RoletaCredito
+    {
+        return DB::transaction(function () use ($roleta, $cliente, $giros, $origem, $expiraEm) {
+            $credito = RoletaCredito::firstOrNew([
+                'roleta_id'  => $roleta->id,
+                'cliente_id' => $cliente->id,
+            ]);
+            $credito->giros_disponiveis = ($credito->giros_disponiveis ?? 0) + $giros;
+            $credito->origem = $origem;
+            if ($expiraEm) $credito->expira_em = $expiraEm;
+            $credito->save();
+            return $credito;
+        });
+    }
+
+    private function creditoDoCliente(Roleta $roleta, Cliente $cliente, bool $lock = false): ?RoletaCredito
+    {
+        $q = RoletaCredito::where('roleta_id', $roleta->id)
+            ->where('cliente_id', $cliente->id);
+        if ($lock) $q->lockForUpdate();
+        return $q->first();
+    }
+
+    private function podeGirar(Roleta $roleta, Cliente $cliente, ?RoletaCredito $credito, int $girosHoje): bool
+    {
+        if (!$credito || !$credito->valido()) return false;
+        if ($girosHoje >= $roleta->limite_giros_dia) return false;
+        return true;
+    }
+
+    /**
+     * Sorteio ponderado pelo campo `peso`. Retorna null se não houver nenhum
+     * prêmio configurado — nesse caso o resultado vira 'consolacao'.
+     */
+    private function sortear(array $premios): ?RoletaPremio
+    {
+        $premios = array_values(array_filter($premios, fn (RoletaPremio $p) => $p->peso > 0));
+        if (empty($premios)) return null;
+
+        $total = array_sum(array_map(fn (RoletaPremio $p) => $p->peso, $premios));
+        $sorteio = random_int(1, $total);
+        $acumulado = 0;
+        foreach ($premios as $p) {
+            $acumulado += $p->peso;
+            if ($sorteio <= $acumulado) return $p;
+        }
+        return $premios[array_key_last($premios)];
+    }
+
+    private function aplicar(Roleta $roleta, Cliente $cliente, ?RoletaPremio $premio, ?string $ip): array
+    {
+        if (!$premio || $premio->tipo === 'nada') {
+            return $this->aplicarConsolacao($roleta, $cliente, $premio, $ip);
+        }
+
+        $giro = new RoletaGiro([
+            'roleta_id'        => $roleta->id,
+            'cliente_id'       => $cliente->id,
+            'roleta_premio_id' => $premio->id,
+            'tipo_resultado'   => $premio->tipo,
+            'ip'               => $ip,
+            'executado_em'     => now(),
+        ]);
+
+        if ($premio->tipo === 'pontos') {
+            $pontos = (int) ($premio->pontos ?? 0);
+            if ($pontos > 0) {
+                $this->pontuacao->creditar(
+                    $cliente,
+                    $pontos,
+                    'roleta',
+                    $giro,
+                    "Pontos da roleta: {$premio->label}"
+                );
+            }
+            $giro->pontos_concedidos = $pontos;
+        }
+
+        if ($premio->tipo === 'recompensa' && $premio->recompensa_id) {
+            $resgate = Resgate::create([
+                'empresa_id'    => $cliente->empresa_id,
+                'cliente_id'    => $cliente->id,
+                'recompensa_id' => $premio->recompensa_id,
+                'pontos_usados' => 0,
+                'status'        => 'aprovado',
+                'observacao'    => "Prêmio da roleta: {$premio->label}",
+                'aprovado_em'   => now(),
+            ]);
+            $giro->recompensa_id = $premio->recompensa_id;
+            $giro->resgate_id    = $resgate->id;
+        }
+
+        $giro->save();
+
+        return [
+            'tipo_resultado'    => $premio->tipo,
+            'pontos_concedidos' => $giro->pontos_concedidos,
+            'recompensa_id'     => $giro->recompensa_id,
+            'resgate_id'        => $giro->resgate_id,
+            'mensagem'          => $this->mensagem($roleta, $premio, $giro),
+        ];
+    }
+
+    private function aplicarConsolacao(Roleta $roleta, Cliente $cliente, ?RoletaPremio $premio, ?string $ip): array
+    {
+        $pontos = (int) $roleta->pontos_consolacao;
+
+        $giro = new RoletaGiro([
+            'roleta_id'        => $roleta->id,
+            'cliente_id'       => $cliente->id,
+            'roleta_premio_id' => $premio?->id,
+            'tipo_resultado'   => 'consolacao',
+            'pontos_concedidos'=> $pontos,
+            'ip'               => $ip,
+            'executado_em'     => now(),
+        ]);
+
+        if ($pontos > 0) {
+            $this->pontuacao->creditar(
+                $cliente,
+                $pontos,
+                'roleta',
+                $giro,
+                'Consolação da roleta'
+            );
+        }
+
+        $giro->save();
+
+        return [
+            'tipo_resultado'    => 'consolacao',
+            'pontos_concedidos' => $pontos,
+            'recompensa_id'     => null,
+            'resgate_id'        => null,
+            'mensagem'          => str_replace('{pontos}', (string) $pontos, $roleta->mensagem_consolacao),
+        ];
+    }
+
+    private function mensagem(Roleta $roleta, RoletaPremio $premio, RoletaGiro $giro): string
+    {
+        return match ($premio->tipo) {
+            'pontos'      => "Você ganhou {$giro->pontos_concedidos} pontos! 🎉",
+            'recompensa'  => "Você ganhou: {$premio->label}! 🎁",
+            'nova_chance' => 'Boa! Você ganhou um giro extra! 🎰',
+            default       => str_replace('{pontos}', (string) ($giro->pontos_concedidos ?? 0), $roleta->mensagem_consolacao),
+        };
+    }
+}

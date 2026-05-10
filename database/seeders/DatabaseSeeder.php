@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             AutomacaoSeeder::class,
             ParceiroSeeder::class,
             PlanoSeeder::class,
+            RoletaSeeder::class,
         ]);
     }
 }

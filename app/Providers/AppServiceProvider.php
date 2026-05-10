@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Models\Cliente;
 use App\Models\ConfiguracaoSistema;
+use App\Observers\ClienteObserver;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
@@ -19,6 +21,8 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Cliente::observe(ClienteObserver::class);
+
         Paginator::useTailwind();
         if (config('app.env') === 'production') {
             URL::forceScheme('https');

@@ -22,6 +22,7 @@ use App\Http\Controllers\Admin\MeuPlanoController;
 use App\Http\Controllers\SuperAdmin\PlanoController as SuperPlanoController;
 use App\Http\Controllers\Admin\ParceiroController;
 use App\Http\Controllers\Admin\BeneficioController;
+use App\Http\Controllers\Admin\RoletaController;
 use App\Http\Controllers\ParceiroPublicoController;
 use App\Http\Controllers\PwaController;
 use App\Http\Controllers\SuperAdmin\DashboardController as SuperDashboardController;
@@ -130,6 +131,13 @@ Route::middleware(['admin.auth', 'empresa.scope'])->prefix('admin')->name('admin
     Route::get('beneficios/{beneficio}/editar', [BeneficioController::class, 'edit'])->name('beneficios.edit');
     Route::put('beneficios/{beneficio}', [BeneficioController::class, 'update'])->name('beneficios.update');
     Route::delete('beneficios/{beneficio}', [BeneficioController::class, 'destroy'])->name('beneficios.destroy');
+
+    Route::get('roleta', [RoletaController::class, 'index'])->name('roleta.index');
+    Route::put('roleta/{roleta}', [RoletaController::class, 'update'])->name('roleta.update');
+    Route::post('roleta/{roleta}/premios', [RoletaController::class, 'premioStore'])->name('roleta.premios.store');
+    Route::put('roleta/{roleta}/premios/{premio}', [RoletaController::class, 'premioUpdate'])->name('roleta.premios.update');
+    Route::delete('roleta/{roleta}/premios/{premio}', [RoletaController::class, 'premioDestroy'])->name('roleta.premios.destroy');
+    Route::post('roleta/{roleta}/creditar', [RoletaController::class, 'creditar'])->name('roleta.creditar');
 });
 
 // Tela pública de validação de cupom (parceiro acessa por URL com secret)

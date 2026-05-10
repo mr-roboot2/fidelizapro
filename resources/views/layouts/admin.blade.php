@@ -37,6 +37,7 @@
                 ['admin.compras.index', 'ri-shopping-cart-line', 'Compras'],
                 ['admin.regras.index', 'ri-stack-line', 'Regras de pontuação'],
                 ['admin.recompensas.index', 'ri-gift-line', 'Recompensas'],
+                ['admin.roleta.index', 'ri-bubble-chart-line', 'Roleta da sorte'],
                 ['admin.resgates.index', 'ri-coupon-line', 'Resgates'],
                 ['admin.transacoes.index', 'ri-exchange-line', 'Transações'],
                 ['admin.cashback.index', 'ri-money-dollar-circle-line', 'Cashback'],
