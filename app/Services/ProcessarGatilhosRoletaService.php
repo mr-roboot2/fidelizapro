@@ -1,0 +1,151 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Cliente;
+use App\Models\Compra;
+use App\Models\Indicacao;
+use App\Models\Roleta;
+use App\Models\RoletaGatilho;
+use App\Models\RoletaGatilhoDisparo;
+
+class ProcessarGatilhosRoletaService
+{
+    public function __construct(private RoletaService $roleta) {}
+
+    /**
+     * Processa todos gatilhos ativos da roleta e retorna resumo por tipo:
+     * ['aniversario' => 3, 'compra_acima' => 1, ...].
+     */
+    public function processar(Roleta $roleta): array
+    {
+        $resumo = [];
+        foreach ($roleta->gatilhos()->where('ativo', true)->get() as $g) {
+            $resumo[$g->tipo] = match ($g->tipo) {
+                'aniversario'    => $this->aniversario($roleta, $g),
+                'indicacao'      => $this->indicacao($roleta, $g),
+                'compra_acima'   => $this->compraAcima($roleta, $g),
+                'inativo_dias'   => $this->inativoDias($roleta, $g),
+                'atingiu_pontos' => $this->atingiuPontos($roleta, $g),
+                default          => 0,
+            };
+        }
+        return $resumo;
+    }
+
+    /**
+     * Crédito + log de disparo idempotente. Retorna true se foi a primeira vez.
+     */
+    public function disparar(Roleta $roleta, Cliente $cliente, string $tipo, string $referencia, int $giros): bool
+    {
+        $disparo = RoletaGatilhoDisparo::firstOrCreate(
+            [
+                'roleta_id'  => $roleta->id,
+                'cliente_id' => $cliente->id,
+                'referencia' => $referencia,
+            ],
+            [
+                'tipo'             => $tipo,
+                'giros_creditados' => $giros,
+            ]
+        );
+
+        if (!$disparo->wasRecentlyCreated) {
+            return false;
+        }
+
+        $this->roleta->creditar($roleta, $cliente, $giros, 'manual');
+        return true;
+    }
+
+    private function aniversario(Roleta $roleta, RoletaGatilho $g): int
+    {
+        $hoje = now();
+        $clientes = Cliente::where('empresa_id', $roleta->empresa_id)
+            ->where('ativo', true)
+            ->whereNotNull('data_nascimento')
+            ->whereRaw('DATE_FORMAT(data_nascimento, "%m-%d") = ?', [$hoje->format('m-d')])
+            ->get();
+
+        $ref = 'aniversario:'.$hoje->format('Y-m-d');
+        $n = 0;
+        foreach ($clientes as $c) {
+            if ($this->disparar($roleta, $c, 'aniversario', $ref, $g->giros)) $n++;
+        }
+        return $n;
+    }
+
+    private function indicacao(Roleta $roleta, RoletaGatilho $g): int
+    {
+        $indicacoes = Indicacao::where('empresa_id', $roleta->empresa_id)
+            ->whereIn('status', ['cadastrado', 'convertido'])
+            ->whereNotNull('cliente_indicador_id')
+            ->get();
+
+        $n = 0;
+        foreach ($indicacoes as $ind) {
+            $cliente = Cliente::find($ind->cliente_indicador_id);
+            if (!$cliente) continue;
+            $ref = 'indicacao:'.$ind->id;
+            if ($this->disparar($roleta, $cliente, 'indicacao', $ref, $g->giros)) $n++;
+        }
+        return $n;
+    }
+
+    private function compraAcima(Roleta $roleta, RoletaGatilho $g): int
+    {
+        $valorMin = (float) ($g->valor ?? 0);
+        if ($valorMin <= 0) return 0;
+
+        $compras = Compra::where('empresa_id', $roleta->empresa_id)
+            ->where('valor', '>=', $valorMin)
+            ->whereDate('created_at', now()->toDateString())
+            ->get();
+
+        $n = 0;
+        foreach ($compras as $compra) {
+            $cliente = Cliente::find($compra->cliente_id);
+            if (!$cliente) continue;
+            $ref = 'compra_acima:'.((int) $valorMin).':'.$compra->id;
+            if ($this->disparar($roleta, $cliente, 'compra_acima', $ref, $g->giros)) $n++;
+        }
+        return $n;
+    }
+
+    private function inativoDias(Roleta $roleta, RoletaGatilho $g): int
+    {
+        $dias = (int) ($g->valor ?? 0);
+        if ($dias <= 0) return 0;
+
+        $clientes = Cliente::where('empresa_id', $roleta->empresa_id)
+            ->where('ativo', true)
+            ->whereNotNull('ultima_compra')
+            ->whereDate('ultima_compra', now()->subDays($dias)->toDateString())
+            ->get();
+
+        $n = 0;
+        foreach ($clientes as $c) {
+            $ref = 'inativo_dias:'.$dias.':'.optional($c->ultima_compra)->format('Y-m-d');
+            if ($this->disparar($roleta, $c, 'inativo_dias', $ref, $g->giros)) $n++;
+        }
+        return $n;
+    }
+
+    private function atingiuPontos(Roleta $roleta, RoletaGatilho $g): int
+    {
+        $minimo = (int) ($g->valor ?? 0);
+        if ($minimo <= 0) return 0;
+
+        $clientes = Cliente::where('empresa_id', $roleta->empresa_id)
+            ->where('ativo', true)
+            ->where('pontos_atual', '>=', $minimo)
+            ->get();
+
+        $n = 0;
+        foreach ($clientes as $c) {
+            $ref = 'atingiu_pontos:'.$minimo;
+            if ($this->disparar($roleta, $c, 'atingiu_pontos', $ref, $g->giros)) $n++;
+        }
+        return $n;
+    }
+}

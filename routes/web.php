@@ -138,6 +138,7 @@ Route::middleware(['admin.auth', 'empresa.scope'])->prefix('admin')->name('admin
     Route::put('roleta/{roleta}/premios/{premio}', [RoletaController::class, 'premioUpdate'])->name('roleta.premios.update');
     Route::delete('roleta/{roleta}/premios/{premio}', [RoletaController::class, 'premioDestroy'])->name('roleta.premios.destroy');
     Route::post('roleta/{roleta}/creditar', [RoletaController::class, 'creditar'])->name('roleta.creditar');
+    Route::post('roleta/{roleta}/gatilhos', [RoletaController::class, 'gatilhoSalvar'])->name('roleta.gatilhos.salvar');
 });
 
 // Tela pública de validação de cupom (parceiro acessa por URL com secret)

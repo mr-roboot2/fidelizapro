@@ -702,7 +702,22 @@ async function telaHome() {
                 <span class="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/20 animate-pulse"></span>
                 <span class="absolute right-3 top-3 bg-white text-rose-600 text-[10px] font-bold rounded-full px-2 py-0.5 shadow">${roleta.giros_disponiveis} ${roleta.giros_disponiveis === 1 ? 'giro' : 'giros'}</span>
                 <div class="flex items-center gap-3 relative">
-                    <div class="w-12 h-12 rounded-xl bg-white/25 backdrop-blur flex items-center justify-center text-3xl">🎰</div>
+                    <div class="w-12 h-12 rounded-xl bg-white/25 backdrop-blur flex items-center justify-center text-white drop-shadow">
+                        <svg viewBox="0 0 24 24" class="w-8 h-8">
+                            <path d="M12 0 L10 3.5 L14 3.5 Z" fill="currentColor"/>
+                            <g transform="translate(12, 13)">
+                                <path d="M0,0 L0,-9 A9,9 0 0,1 6.36,-6.36 Z" fill="currentColor"/>
+                                <path d="M0,0 L6.36,-6.36 A9,9 0 0,1 9,0 Z" fill="currentColor" opacity="0.4"/>
+                                <path d="M0,0 L9,0 A9,9 0 0,1 6.36,6.36 Z" fill="currentColor"/>
+                                <path d="M0,0 L6.36,6.36 A9,9 0 0,1 0,9 Z" fill="currentColor" opacity="0.4"/>
+                                <path d="M0,0 L0,9 A9,9 0 0,1 -6.36,6.36 Z" fill="currentColor"/>
+                                <path d="M0,0 L-6.36,6.36 A9,9 0 0,1 -9,0 Z" fill="currentColor" opacity="0.4"/>
+                                <path d="M0,0 L-9,0 A9,9 0 0,1 -6.36,-6.36 Z" fill="currentColor"/>
+                                <path d="M0,0 L-6.36,-6.36 A9,9 0 0,1 0,-9 Z" fill="currentColor" opacity="0.4"/>
+                                <circle r="1.5" fill="white"/>
+                            </g>
+                        </svg>
+                    </div>
                     <div>
                         <p class="font-bold text-lg leading-tight">Você tem giros na roleta!</p>
                         <p class="text-xs text-white/90">Toque pra girar e ganhar prêmios</p>
@@ -713,7 +728,22 @@ async function telaHome() {
         <div class="px-4 -mt-3">
             <button onclick="showScreen('roleta')" class="w-full text-left rounded-2xl p-3 bg-white border border-slate-200 transition active:scale-[0.99]">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style="background:${cor}15;color:${cor}">🎰</div>
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:${cor}15;color:${cor}">
+                        <svg viewBox="0 0 24 24" class="w-6 h-6">
+                            <path d="M12 0 L10 3.5 L14 3.5 Z" fill="currentColor"/>
+                            <g transform="translate(12, 13)">
+                                <path d="M0,0 L0,-9 A9,9 0 0,1 6.36,-6.36 Z" fill="currentColor"/>
+                                <path d="M0,0 L6.36,-6.36 A9,9 0 0,1 9,0 Z" fill="currentColor" opacity="0.45"/>
+                                <path d="M0,0 L9,0 A9,9 0 0,1 6.36,6.36 Z" fill="currentColor"/>
+                                <path d="M0,0 L6.36,6.36 A9,9 0 0,1 0,9 Z" fill="currentColor" opacity="0.45"/>
+                                <path d="M0,0 L0,9 A9,9 0 0,1 -6.36,6.36 Z" fill="currentColor"/>
+                                <path d="M0,0 L-6.36,6.36 A9,9 0 0,1 -9,0 Z" fill="currentColor" opacity="0.45"/>
+                                <path d="M0,0 L-9,0 A9,9 0 0,1 -6.36,-6.36 Z" fill="currentColor"/>
+                                <path d="M0,0 L-6.36,-6.36 A9,9 0 0,1 0,-9 Z" fill="currentColor" opacity="0.45"/>
+                                <circle r="1.3" fill="white"/>
+                            </g>
+                        </svg>
+                    </div>
                     <div class="flex-1 min-w-0">
                         <p class="font-semibold text-slate-700">${roleta.nome || 'Roleta da sorte'}</p>
                         <p class="text-xs text-slate-400">Compre e ganhe giros</p>
@@ -2082,7 +2112,10 @@ function roletaDesenhar(canvas, premios, anguloRad) {
     ctx.stroke();
 }
 
-function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+// Desaceleração suave sem overshoot — a roleta vai diminuindo até parar
+// exatamente no prêmio escolhido. Quartic é mais "pesado" no final que cubic,
+// dá uma sensação de freio mais natural sem o efeito mola.
+function easeOutQuart(t) { return 1 - Math.pow(1 - t, 4); }
 
 async function roletaAnimar(canvas, premios, indicePremio, duracaoMs) {
     const n = premios.length;
@@ -2096,7 +2129,7 @@ async function roletaAnimar(canvas, premios, indicePremio, duracaoMs) {
         function tick(ts) {
             if (!inicio) inicio = ts;
             const t = Math.min(1, (ts - inicio) / duracaoMs);
-            const e = easeOutCubic(t);
+            const e = easeOutQuart(t);
             const ang = anguloFinal * e;
             roletaDesenhar(canvas, premios, ang);
 
@@ -2214,9 +2247,24 @@ async function telaRoleta() {
 
         <div class="p-5 mt-4">
             <button id="btn-girar" ${semGiros ? 'disabled' : ''}
-                    class="w-full py-4 rounded-2xl text-white font-bold text-lg shadow-lg transition active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="w-full py-4 rounded-2xl text-white font-bold text-lg shadow-lg transition active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     style="background:linear-gradient(135deg,#f59e0b,#ef4444 50%,#a855f7);">
-                ${semGiros ? (status.giros_disponiveis === 0 ? 'Sem giros disponíveis' : 'Limite diário atingido') : '🎰 GIRAR AGORA'}
+                ${semGiros ? `<span>${status.giros_disponiveis === 0 ? 'Sem giros disponíveis' : 'Limite diário atingido'}</span>` : `
+                    <svg viewBox="0 0 24 24" class="w-6 h-6 text-white">
+                        <path d="M12 0 L10 3.5 L14 3.5 Z" fill="currentColor"/>
+                        <g transform="translate(12, 13)">
+                            <path d="M0,0 L0,-9 A9,9 0 0,1 6.36,-6.36 Z" fill="currentColor"/>
+                            <path d="M0,0 L6.36,-6.36 A9,9 0 0,1 9,0 Z" fill="currentColor" opacity="0.45"/>
+                            <path d="M0,0 L9,0 A9,9 0 0,1 6.36,6.36 Z" fill="currentColor"/>
+                            <path d="M0,0 L6.36,6.36 A9,9 0 0,1 0,9 Z" fill="currentColor" opacity="0.45"/>
+                            <path d="M0,0 L0,9 A9,9 0 0,1 -6.36,6.36 Z" fill="currentColor"/>
+                            <path d="M0,0 L-6.36,6.36 A9,9 0 0,1 -9,0 Z" fill="currentColor" opacity="0.45"/>
+                            <path d="M0,0 L-9,0 A9,9 0 0,1 -6.36,-6.36 Z" fill="currentColor"/>
+                            <path d="M0,0 L-6.36,-6.36 A9,9 0 0,1 0,-9 Z" fill="currentColor" opacity="0.45"/>
+                            <circle r="1.3" fill="white"/>
+                        </g>
+                    </svg>
+                    <span>GIRAR AGORA</span>`}
             </button>
             ${semGiros && status.giros_disponiveis === 0 ? `
                 <p class="text-xs text-slate-500 text-center mt-3">
@@ -2233,9 +2281,6 @@ async function telaRoleta() {
                     `).join('')}
                 </div>
             </div>
-            <p class="text-[11px] text-slate-400 text-center mt-6 px-4">
-                Você nunca perde! Mesmo sem ganhar o prêmio principal, sempre tem uma surpresa.
-            </p>
         </div>
     </div>`;
 

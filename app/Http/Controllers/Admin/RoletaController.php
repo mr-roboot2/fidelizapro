@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Cliente;
 use App\Models\Recompensa;
 use App\Models\Roleta;
+use App\Models\RoletaGatilho;
 use App\Models\RoletaPremio;
 use App\Services\RoletaService;
 use Illuminate\Http\Request;
@@ -19,15 +20,36 @@ class RoletaController extends Controller
     {
         $empresaId = Auth::user()->empresa_id;
         $roleta = Roleta::firstOrCreate(['empresa_id' => $empresaId]);
-        $roleta->load(['premios.recompensa']);
+        $this->garantirGatilhosPadrao($roleta);
+        $roleta->load(['premios.recompensa', 'gatilhos']);
         $recompensas = Recompensa::where('empresa_id', $empresaId)
             ->where('ativo', true)
             ->orderBy('nome')
             ->get();
         $totalGiros = $roleta->giros()->count();
         $girosHoje  = $roleta->giros()->whereDate('executado_em', now()->toDateString())->count();
+        $gatilhosPorTipo = $roleta->gatilhos->keyBy('tipo');
 
-        return view('admin.roleta.index', compact('roleta', 'recompensas', 'totalGiros', 'girosHoje'));
+        return view('admin.roleta.index', compact('roleta', 'recompensas', 'totalGiros', 'girosHoje', 'gatilhosPorTipo'));
+    }
+
+    public function gatilhoSalvar(Request $request, Roleta $roleta)
+    {
+        $this->autorizar($roleta);
+        $dados = $request->validate([
+            'tipo'  => 'required|in:'.implode(',', array_keys(RoletaGatilho::TIPOS)),
+            'valor' => 'nullable|integer|min:1|max:100000',
+            'giros' => 'required|integer|min:1|max:50',
+            'ativo' => 'nullable|boolean',
+        ]);
+        $dados['ativo'] = $request->boolean('ativo');
+
+        RoletaGatilho::updateOrCreate(
+            ['roleta_id' => $roleta->id, 'tipo' => $dados['tipo']],
+            ['valor' => $dados['valor'] ?? null, 'giros' => $dados['giros'], 'ativo' => $dados['ativo']]
+        );
+
+        return back()->with('success', 'Gatilho salvo!');
     }
 
     public function update(Request $request, Roleta $roleta)
@@ -91,14 +113,25 @@ class RoletaController extends Controller
     protected function validarPremio(Request $request, Roleta $roleta): array
     {
         return $request->validate([
-            'ordem'         => 'required|integer|min:0|max:255',
-            'label'         => 'required|string|max:60',
-            'cor'           => 'required|string|regex:/^#[0-9a-fA-F]{6}$/',
-            'tipo'          => 'required|in:'.implode(',', array_keys(RoletaPremio::TIPOS)),
-            'recompensa_id' => 'nullable|exists:recompensas,id|required_if:tipo,recompensa',
-            'pontos'        => 'nullable|integer|min:1|required_if:tipo,pontos',
-            'peso'          => 'required|integer|min:0|max:1000',
+            'ordem'              => 'required|integer|min:0|max:255',
+            'label'              => 'required|string|max:60',
+            'cor'                => 'required|string|regex:/^#[0-9a-fA-F]{6}$/',
+            'tipo'               => 'required|in:'.implode(',', array_keys(RoletaPremio::TIPOS)),
+            'recompensa_id'      => 'nullable|exists:recompensas,id|required_if:tipo,recompensa',
+            'pontos'             => 'nullable|integer|min:1|required_if:tipo,pontos',
+            'peso'               => 'required|integer|min:0|max:1000',
+            'quantidade_max_dia' => 'nullable|integer|min:1|max:1000',
         ]);
+    }
+
+    protected function garantirGatilhosPadrao(Roleta $roleta): void
+    {
+        foreach (array_keys(RoletaGatilho::TIPOS) as $tipo) {
+            RoletaGatilho::firstOrCreate(
+                ['roleta_id' => $roleta->id, 'tipo' => $tipo],
+                ['giros' => 1, 'ativo' => $tipo === 'primeiro_cadastro']
+            );
+        }
     }
 
     protected function autorizar(Roleta $roleta): void

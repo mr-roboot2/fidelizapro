@@ -3,6 +3,44 @@
 @section('content')
 <div x-data="roletaAdmin()" class="space-y-6">
 
+    <div class="bg-white rounded-xl shadow-sm p-5" x-data="buscaCliente()">
+        <h2 class="text-lg font-semibold mb-3">Creditar giro manualmente</h2>
+        <form action="{{ route('admin.roleta.creditar', $roleta) }}" method="POST" class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end" @submit="if (!selecionado) { $event.preventDefault(); alert('Selecione um cliente da lista.'); }">
+            @csrf
+            <div class="md:col-span-2 relative">
+                <label class="text-xs text-slate-600">Cliente (nome, telefone, CPF ou QR)</label>
+                <input x-show="!selecionado" type="text" x-model="termo" @input.debounce.300ms="buscar()" @focus="if (resultados.length) aberto = true"
+                       placeholder="Digite ao menos 3 caracteres…"
+                       class="w-full border rounded-lg px-3 py-2 text-sm" autocomplete="off">
+                <div x-show="selecionado" x-cloak
+                     class="w-full border rounded-lg px-3 py-2 text-sm bg-emerald-50 border-emerald-300 flex items-center gap-2">
+                    <i class="ri-check-line text-emerald-600"></i>
+                    <span class="flex-1 font-medium text-slate-700 truncate" x-text="selecionado?.nome"></span>
+                    <button type="button" @click="limpar()" class="text-xs text-rose-600 hover:underline shrink-0">trocar</button>
+                </div>
+                <input type="hidden" name="cliente_id" :value="selecionado?.id || ''">
+                <div x-show="aberto && resultados.length" @click.outside="aberto = false" x-cloak
+                     class="absolute z-20 left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg max-h-72 overflow-y-auto">
+                    <template x-for="c in resultados" :key="c.id">
+                        <button type="button" @click="escolher(c)"
+                                class="w-full text-left px-3 py-2 hover:bg-slate-50 border-b last:border-b-0 text-sm">
+                            <p class="font-medium text-slate-700" x-text="c.nome"></p>
+                            <p class="text-xs text-slate-500">
+                                <span x-text="c.telefone"></span>
+                                <span x-show="c.cpf"> · CPF <span x-text="c.cpf"></span></span>
+                                · <span x-text="Math.round(c.pontos)"></span> pts
+                            </p>
+                        </button>
+                    </template>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <input type="number" name="giros" value="1" min="1" max="50" class="w-24 border rounded-lg px-3 py-2 text-sm">
+                <button class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm" :disabled="!selecionado">Creditar</button>
+            </div>
+        </form>
+    </div>
+
     <div class="bg-white rounded-xl shadow-sm p-5">
         <form method="POST" action="{{ route('admin.roleta.update', $roleta) }}" class="space-y-4">
             @csrf @method('PUT')
@@ -62,6 +100,43 @@
     </div>
 
     <div class="bg-white rounded-xl shadow-sm p-5">
+        <h2 class="text-lg font-semibold mb-1">Gatilhos automáticos</h2>
+        <p class="text-xs text-slate-500 mb-4">Quando o sistema deve creditar giros automaticamente. Roda 1x por dia às 6h.</p>
+        <div class="space-y-2">
+            @foreach (\App\Models\RoletaGatilho::TIPOS as $tipo => $info)
+                @php $g = $gatilhosPorTipo[$tipo] ?? null; @endphp
+                <form action="{{ route('admin.roleta.gatilhos.salvar', $roleta) }}" method="POST"
+                      class="flex flex-wrap items-center gap-3 p-3 border rounded-lg {{ $g && $g->ativo ? 'bg-emerald-50/50 border-emerald-200' : 'bg-slate-50' }}">
+                    @csrf
+                    <input type="hidden" name="tipo" value="{{ $tipo }}">
+                    <div class="flex-1 min-w-[200px]">
+                        <p class="text-sm font-medium text-slate-700">{{ $info['rotulo'] }}</p>
+                    </div>
+                    @if ($info['campo'])
+                        <div>
+                            <input type="number" name="valor" value="{{ $g->valor ?? '' }}" min="1" placeholder="—"
+                                   class="w-24 border rounded-lg px-2 py-1 text-sm">
+                            <span class="text-xs text-slate-500 ml-1">{{ $info['sufixo'] }}</span>
+                        </div>
+                    @else
+                        <input type="hidden" name="valor" value="">
+                    @endif
+                    <div>
+                        <label class="text-xs text-slate-500">Giros</label>
+                        <input type="number" name="giros" value="{{ $g->giros ?? 1 }}" min="1" max="50"
+                               class="w-16 border rounded-lg px-2 py-1 text-sm">
+                    </div>
+                    <label class="inline-flex items-center gap-2 text-sm">
+                        <input type="checkbox" name="ativo" value="1" {{ $g && $g->ativo ? 'checked' : '' }}>
+                        Ativo
+                    </label>
+                    <button class="px-3 py-1 bg-indigo-600 text-white rounded-lg text-xs">Salvar</button>
+                </form>
+            @endforeach
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm p-5">
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold">Prêmios da roleta</h2>
             <button @click="abrirNovoPremio()" class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm">
@@ -85,6 +160,7 @@
                             <th>Tipo</th>
                             <th>Conteúdo</th>
                             <th>Peso</th>
+                            <th>Limite/dia</th>
                             <th>Probabilidade</th>
                             <th>Status</th>
                             <th></th>
@@ -105,6 +181,7 @@
                                     @endswitch
                                 </td>
                                 <td>{{ $p->peso }}</td>
+                                <td>{{ $p->quantidade_max_dia ?? '∞' }}</td>
                                 <td>{{ $p->ativo ? round($p->peso / $totalPeso * 100, 1).'%' : '—' }}</td>
                                 <td>
                                     @if ($p->ativo)
@@ -127,21 +204,6 @@
             </div>
             <p class="text-xs text-slate-400 mt-3">A probabilidade de cada prêmio é proporcional ao peso. Soma dos pesos ativos: {{ $totalPeso }}.</p>
         @endif
-    </div>
-
-    <div class="bg-white rounded-xl shadow-sm p-5">
-        <h2 class="text-lg font-semibold mb-3">Creditar giro manualmente</h2>
-        <form action="{{ route('admin.roleta.creditar', $roleta) }}" method="POST" class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
-            @csrf
-            <div class="md:col-span-2">
-                <label class="text-xs text-slate-600">ID do cliente</label>
-                <input type="number" name="cliente_id" min="1" required class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="ex: 42">
-            </div>
-            <div class="flex gap-2">
-                <input type="number" name="giros" value="1" min="1" max="50" class="w-24 border rounded-lg px-3 py-2 text-sm">
-                <button class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm">Creditar</button>
-            </div>
-        </form>
     </div>
 
     <div x-show="modal.aberto" x-cloak class="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4" @click.self="modal.aberto = false">
@@ -191,9 +253,15 @@
                     <input type="number" name="pontos" x-model="modal.dados.pontos" min="1" class="w-full border rounded-lg px-3 py-2 text-sm">
                 </div>
 
-                <div>
-                    <label class="text-xs text-slate-600">Peso (chance relativa) — quanto maior, mais provável</label>
-                    <input type="number" name="peso" x-model="modal.dados.peso" min="0" max="1000" class="w-full border rounded-lg px-3 py-2 text-sm" required>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs text-slate-600">Peso (chance relativa)</label>
+                        <input type="number" name="peso" x-model="modal.dados.peso" min="0" max="1000" class="w-full border rounded-lg px-3 py-2 text-sm" required>
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-600">Limite por dia</label>
+                        <input type="number" name="quantidade_max_dia" x-model="modal.dados.quantidade_max_dia" min="1" max="1000" placeholder="∞ sem limite" class="w-full border rounded-lg px-3 py-2 text-sm">
+                    </div>
                 </div>
 
                 <label class="inline-flex items-center gap-2 text-sm">
@@ -212,6 +280,30 @@
 </div>
 
 <script>
+function buscaCliente() {
+    return {
+        termo: '',
+        aberto: false,
+        resultados: [],
+        selecionado: null,
+        async buscar() {
+            const q = this.termo.trim();
+            if (q.length < 3) { this.resultados = []; this.aberto = false; return; }
+            try {
+                const r = await fetch(`{{ route('admin.caixa.buscar') }}?q=${encodeURIComponent(q)}`, {
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin',
+                });
+                const data = await r.json();
+                this.resultados = data.clientes || [];
+                this.aberto = this.resultados.length > 0;
+            } catch (e) { this.resultados = []; this.aberto = false; }
+        },
+        escolher(c) { this.selecionado = c; this.aberto = false; this.termo = c.nome; },
+        limpar() { this.selecionado = null; this.termo = ''; this.resultados = []; },
+    }
+}
+
 function roletaAdmin() {
     const roletaId = {{ $roleta->id }};
     const novoUrl = `{{ route('admin.roleta.premios.store', $roleta) }}`;
@@ -222,12 +314,12 @@ function roletaAdmin() {
             aberto: false,
             editando: false,
             action: novoUrl,
-            dados: { ordem: 0, label: '', cor: '#6366f1', tipo: 'pontos', recompensa_id: '', pontos: 10, peso: 10, ativo: true },
+            dados: { ordem: 0, label: '', cor: '#6366f1', tipo: 'pontos', recompensa_id: '', pontos: 10, peso: 10, quantidade_max_dia: '', ativo: true },
         },
         abrirNovoPremio() {
             this.modal.editando = false;
             this.modal.action = novoUrl;
-            this.modal.dados = { ordem: 0, label: '', cor: '#6366f1', tipo: 'pontos', recompensa_id: '', pontos: 10, peso: 10, ativo: true };
+            this.modal.dados = { ordem: 0, label: '', cor: '#6366f1', tipo: 'pontos', recompensa_id: '', pontos: 10, peso: 10, quantidade_max_dia: '', ativo: true };
             this.modal.aberto = true;
         },
         abrirEditarPremio(p) {
@@ -236,7 +328,8 @@ function roletaAdmin() {
             this.modal.dados = {
                 ordem: p.ordem, label: p.label, cor: p.cor, tipo: p.tipo,
                 recompensa_id: p.recompensa_id ?? '', pontos: p.pontos ?? 10,
-                peso: p.peso, ativo: !!p.ativo,
+                peso: p.peso, quantidade_max_dia: p.quantidade_max_dia ?? '',
+                ativo: !!p.ativo,
             };
             this.modal.aberto = true;
         },

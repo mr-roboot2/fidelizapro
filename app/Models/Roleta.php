@@ -45,4 +45,9 @@ class Roleta extends Model
     {
         return $this->hasMany(RoletaGiro::class);
     }
+
+    public function gatilhos(): HasMany
+    {
+        return $this->hasMany(RoletaGatilho::class);
+    }
 }

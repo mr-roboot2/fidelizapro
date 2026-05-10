@@ -15,7 +15,7 @@ class RoletaPremio extends Model
     protected $fillable = [
         'roleta_id', 'ordem', 'label', 'cor',
         'tipo', 'recompensa_id', 'pontos',
-        'peso', 'ativo',
+        'peso', 'quantidade_max_dia', 'ativo',
     ];
 
     protected $casts = [
