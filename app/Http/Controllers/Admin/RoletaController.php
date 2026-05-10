@@ -121,6 +121,9 @@ class RoletaController extends Controller
             'pontos'             => 'nullable|integer|min:1|required_if:tipo,pontos',
             'peso'               => 'required|integer|min:0|max:1000',
             'quantidade_max_dia' => 'nullable|integer|min:1|max:1000',
+            'tier_minimo_pontos' => 'nullable|integer|min:1|max:1000000',
+            'valido_de'          => 'nullable|date',
+            'valido_ate'         => 'nullable|date|after_or_equal:valido_de',
         ]);
     }
 

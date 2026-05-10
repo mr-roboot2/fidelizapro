@@ -75,7 +75,7 @@ class RoletaService
                 throw new \DomainException('Você não tem giros disponíveis agora.');
             }
 
-            $premio = $this->sortear($this->premiosElegiveis($roleta));
+            $premio = $this->sortear($this->premiosElegiveis($roleta, $cliente));
             $resultado = $this->aplicar($roleta, $cliente, $premio, $ip);
 
             $credito->decrement('giros_disponiveis');
@@ -129,13 +129,24 @@ class RoletaService
     }
 
     /**
-     * Filtra prêmios ativos da roleta excluindo os que atingiram
-     * `quantidade_max_dia` ganhadores no dia atual. Quando todos esgotam,
-     * retorna [] e o cliente cai na consolação.
+     * Filtra prêmios elegíveis aplicando, na ordem:
+     *  - modo campanha: prêmio fora da janela [valido_de, valido_ate] é descartado.
+     *  - modo quente: tier_minimo_pontos > cliente.pontos_atual descarta o prêmio.
+     *  - modo quantidade: quantidade_max_dia já atingida descarta o prêmio.
+     * Quando o filtro elimina todos, retorna [] e o cliente cai na consolação.
      */
-    private function premiosElegiveis(Roleta $roleta): array
+    private function premiosElegiveis(Roleta $roleta, Cliente $cliente): array
     {
-        $premios = $roleta->premios->all();
+        $hoje = now()->toDateString();
+        $pontosCliente = (float) $cliente->pontos_atual;
+
+        $premios = array_values(array_filter($roleta->premios->all(), function (RoletaPremio $p) use ($hoje, $pontosCliente) {
+            if ($p->valido_de && $p->valido_de->toDateString() > $hoje) return false;
+            if ($p->valido_ate && $p->valido_ate->toDateString() < $hoje) return false;
+            if ($p->tier_minimo_pontos !== null && $pontosCliente < $p->tier_minimo_pontos) return false;
+            return true;
+        }));
+
         $idsComLimite = collect($premios)
             ->filter(fn (RoletaPremio $p) => $p->quantidade_max_dia !== null)
             ->pluck('id')
@@ -147,7 +158,7 @@ class RoletaService
 
         $contagens = RoletaGiro::where('roleta_id', $roleta->id)
             ->whereIn('roleta_premio_id', $idsComLimite)
-            ->whereDate('executado_em', now()->toDateString())
+            ->whereDate('executado_em', $hoje)
             ->groupBy('roleta_premio_id')
             ->selectRaw('roleta_premio_id, COUNT(*) as total')
             ->pluck('total', 'roleta_premio_id');

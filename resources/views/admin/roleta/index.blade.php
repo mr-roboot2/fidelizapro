@@ -171,7 +171,24 @@
                             <tr class="border-b">
                                 <td class="py-2">{{ $p->ordem }}</td>
                                 <td><span class="inline-block w-5 h-5 rounded" style="background:{{ $p->cor }}"></span></td>
-                                <td class="font-medium">{{ $p->label }}</td>
+                                <td>
+                                    <p class="font-medium">{{ $p->label }}</p>
+                                    <div class="flex flex-wrap gap-1 mt-0.5">
+                                        @if ($p->tier_minimo_pontos)
+                                            <span class="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full">
+                                                <i class="ri-vip-crown-line"></i> VIP {{ number_format($p->tier_minimo_pontos, 0, ',', '.') }}+ pts
+                                            </span>
+                                        @endif
+                                        @if ($p->valido_de || $p->valido_ate)
+                                            <span class="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">
+                                                <i class="ri-calendar-event-line"></i>
+                                                {{ $p->valido_de ? $p->valido_de->format('d/m') : '—' }}
+                                                a
+                                                {{ $p->valido_ate ? $p->valido_ate->format('d/m') : '—' }}
+                                            </span>
+                                        @endif
+                                    </div>
+                                </td>
                                 <td>{{ \App\Models\RoletaPremio::TIPOS[$p->tipo] ?? $p->tipo }}</td>
                                 <td class="text-slate-600">
                                     @switch($p->tipo)
@@ -264,6 +281,26 @@
                     </div>
                 </div>
 
+                <div class="border-t pt-3">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Modo quente <span class="text-[10px] text-slate-400 font-normal lowercase">(prêmio só pra cliente VIP)</span></p>
+                    <label class="text-xs text-slate-600">Pontos mínimos do cliente</label>
+                    <input type="number" name="tier_minimo_pontos" x-model="modal.dados.tier_minimo_pontos" min="1" placeholder="vazio = todos podem ganhar" class="w-full border rounded-lg px-3 py-2 text-sm">
+                </div>
+
+                <div class="border-t pt-3">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Modo campanha <span class="text-[10px] text-slate-400 font-normal lowercase">(janela de datas)</span></p>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs text-slate-600">Válido de</label>
+                            <input type="date" name="valido_de" x-model="modal.dados.valido_de" class="w-full border rounded-lg px-3 py-2 text-sm">
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-600">Válido até</label>
+                            <input type="date" name="valido_ate" x-model="modal.dados.valido_ate" class="w-full border rounded-lg px-3 py-2 text-sm">
+                        </div>
+                    </div>
+                </div>
+
                 <label class="inline-flex items-center gap-2 text-sm">
                     <input type="checkbox" name="ativo" value="1" x-model="modal.dados.ativo">
                     Prêmio ativo
@@ -314,12 +351,12 @@ function roletaAdmin() {
             aberto: false,
             editando: false,
             action: novoUrl,
-            dados: { ordem: 0, label: '', cor: '#6366f1', tipo: 'pontos', recompensa_id: '', pontos: 10, peso: 10, quantidade_max_dia: '', ativo: true },
+            dados: { ordem: 0, label: '', cor: '#6366f1', tipo: 'pontos', recompensa_id: '', pontos: 10, peso: 10, quantidade_max_dia: '', tier_minimo_pontos: '', valido_de: '', valido_ate: '', ativo: true },
         },
         abrirNovoPremio() {
             this.modal.editando = false;
             this.modal.action = novoUrl;
-            this.modal.dados = { ordem: 0, label: '', cor: '#6366f1', tipo: 'pontos', recompensa_id: '', pontos: 10, peso: 10, quantidade_max_dia: '', ativo: true };
+            this.modal.dados = { ordem: 0, label: '', cor: '#6366f1', tipo: 'pontos', recompensa_id: '', pontos: 10, peso: 10, quantidade_max_dia: '', tier_minimo_pontos: '', valido_de: '', valido_ate: '', ativo: true };
             this.modal.aberto = true;
         },
         abrirEditarPremio(p) {
@@ -329,6 +366,9 @@ function roletaAdmin() {
                 ordem: p.ordem, label: p.label, cor: p.cor, tipo: p.tipo,
                 recompensa_id: p.recompensa_id ?? '', pontos: p.pontos ?? 10,
                 peso: p.peso, quantidade_max_dia: p.quantidade_max_dia ?? '',
+                tier_minimo_pontos: p.tier_minimo_pontos ?? '',
+                valido_de: p.valido_de ? p.valido_de.substring(0, 10) : '',
+                valido_ate: p.valido_ate ? p.valido_ate.substring(0, 10) : '',
                 ativo: !!p.ativo,
             };
             this.modal.aberto = true;

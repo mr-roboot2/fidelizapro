@@ -15,11 +15,15 @@ class RoletaPremio extends Model
     protected $fillable = [
         'roleta_id', 'ordem', 'label', 'cor',
         'tipo', 'recompensa_id', 'pontos',
-        'peso', 'quantidade_max_dia', 'ativo',
+        'peso', 'quantidade_max_dia',
+        'tier_minimo_pontos', 'valido_de', 'valido_ate',
+        'ativo',
     ];
 
     protected $casts = [
         'ativo' => 'boolean',
+        'valido_de' => 'date',
+        'valido_ate' => 'date',
     ];
 
     public const TIPOS = [
