@@ -249,6 +249,23 @@
                     A chave fica criptografada no banco. Pegue em <a href="https://www.asaas.com/" target="_blank" class="text-rose-600 hover:underline">asaas.com</a> → Configurações → Integrações.
                 </p>
             </div>
+            <div class="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Avisos antes do vencimento (dias)</label>
+                    <input type="text" name="cobranca_avisos_antes" value="{{ old('cobranca_avisos_antes', $config->cobranca_avisos_antes ?? '3,1,0') }}"
+                           placeholder="3,1,0" maxlength="60"
+                           class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono">
+                    <p class="text-[11px] text-slate-500 mt-1">CSV de dias antes do vencimento. Ex: <code>3,1,0</code> = avisa 3 dias antes, 1 dia antes e no dia. Vazio = não avisa.</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Reminders após vencer (dias)</label>
+                    <input type="text" name="cobranca_avisos_depois" value="{{ old('cobranca_avisos_depois', $config->cobranca_avisos_depois ?? '1,7,15,30') }}"
+                           placeholder="1,7,15,30" maxlength="60"
+                           class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono">
+                    <p class="text-[11px] text-slate-500 mt-1">CSV de dias após o vencimento. Ex: <code>1,7,15,30</code> = reminder 1, 7, 15 e 30 dias após vencer.</p>
+                </div>
+            </div>
+
             @if ($config->pix_webhook_token)
                 <div class="md:col-span-2 p-4 bg-slate-50 rounded-lg border border-slate-200">
                     <p class="text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">

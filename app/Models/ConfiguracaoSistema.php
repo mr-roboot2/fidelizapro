@@ -23,7 +23,33 @@ class ConfiguracaoSistema extends Model
         'rate_limit_auth', 'rate_limit_pdv',
         'otp_max_por_telefone', 'otp_max_tentativas', 'max_resgates_24h',
         'pix_provider', 'pix_ambiente', 'pix_api_key', 'pix_webhook_token', 'pix_ativo',
+        'cobranca_avisos_antes', 'cobranca_avisos_depois',
     ];
+
+    /**
+     * Parseia o CSV de dias removendo valores inválidos.
+     */
+    public function avisosAntes(): array
+    {
+        return $this->parseDias($this->cobranca_avisos_antes ?? '3,1,0');
+    }
+
+    public function avisosDepois(): array
+    {
+        return $this->parseDias($this->cobranca_avisos_depois ?? '1,7,15,30');
+    }
+
+    private function parseDias(string $csv): array
+    {
+        return collect(explode(',', $csv))
+            ->map(fn ($d) => trim($d))
+            ->filter(fn ($d) => is_numeric($d))
+            ->map(fn ($d) => (int) $d)
+            ->filter(fn ($d) => $d >= 0 && $d <= 365)
+            ->unique()
+            ->values()
+            ->all();
+    }
 
     protected $casts = [
         'whatsapp_ativo' => 'boolean',

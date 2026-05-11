@@ -51,6 +51,8 @@ class ConfiguracaoSistemaController extends Controller
             'pix_ambiente'         => 'required|in:sandbox,producao',
             'pix_api_key'          => 'nullable|string|max:500',
             'pix_ativo'            => 'nullable|boolean',
+            'cobranca_avisos_antes'  => 'nullable|string|max:60|regex:/^[0-9,\s]*$/',
+            'cobranca_avisos_depois' => 'nullable|string|max:60|regex:/^[0-9,\s]*$/',
         ]);
         $dados['pix_ativo'] = $request->boolean('pix_ativo');
         // Se não veio nova api_key, mantém a existente (campo encrypted)

@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Assinatura;
 use App\Models\Cobranca;
+use App\Models\ConfiguracaoSistema;
 use App\Services\Pix\PixService;
 use App\Services\WhatsappService;
 use Illuminate\Console\Command;
@@ -86,7 +87,8 @@ class ProcessarAssinaturas extends Command
      */
     private function notificarProximas(WhatsappService $whatsapp): int
     {
-        $alvos = [3, 1, 0];
+        $alvos = ConfiguracaoSistema::instancia()->avisosAntes();
+        if (empty($alvos)) return 0;
         $hoje = now()->startOfDay();
         $n = 0;
 
@@ -127,7 +129,8 @@ class ProcessarAssinaturas extends Command
      */
     private function notificarVencidas(WhatsappService $whatsapp): int
     {
-        $alvos = [1, 7, 15, 30];
+        $alvos = ConfiguracaoSistema::instancia()->avisosDepois();
+        if (empty($alvos)) return 0;
         $hoje = now()->startOfDay();
         $n = 0;
 
