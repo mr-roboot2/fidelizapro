@@ -9,6 +9,7 @@ use App\Http\Middleware\EmpresaThrottle;
 use App\Http\Middleware\RequireModulo;
 use App\Http\Middleware\SuperAdminAuth;
 use App\Http\Middleware\EnsureNotInstalled;
+use App\Http\Middleware\VerificaPagamento;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
