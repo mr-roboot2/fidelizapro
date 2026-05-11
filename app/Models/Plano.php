@@ -17,6 +17,7 @@ class Plano extends Model
         'limite_parceiros', 'limite_users', 'limite_campanhas_mes',
         'whatsapp_ilimitado', 'automacoes_disponivel',
         'parceiros_disponivel', 'white_label_disponivel',
+        'modulos',
         'ativo', 'ordem',
     ];
 
@@ -26,8 +27,31 @@ class Plano extends Model
         'automacoes_disponivel' => 'boolean',
         'parceiros_disponivel' => 'boolean',
         'white_label_disponivel' => 'boolean',
+        'modulos' => 'array',
         'ativo' => 'boolean',
     ];
+
+    /**
+     * Catálogo de módulos que um plano pode habilitar. A chave é usada nos
+     * checks (Empresa::temModulo('roleta')) e o valor é o rótulo de UI.
+     */
+    public const MODULOS_DISPONIVEIS = [
+        'roleta'      => 'Roleta da Sorte',
+        'sorteio'     => 'Sorteios',
+        'whatsapp'    => 'WhatsApp ilimitado',
+        'automacoes'  => 'Automações de mensagens',
+        'parceiros'   => 'Parceiros e benefícios',
+        'campanhas'   => 'Campanhas em massa',
+        'metricas'    => 'Métricas e dashboards',
+        'indicacoes'  => 'Indicações entre clientes',
+        'antifraude'  => 'Painel antifraude',
+        'white_label' => 'White label completo (sem marca FidelizaPro)',
+    ];
+
+    public function temModulo(string $chave): bool
+    {
+        return in_array($chave, $this->modulos ?? [], true);
+    }
 
     protected static function booted(): void
     {

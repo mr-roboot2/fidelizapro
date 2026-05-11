@@ -57,17 +57,20 @@ class PlanoController extends Controller
             'limite_parceiros' => 'nullable|integer|min:1',
             'limite_users' => 'nullable|integer|min:1',
             'limite_campanhas_mes' => 'nullable|integer|min:1',
-            'whatsapp_ilimitado' => 'boolean',
-            'automacoes_disponivel' => 'boolean',
-            'parceiros_disponivel' => 'boolean',
-            'white_label_disponivel' => 'boolean',
+            'modulos' => 'nullable|array',
+            'modulos.*' => 'string|in:'.implode(',', array_keys(Plano::MODULOS_DISPONIVEIS)),
             'ativo' => 'boolean',
             'ordem' => 'nullable|integer',
         ]);
 
-        foreach (['whatsapp_ilimitado', 'automacoes_disponivel', 'parceiros_disponivel', 'white_label_disponivel', 'ativo'] as $b) {
-            $dados[$b] = $request->boolean($b);
-        }
+        $dados['ativo'] = $request->boolean('ativo');
+        $dados['modulos'] = array_values($request->input('modulos', []));
+
+        // Sincroniza flags antigos com os novos módulos pra compatibilidade
+        $dados['whatsapp_ilimitado']     = in_array('whatsapp', $dados['modulos'], true);
+        $dados['automacoes_disponivel']  = in_array('automacoes', $dados['modulos'], true);
+        $dados['parceiros_disponivel']   = in_array('parceiros', $dados['modulos'], true);
+        $dados['white_label_disponivel'] = in_array('white_label', $dados['modulos'], true);
 
         return $dados;
     }

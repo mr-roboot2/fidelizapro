@@ -30,29 +30,31 @@
     </div>
     <nav class="flex-1 py-4 space-y-1 overflow-y-auto">
         @php
+            // 4º campo: módulo necessário (null = sempre disponível)
             $itens = [
-                ['admin.dashboard', 'ri-dashboard-line', 'Dashboard'],
-                ['admin.caixa.index', 'ri-cash-line', 'Caixa rápido'],
-                ['admin.clientes.index', 'ri-user-line', 'Clientes'],
-                ['admin.compras.index', 'ri-shopping-cart-line', 'Compras'],
-                ['admin.regras.index', 'ri-stack-line', 'Regras de pontuação'],
-                ['admin.recompensas.index', 'ri-gift-line', 'Recompensas'],
-                ['admin.roleta.index', 'ri-bubble-chart-line', 'Roleta da sorte'],
-                ['admin.sorteios.index', 'ri-ticket-2-line', 'Sorteios'],
-                ['admin.resgates.index', 'ri-coupon-line', 'Resgates'],
-                ['admin.transacoes.index', 'ri-exchange-line', 'Transações'],
-                ['admin.cashback.index', 'ri-money-dollar-circle-line', 'Cashback'],
-                ['admin.avaliacoes.index', 'ri-star-line', 'Avaliações'],
-                ['admin.parceiros.index', 'ri-handshake-line', 'Parceiros'],
-                ['admin.relatorios.index', 'ri-bar-chart-line', 'Relatórios'],
-                ['admin.whatsapp-logs.index', 'ri-whatsapp-line', 'WhatsApp'],
-                ['admin.atividade.suspeita', 'ri-shield-keyhole-line', 'Antifraude'],
-                ['admin.meu-plano.index', 'ri-vip-crown-line', 'Meu plano'],
-                ['admin.importacao.index', 'ri-plug-line', 'Importação / PDV'],
-                ['admin.configuracoes.edit', 'ri-settings-3-line', 'Configurações'],
+                ['admin.dashboard', 'ri-dashboard-line', 'Dashboard', null],
+                ['admin.caixa.index', 'ri-cash-line', 'Caixa rápido', null],
+                ['admin.clientes.index', 'ri-user-line', 'Clientes', null],
+                ['admin.compras.index', 'ri-shopping-cart-line', 'Compras', null],
+                ['admin.regras.index', 'ri-stack-line', 'Regras de pontuação', null],
+                ['admin.recompensas.index', 'ri-gift-line', 'Recompensas', null],
+                ['admin.roleta.index', 'ri-bubble-chart-line', 'Roleta da sorte', 'roleta'],
+                ['admin.sorteios.index', 'ri-ticket-2-line', 'Sorteios', 'sorteio'],
+                ['admin.resgates.index', 'ri-coupon-line', 'Resgates', null],
+                ['admin.transacoes.index', 'ri-exchange-line', 'Transações', null],
+                ['admin.cashback.index', 'ri-money-dollar-circle-line', 'Cashback', null],
+                ['admin.avaliacoes.index', 'ri-star-line', 'Avaliações', null],
+                ['admin.parceiros.index', 'ri-handshake-line', 'Parceiros', 'parceiros'],
+                ['admin.relatorios.index', 'ri-bar-chart-line', 'Relatórios', 'metricas'],
+                ['admin.whatsapp-logs.index', 'ri-whatsapp-line', 'WhatsApp', 'whatsapp'],
+                ['admin.atividade.suspeita', 'ri-shield-keyhole-line', 'Antifraude', 'antifraude'],
+                ['admin.meu-plano.index', 'ri-vip-crown-line', 'Meu plano', null],
+                ['admin.importacao.index', 'ri-plug-line', 'Importação / PDV', null],
+                ['admin.configuracoes.edit', 'ri-settings-3-line', 'Configurações', null],
             ];
         @endphp
-        @foreach ($itens as [$rota, $icone, $rotulo])
+        @foreach ($itens as [$rota, $icone, $rotulo, $modulo])
+            @if ($modulo && isset($empresaAtiva) && !$empresaAtiva->temModulo($modulo)) @continue @endif
             @php $ativo = request()->routeIs(str_replace('.index','.*',$rota)) || request()->routeIs($rota); @endphp
             <a href="{{ route($rota) }}"
                class="flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg transition

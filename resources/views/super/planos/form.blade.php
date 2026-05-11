@@ -58,24 +58,16 @@
             </div>
         </div>
 
-        <h3 class="font-semibold mt-6 mb-4">Recursos disponíveis</h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <label class="flex items-center gap-2 p-3 bg-slate-50 rounded">
-                <input type="checkbox" name="automacoes_disponivel" value="1" {{ old('automacoes_disponivel', $plano->automacoes_disponivel ?? true) ? 'checked':'' }}>
-                <span class="text-sm">Automações WhatsApp</span>
-            </label>
-            <label class="flex items-center gap-2 p-3 bg-slate-50 rounded">
-                <input type="checkbox" name="parceiros_disponivel" value="1" {{ old('parceiros_disponivel', $plano->parceiros_disponivel ?? true) ? 'checked':'' }}>
-                <span class="text-sm">Área de parceiros</span>
-            </label>
-            <label class="flex items-center gap-2 p-3 bg-slate-50 rounded">
-                <input type="checkbox" name="white_label_disponivel" value="1" {{ old('white_label_disponivel', $plano->white_label_disponivel) ? 'checked':'' }}>
-                <span class="text-sm">White label PWA</span>
-            </label>
-            <label class="flex items-center gap-2 p-3 bg-slate-50 rounded">
-                <input type="checkbox" name="whatsapp_ilimitado" value="1" {{ old('whatsapp_ilimitado', $plano->whatsapp_ilimitado) ? 'checked':'' }}>
-                <span class="text-sm">WhatsApp ilimitado</span>
-            </label>
+        <h3 class="font-semibold mt-6 mb-1">Módulos habilitados pra esse plano</h3>
+        <p class="text-xs text-slate-500 mb-3">Marque os recursos que a empresa terá acesso. Os não marcados ficam ocultos no menu admin dela.</p>
+        @php $modulosAtuais = old('modulos', $plano->modulos ?? []); @endphp
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            @foreach (\App\Models\Plano::MODULOS_DISPONIVEIS as $chave => $rotulo)
+                <label class="flex items-center gap-2 p-3 bg-slate-50 hover:bg-slate-100 rounded-lg cursor-pointer transition border border-transparent has-[:checked]:border-rose-400 has-[:checked]:bg-rose-50">
+                    <input type="checkbox" name="modulos[]" value="{{ $chave }}" {{ in_array($chave, $modulosAtuais, true) ? 'checked' : '' }} class="text-rose-600 rounded">
+                    <span class="text-sm">{{ $rotulo }}</span>
+                </label>
+            @endforeach
         </div>
 
         <div class="mt-4 flex items-center gap-4">

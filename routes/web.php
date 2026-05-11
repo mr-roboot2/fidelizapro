@@ -133,22 +133,26 @@ Route::middleware(['admin.auth', 'empresa.scope'])->prefix('admin')->name('admin
     Route::put('beneficios/{beneficio}', [BeneficioController::class, 'update'])->name('beneficios.update');
     Route::delete('beneficios/{beneficio}', [BeneficioController::class, 'destroy'])->name('beneficios.destroy');
 
-    Route::get('roleta', [RoletaController::class, 'index'])->name('roleta.index');
-    Route::get('roleta/metricas', [RoletaController::class, 'metricas'])->name('roleta.metricas');
-    Route::put('roleta/{roleta}', [RoletaController::class, 'update'])->name('roleta.update');
-    Route::post('roleta/{roleta}/premios', [RoletaController::class, 'premioStore'])->name('roleta.premios.store');
-    Route::put('roleta/{roleta}/premios/{premio}', [RoletaController::class, 'premioUpdate'])->name('roleta.premios.update');
-    Route::delete('roleta/{roleta}/premios/{premio}', [RoletaController::class, 'premioDestroy'])->name('roleta.premios.destroy');
-    Route::post('roleta/{roleta}/creditar', [RoletaController::class, 'creditar'])->name('roleta.creditar');
-    Route::post('roleta/{roleta}/gatilhos', [RoletaController::class, 'gatilhoSalvar'])->name('roleta.gatilhos.salvar');
+    Route::middleware('modulo:roleta')->group(function () {
+        Route::get('roleta', [RoletaController::class, 'index'])->name('roleta.index');
+        Route::get('roleta/metricas', [RoletaController::class, 'metricas'])->name('roleta.metricas');
+        Route::put('roleta/{roleta}', [RoletaController::class, 'update'])->name('roleta.update');
+        Route::post('roleta/{roleta}/premios', [RoletaController::class, 'premioStore'])->name('roleta.premios.store');
+        Route::put('roleta/{roleta}/premios/{premio}', [RoletaController::class, 'premioUpdate'])->name('roleta.premios.update');
+        Route::delete('roleta/{roleta}/premios/{premio}', [RoletaController::class, 'premioDestroy'])->name('roleta.premios.destroy');
+        Route::post('roleta/{roleta}/creditar', [RoletaController::class, 'creditar'])->name('roleta.creditar');
+        Route::post('roleta/{roleta}/gatilhos', [RoletaController::class, 'gatilhoSalvar'])->name('roleta.gatilhos.salvar');
+    });
 
-    Route::get('sorteios/metricas', [SorteioController::class, 'metricas'])->name('sorteios.metricas');
-    Route::resource('sorteios', SorteioController::class);
-    Route::post('sorteios/{sorteio}/ativar', [SorteioController::class, 'ativar'])->name('sorteios.ativar');
-    Route::post('sorteios/{sorteio}/cancelar', [SorteioController::class, 'cancelar'])->name('sorteios.cancelar');
-    Route::post('sorteios/{sorteio}/finalizar', [SorteioController::class, 'finalizar'])->name('sorteios.finalizar');
-    Route::post('sorteios/{sorteio}/sortear', [SorteioController::class, 'sortear'])->name('sorteios.sortear');
-    Route::post('sorteios/{sorteio}/bilhetes', [SorteioController::class, 'creditarBilhete'])->name('sorteios.bilhetes');
+    Route::middleware('modulo:sorteio')->group(function () {
+        Route::get('sorteios/metricas', [SorteioController::class, 'metricas'])->name('sorteios.metricas');
+        Route::resource('sorteios', SorteioController::class);
+        Route::post('sorteios/{sorteio}/ativar', [SorteioController::class, 'ativar'])->name('sorteios.ativar');
+        Route::post('sorteios/{sorteio}/cancelar', [SorteioController::class, 'cancelar'])->name('sorteios.cancelar');
+        Route::post('sorteios/{sorteio}/finalizar', [SorteioController::class, 'finalizar'])->name('sorteios.finalizar');
+        Route::post('sorteios/{sorteio}/sortear', [SorteioController::class, 'sortear'])->name('sorteios.sortear');
+        Route::post('sorteios/{sorteio}/bilhetes', [SorteioController::class, 'creditarBilhete'])->name('sorteios.bilhetes');
+    });
 });
 
 // Tela pública de validação de cupom (parceiro acessa por URL com secret)
