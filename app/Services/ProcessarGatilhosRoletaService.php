@@ -29,6 +29,7 @@ class ProcessarGatilhosRoletaService
                 'atingiu_pontos'      => $this->atingiuPontos($roleta, $g),
                 'vip_gasto'           => $this->vipGasto($roleta, $g),
                 'recorrente_compras'  => $this->recorrenteCompras($roleta, $g),
+                'dia_fraco'           => $this->diaFraco($roleta, $g),
                 default               => 0,
             };
         }
@@ -71,6 +72,7 @@ class ProcessarGatilhosRoletaService
             'atingiu_pontos'      => 'você atingiu uma meta de pontos',
             'vip_gasto'           => 'você é cliente VIP da loja 👑',
             'recorrente_compras'  => 'cliente fiel, obrigado por sempre voltar 💛',
+            'dia_fraco'           => 'hoje é dia da Roleta da Sorte, dá uma passada na loja 😉',
             default               => 'cortesia da loja',
         };
     }
@@ -198,6 +200,45 @@ class ProcessarGatilhosRoletaService
         foreach ($clientes as $c) {
             $ref = 'recorrente_compras:'.$minimo;
             if ($this->disparar($roleta, $c, 'recorrente_compras', $ref, $g->giros)) $n++;
+        }
+        return $n;
+    }
+
+    /**
+     * Analisa as últimas 4 semanas de compras agrupadas por dia da semana
+     * e dispara o gatilho se HOJE estiver entre os N dias menos movimentados
+     * (N = $g->valor, default 2). Idempotente por data — todo cliente ativo
+     * recebe 1 giro no dia fraco.
+     *
+     * Silenciosamente pula se a empresa tem menos de 4 dias da semana com
+     * histórico — ranking não confiável.
+     */
+    private function diaFraco(Roleta $roleta, RoletaGatilho $g): int
+    {
+        $bottomN = max(1, min(3, (int) ($g->valor ?? 2)));
+        $hoje = now();
+        $diaSemanaHoje = (int) $hoje->dayOfWeek; // 0=Dom .. 6=Sáb (Carbon)
+
+        $contagem = Compra::where('empresa_id', $roleta->empresa_id)
+            ->where('created_at', '>=', $hoje->copy()->subWeeks(4)->startOfDay())
+            ->selectRaw('DAYOFWEEK(created_at) - 1 as dia_semana, COUNT(*) as total')
+            ->groupBy('dia_semana')
+            ->orderBy('total')
+            ->pluck('total', 'dia_semana');
+
+        if ($contagem->count() < 4) return 0;
+
+        $diasFracos = $contagem->take($bottomN)->keys()->map(fn ($d) => (int) $d);
+        if (!$diasFracos->contains($diaSemanaHoje)) return 0;
+
+        $clientes = Cliente::where('empresa_id', $roleta->empresa_id)
+            ->where('ativo', true)
+            ->get();
+
+        $ref = 'dia_fraco:'.$hoje->toDateString();
+        $n = 0;
+        foreach ($clientes as $c) {
+            if ($this->disparar($roleta, $c, 'dia_fraco', $ref, $g->giros)) $n++;
         }
         return $n;
     }

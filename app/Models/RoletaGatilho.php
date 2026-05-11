@@ -33,6 +33,7 @@ class RoletaGatilho extends Model
         'atingiu_pontos'      => ['rotulo' => 'Cliente atingiu X pontos',                         'campo' => 'valor', 'sufixo' => 'pontos'],
         'vip_gasto'           => ['rotulo' => 'Cliente VIP (gastou R$ X no total)',               'campo' => 'valor', 'sufixo' => 'reais'],
         'recorrente_compras'  => ['rotulo' => 'Cliente recorrente (X compras no total)',          'campo' => 'valor', 'sufixo' => 'compras'],
+        'dia_fraco'           => ['rotulo' => 'Dia fraco de movimento (auto-detecta os N dias mais fracos)', 'campo' => 'valor', 'sufixo' => 'dias fracos'],
     ];
 
     public function roleta(): BelongsTo
