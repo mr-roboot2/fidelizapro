@@ -64,6 +64,12 @@ class WhatsappTemplate extends Model
             'parametros' => ['nome_cliente', 'valor'],
             'exemplo' => '{{1}}, você tem R$ {{2}} de cashback disponível!',
         ],
+        'resgate_solicitado' => [
+            'rotulo' => 'Resgate solicitado',
+            'descricao' => 'Confirmação imediata quando o cliente solicita um resgate pelo app (status pendente, aguardando aprovação da loja).',
+            'parametros' => ['nome_cliente', 'recompensa', 'codigo', 'pontos_usados'],
+            'exemplo' => '🎁 {{1}}, recebemos seu pedido de resgate de "{{2}}"! Código: {{3}} (−{{4}} pts). Aguarde a confirmação da loja.',
+        ],
         'resgate_aprovado' => [
             'rotulo' => 'Resgate aprovado',
             'descricao' => 'Quando um resgate de prêmio é aprovado.',

@@ -22,7 +22,7 @@ class ResgateService
 
     public function solicitar(Cliente $cliente, Recompensa $recompensa, ?string $observacao = null, ?string $ip = null): Resgate
     {
-        return DB::transaction(function () use ($cliente, $recompensa, $observacao, $ip) {
+        $resgate = DB::transaction(function () use ($cliente, $recompensa, $observacao, $ip) {
             if ($cliente->empresa_id !== $recompensa->empresa_id) {
                 throw new \DomainException('Recompensa não pertence à empresa do cliente.');
             }
@@ -69,6 +69,31 @@ class ResgateService
 
             return $resgate;
         });
+
+        // Notificação imediata fora da transação. Falha aqui não derruba
+        // o resgate — cliente vê confirmação no app mesmo se WhatsApp falhar.
+        try {
+            if ($cliente->aceita_whatsapp && $cliente->telefone) {
+                $this->whatsappService->enviarEvento(
+                    $cliente->empresa,
+                    $cliente->telefone,
+                    'resgate_solicitado',
+                    [
+                        explode(' ', $cliente->nome)[0],
+                        $recompensa->nome,
+                        $resgate->codigo,
+                        number_format($recompensa->custo_pontos, 0, ',', '.'),
+                    ],
+                    origem: 'resgate'
+                );
+            }
+        } catch (Throwable $e) {
+            Log::warning('[Resgate] Falha ao notificar solicitação: '.$e->getMessage(), [
+                'resgate_id' => $resgate->id,
+            ]);
+        }
+
+        return $resgate;
     }
 
     public function aprovar(Resgate $resgate, User $aprovador): Resgate
