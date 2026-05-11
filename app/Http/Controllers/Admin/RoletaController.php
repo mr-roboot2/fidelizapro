@@ -195,7 +195,7 @@ class RoletaController extends Controller
         ]);
         $cliente = Cliente::where('empresa_id', $roleta->empresa_id)
             ->findOrFail($dados['cliente_id']);
-        $this->roletaService->creditar($roleta, $cliente, $dados['giros'], 'manual');
+        $this->roletaService->creditar($roleta, $cliente, $dados['giros'], 'manual', null, 'cortesia da loja');
         return back()->with('success', "Creditado {$dados['giros']} giro(s) para {$cliente->nome}.");
     }
 

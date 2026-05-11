@@ -9,10 +9,14 @@ use App\Models\RoletaCredito;
 use App\Models\RoletaGiro;
 use App\Models\RoletaPremio;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class RoletaService
 {
-    public function __construct(private PontuacaoService $pontuacao) {}
+    public function __construct(
+        private PontuacaoService $pontuacao,
+        private WhatsappService $whatsapp,
+    ) {}
 
     public function statusParaCliente(Cliente $cliente): array
     {
@@ -114,9 +118,15 @@ class RoletaService
         });
     }
 
-    public function creditar(Roleta $roleta, Cliente $cliente, int $giros, string $origem = 'manual', ?\DateTimeInterface $expiraEm = null): RoletaCredito
-    {
-        return DB::transaction(function () use ($roleta, $cliente, $giros, $origem, $expiraEm) {
+    public function creditar(
+        Roleta $roleta,
+        Cliente $cliente,
+        int $giros,
+        string $origem = 'manual',
+        ?\DateTimeInterface $expiraEm = null,
+        ?string $motivoNotificacao = null
+    ): RoletaCredito {
+        $credito = DB::transaction(function () use ($roleta, $cliente, $giros, $origem, $expiraEm) {
             $credito = RoletaCredito::firstOrNew([
                 'roleta_id'  => $roleta->id,
                 'cliente_id' => $cliente->id,
@@ -127,6 +137,51 @@ class RoletaService
             $credito->save();
             return $credito;
         });
+
+        if ($motivoNotificacao !== null) {
+            $this->notificarGiroCreditado($cliente, $motivoNotificacao);
+        }
+
+        return $credito;
+    }
+
+    private function notificarGiroCreditado(Cliente $cliente, string $motivo): void
+    {
+        if (!$cliente->aceita_whatsapp || !$cliente->telefone) return;
+
+        try {
+            $this->whatsapp->enviarEvento(
+                $cliente->empresa,
+                $cliente->telefone,
+                'roleta_giro_creditado',
+                [explode(' ', $cliente->nome)[0], $motivo],
+                origem: 'roleta'
+            );
+        } catch (Throwable $e) {
+            report($e);
+        }
+    }
+
+    private function notificarPremioGanho(Cliente $cliente, string $recompensa, string $codigo, ?\DateTimeInterface $expiraEm): void
+    {
+        if (!$cliente->aceita_whatsapp || !$cliente->telefone) return;
+
+        try {
+            $this->whatsapp->enviarEvento(
+                $cliente->empresa,
+                $cliente->telefone,
+                'roleta_premio_ganho',
+                [
+                    explode(' ', $cliente->nome)[0],
+                    $recompensa,
+                    $codigo,
+                    $expiraEm ? $expiraEm->format('d/m/Y') : 'qualquer momento',
+                ],
+                origem: 'roleta'
+            );
+        } catch (Throwable $e) {
+            report($e);
+        }
     }
 
     private function creditoDoCliente(Roleta $roleta, Cliente $cliente, bool $lock = false): ?RoletaCredito
@@ -247,6 +302,8 @@ class RoletaService
             $giro->recompensa_id = $premio->recompensa_id;
             $giro->resgate_id    = $resgate->id;
             $expiraEm            = $resgate->expira_em;
+
+            $this->notificarPremioGanho($cliente, $premio->label, $resgate->codigo, $resgate->expira_em);
         }
 
         $giro->save();

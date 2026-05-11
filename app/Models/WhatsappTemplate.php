@@ -70,6 +70,18 @@ class WhatsappTemplate extends Model
             'parametros' => ['nome_cliente', 'recompensa'],
             'exemplo' => '{{1}}, seu resgate de "{{2}}" foi aprovado!',
         ],
+        'roleta_giro_creditado' => [
+            'rotulo' => 'Giro de roleta creditado',
+            'descricao' => 'Quando o cliente ganha um giro da Roleta da Sorte (cadastro, aniversário, compra, indicação, etc).',
+            'parametros' => ['nome_cliente', 'motivo'],
+            'exemplo' => '🎰 {{1}}, você ganhou um giro na Roleta da Sorte! Motivo: {{2}}. Abra o app e gire pra ganhar prêmios!',
+        ],
+        'roleta_premio_ganho' => [
+            'rotulo' => 'Prêmio ganho na roleta',
+            'descricao' => 'Quando o cliente acerta um prêmio (recompensa) girando a Roleta da Sorte.',
+            'parametros' => ['nome_cliente', 'recompensa', 'codigo', 'expira_em'],
+            'exemplo' => '🎉 {{1}}, você ganhou {{2}} na Roleta da Sorte! Apresente o código {{3}} até {{4}}.',
+        ],
     ];
 
     public function definicaoEvento(): ?array

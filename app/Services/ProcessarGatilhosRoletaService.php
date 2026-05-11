@@ -54,8 +54,21 @@ class ProcessarGatilhosRoletaService
             return false;
         }
 
-        $this->roleta->creditar($roleta, $cliente, $giros, 'manual');
+        $this->roleta->creditar($roleta, $cliente, $giros, 'manual', null, $this->motivoTexto($tipo));
         return true;
+    }
+
+    private function motivoTexto(string $tipo): string
+    {
+        return match ($tipo) {
+            'primeiro_cadastro' => 'boas-vindas ao programa',
+            'aniversario'       => 'hoje é seu aniversário 🎂',
+            'indicacao'         => 'sua indicação se cadastrou',
+            'compra_acima'      => 'sua compra de hoje',
+            'inativo_dias'      => 'estávamos com saudade',
+            'atingiu_pontos'    => 'você atingiu uma meta de pontos',
+            default             => 'cortesia da loja',
+        };
     }
 
     private function aniversario(Roleta $roleta, RoletaGatilho $g): int
