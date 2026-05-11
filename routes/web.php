@@ -142,6 +142,7 @@ Route::middleware(['admin.auth', 'empresa.scope'])->prefix('admin')->name('admin
     Route::post('roleta/{roleta}/creditar', [RoletaController::class, 'creditar'])->name('roleta.creditar');
     Route::post('roleta/{roleta}/gatilhos', [RoletaController::class, 'gatilhoSalvar'])->name('roleta.gatilhos.salvar');
 
+    Route::get('sorteios/metricas', [SorteioController::class, 'metricas'])->name('sorteios.metricas');
     Route::resource('sorteios', SorteioController::class);
     Route::post('sorteios/{sorteio}/ativar', [SorteioController::class, 'ativar'])->name('sorteios.ativar');
     Route::post('sorteios/{sorteio}/cancelar', [SorteioController::class, 'cancelar'])->name('sorteios.cancelar');

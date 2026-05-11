@@ -6,11 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\Cliente;
 use App\Models\Recompensa;
 use App\Models\Sorteio;
+use App\Models\SorteioBilhete;
 use App\Services\SorteioService;
 use DomainException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 
 class SorteioController extends Controller
 {
@@ -24,6 +26,66 @@ class SorteioController extends Controller
             ->orderByDesc('data_sorteio')
             ->paginate(20);
         return view('admin.sorteios.index', compact('sorteios'));
+    }
+
+    public function metricas()
+    {
+        $empresaId = Auth::user()->empresa_id;
+        $hoje = now()->toDateString();
+        $inicio30d = now()->subDays(29)->toDateString();
+        $inicioMes = now()->startOfMonth()->toDateString();
+
+        $sorteioIds = Sorteio::where('empresa_id', $empresaId)->pluck('id');
+
+        $kpi = [
+            'total_sorteios'   => $sorteioIds->count(),
+            'ativos'           => Sorteio::where('empresa_id', $empresaId)->where('status', 'ativo')->count(),
+            'sorteados_30d'   => Sorteio::where('empresa_id', $empresaId)->where('status', 'sorteado')->where('sorteado_em', '>=', $inicio30d.' 00:00:00')->count(),
+            'bilhetes_total'  => SorteioBilhete::whereIn('sorteio_id', $sorteioIds)->count(),
+            'bilhetes_mes'    => SorteioBilhete::whereIn('sorteio_id', $sorteioIds)->where('created_at', '>=', $inicioMes.' 00:00:00')->count(),
+            'clientes_unicos' => SorteioBilhete::whereIn('sorteio_id', $sorteioIds)->distinct('cliente_id')->count('cliente_id'),
+        ];
+
+        // Série temporal 30d
+        $serieDb = SorteioBilhete::whereIn('sorteio_id', $sorteioIds)
+            ->where('created_at', '>=', $inicio30d.' 00:00:00')
+            ->selectRaw('DATE(created_at) as dia, COUNT(*) as total')
+            ->groupBy('dia')
+            ->pluck('total', 'dia');
+        $serie = [];
+        for ($i = 29; $i >= 0; $i--) {
+            $d = now()->subDays($i)->toDateString();
+            $serie[] = ['data' => $d, 'total' => (int) ($serieDb[$d] ?? 0)];
+        }
+
+        $porOrigem = SorteioBilhete::whereIn('sorteio_id', $sorteioIds)
+            ->selectRaw('origem, COUNT(*) as total')
+            ->groupBy('origem')
+            ->pluck('total', 'origem');
+
+        $topSorteios = Sorteio::where('empresa_id', $empresaId)
+            ->withCount('bilhetes')
+            ->orderByDesc('bilhetes_count')
+            ->limit(5)
+            ->get();
+
+        $vencedoresRecentes = Sorteio::where('empresa_id', $empresaId)
+            ->where('status', 'sorteado')
+            ->whereNotNull('vencedor_cliente_id')
+            ->with(['vencedor:id,nome,telefone', 'vencedorBilhete:id,sorteio_id,numero'])
+            ->orderByDesc('sorteado_em')
+            ->limit(10)
+            ->get();
+
+        $proximos = Sorteio::where('empresa_id', $empresaId)
+            ->whereIn('status', ['ativo', 'planejado'])
+            ->where('data_sorteio', '>=', $hoje)
+            ->withCount('bilhetes')
+            ->orderBy('data_sorteio')
+            ->limit(5)
+            ->get();
+
+        return view('admin.sorteios.metricas', compact('kpi', 'serie', 'porOrigem', 'topSorteios', 'vencedoresRecentes', 'proximos'));
     }
 
     public function create()

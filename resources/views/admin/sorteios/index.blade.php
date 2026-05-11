@@ -1,7 +1,11 @@
 @extends('layouts.admin')
 @section('title', 'Sorteios')
 @section('content')
-<div class="mb-4 flex justify-end">
+<div class="mb-4 flex justify-end gap-2">
+    <a href="{{ route('admin.sorteios.metricas') }}"
+       class="inline-flex items-center gap-2 px-3 py-2 bg-slate-900 text-white rounded-lg text-sm hover:bg-slate-800">
+        <i class="ri-bar-chart-2-line"></i> Ver métricas
+    </a>
     <a href="{{ route('admin.sorteios.create') }}"
        class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm">
         <i class="ri-add-line"></i> Novo sorteio
