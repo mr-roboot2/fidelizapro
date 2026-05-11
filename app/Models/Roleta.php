@@ -16,7 +16,7 @@ class Roleta extends Model
         'tempo_min_ms', 'tempo_max_ms',
         'mensagem_consolacao', 'pontos_consolacao',
         'mensagem_pontos', 'mensagem_recompensa', 'mensagem_nova_chance',
-        'limite_giros_dia', 'validade_dias',
+        'limite_giros_dia', 'limite_giros_dia_por_ip', 'validade_dias',
     ];
 
     protected $casts = [

@@ -159,7 +159,8 @@ class SorteioController extends Controller
             'valor_estimado'           => 'nullable|numeric|min:0',
             'data_sorteio'             => 'required|date',
             'status'                   => 'required|in:planejado,ativo,sorteado,cancelado',
-            'max_bilhetes_por_cliente' => 'nullable|integer|min:1|max:1000',
+            'max_bilhetes_por_cliente'   => 'nullable|integer|min:1|max:1000',
+            'limite_bilhetes_dia_por_ip' => 'nullable|integer|min:1|max:200',
         ]);
     }
 

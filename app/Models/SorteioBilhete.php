@@ -10,7 +10,7 @@ class SorteioBilhete extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'sorteio_id', 'cliente_id', 'numero', 'origem', 'referencia', 'created_at',
+        'sorteio_id', 'cliente_id', 'numero', 'origem', 'referencia', 'ip', 'created_at',
     ];
 
     /**

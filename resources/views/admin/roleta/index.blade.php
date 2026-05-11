@@ -78,6 +78,10 @@
                     <input type="number" name="limite_giros_dia" value="{{ old('limite_giros_dia', $roleta->limite_giros_dia) }}" min="1" max="50" class="w-full border rounded-lg px-3 py-2 text-sm">
                 </div>
                 <div>
+                    <label class="text-xs text-slate-600">Antifraude: limite por IP/dia</label>
+                    <input type="number" name="limite_giros_dia_por_ip" value="{{ old('limite_giros_dia_por_ip', $roleta->limite_giros_dia_por_ip) }}" min="1" max="200" placeholder="vazio = sem limite" class="w-full border rounded-lg px-3 py-2 text-sm">
+                </div>
+                <div>
                     <label class="text-xs text-slate-600">Pontos da consolação</label>
                     <input type="number" name="pontos_consolacao" value="{{ old('pontos_consolacao', $roleta->pontos_consolacao) }}" min="0" max="255" class="w-full border rounded-lg px-3 py-2 text-sm">
                 </div>

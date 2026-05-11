@@ -18,7 +18,7 @@ class SorteioService
      * Cria 1 bilhete pro cliente no sorteio. Respeita max_bilhetes_por_cliente.
      * Retorna o bilhete ou null se o limite foi atingido (silencioso).
      */
-    public function criarBilhete(Sorteio $sorteio, Cliente $cliente, string $origem = 'manual', ?string $referencia = null): ?SorteioBilhete
+    public function criarBilhete(Sorteio $sorteio, Cliente $cliente, string $origem = 'manual', ?string $referencia = null, ?string $ip = null): ?SorteioBilhete
     {
         if (!$sorteio->aceitaBilhetes()) {
             return null;
@@ -31,7 +31,19 @@ class SorteioService
             }
         }
 
-        $bilhete = DB::transaction(function () use ($sorteio, $cliente, $origem, $referencia) {
+        // Antifraude por IP: limite de bilhetes únicos do mesmo IP no dia
+        if ($ip && $sorteio->limite_bilhetes_dia_por_ip) {
+            $doMesmoIp = SorteioBilhete::where('sorteio_id', $sorteio->id)
+                ->where('ip', $ip)
+                ->whereDate('created_at', now()->toDateString())
+                ->count();
+            if ($doMesmoIp >= $sorteio->limite_bilhetes_dia_por_ip) {
+                report(new \RuntimeException("Bilhete bloqueado por antifraude IP={$ip} sorteio={$sorteio->id} cliente={$cliente->id}"));
+                return null;
+            }
+        }
+
+        $bilhete = DB::transaction(function () use ($sorteio, $cliente, $origem, $referencia, $ip) {
             // Calcula próximo número sequencial DENTRO do sorteio, com lock pra
             // evitar race condition. A unique(sorteio_id, numero) é a garantia final.
             $ultimo = SorteioBilhete::where('sorteio_id', $sorteio->id)
@@ -42,6 +54,7 @@ class SorteioService
                 'numero'     => ($ultimo ?? 0) + 1,
                 'origem'     => $origem,
                 'referencia' => $referencia,
+                'ip'         => $ip,
                 'created_at' => now(),
             ]);
         });

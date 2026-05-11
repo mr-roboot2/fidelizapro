@@ -195,6 +195,7 @@ async function showScreen(nome, params = {}) {
         meusCupons: telaMeusCupons,
         roleta: telaRoleta,
         sorteios: telaSorteios,
+        historicoSorteios: telaHistoricoSorteios,
     };
     screenContainer.innerHTML = '<div class="flex-1 flex items-center justify-center"><i class="ri-loader-4-line animate-spin text-3xl text-slate-400"></i></div>';
     try {
@@ -761,8 +762,9 @@ async function telaHome() {
             const sorteioAtivo   = lista.find(s => s.status === 'ativo');
             const venceu         = lista.find(s => s.eu_venci);
             const sortidoComBilh = lista.find(s => s.status === 'sorteado' && s.meus_bilhetes > 0 && !s.eu_venci);
+            const temHistorico   = sorteiosData.tem_historico;
 
-            if (!temBilhetes && !sorteioAtivo && !venceu && !sortidoComBilh) return '';
+            if (!temBilhetes && !sorteioAtivo && !venceu && !sortidoComBilh && !temHistorico) return '';
 
             let icone = '🎟️', titulo, sub, cor = 'border-amber-200';
             if (venceu) {
@@ -775,9 +777,13 @@ async function telaHome() {
             } else if (sorteioAtivo) {
                 titulo = `Sorteio "${sorteioAtivo.nome}" tá rolando!`;
                 sub = 'Gire a roleta pra ganhar bilhetes';
-            } else {
+            } else if (sortidoComBilh) {
                 titulo = `Resultado de "${sortidoComBilh.nome}" saiu`;
                 sub = 'Toque pra ver';
+            } else {
+                icone = '<i class="ri-history-fill text-slate-500"></i>'; cor = 'border-slate-200';
+                titulo = 'Sorteios passados';
+                sub = 'Toque pra ver seu histórico';
             }
             return `
             <div class="px-4 mt-3">
@@ -2500,6 +2506,75 @@ async function telaSorteios() {
 
                         ${s.status === 'sorteado' && s.vencedor && !eVencedor ? `
                             <p class="text-xs text-slate-500 mt-3"><i class="ri-trophy-line"></i> Vencedor: <strong>${s.vencedor}</strong></p>
+                        ` : ''}
+                    </div>
+                </div>
+            `}).join('')}
+            <div class="pt-2">
+                <button onclick="showScreen('historicoSorteios')" class="w-full py-3 rounded-xl bg-white border border-slate-200 text-sm text-slate-600 font-medium hover:bg-slate-50">
+                    <i class="ri-archive-line"></i> Ver histórico de sorteios passados
+                </button>
+            </div>
+        </div>
+    </div>`;
+}
+
+async function telaHistoricoSorteios() {
+    const data = await api('/cliente/sorteios/historico');
+    const e = STATE.empresa;
+    const cor = e.cor_primaria, corSec = e.cor_secundaria;
+
+    screenContainer.innerHTML = `
+    <div class="fade-in flex-1 flex flex-col overflow-y-auto bg-slate-50">
+        <div class="px-5 pt-6 pb-10 text-white" style="background:linear-gradient(135deg,${cor},${corSec})">
+            <button onclick="showScreen('sorteios')" class="text-white/80 mb-3 flex items-center gap-1 text-sm hover:text-white transition">
+                <i class="ri-arrow-left-line"></i> Voltar
+            </button>
+            <h1 class="text-2xl font-bold">Histórico de sorteios</h1>
+            <p class="text-white/80 text-sm mt-1">Sorteios que você participou</p>
+        </div>
+
+        <div class="px-4 -mt-6 pb-6 space-y-3">
+            ${data.sorteios.length === 0 ? `
+                <div class="bg-white rounded-2xl shadow-md border border-slate-100 p-8 text-center">
+                    <div class="w-14 h-14 mx-auto rounded-full bg-slate-100 flex items-center justify-center mb-3">
+                        <i class="ri-archive-line text-3xl text-slate-400"></i>
+                    </div>
+                    <p class="text-sm text-slate-500 font-medium">Nenhum sorteio no histórico</p>
+                    <p class="text-xs text-slate-400 mt-1">Sorteios finalizados aparecerão aqui</p>
+                </div>
+            ` : ''}
+            ${data.sorteios.map(s => {
+                const eVencedor = s.eu_venci;
+                const ehCancelado = s.status === 'cancelado';
+                return `
+                <div class="rounded-2xl border-2 ${eVencedor ? 'border-amber-300 bg-amber-50' : 'border-slate-200 bg-white'} overflow-hidden shadow-sm">
+                    <div class="p-4">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex-1 min-w-0">
+                                <p class="font-bold text-slate-800">${s.nome}</p>
+                                <p class="text-[11px] text-slate-400 mt-0.5">${s.data_sorteio}</p>
+                            </div>
+                            <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full ${ehCancelado ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-600'}">
+                                ${ehCancelado ? 'Cancelado' : 'Encerrado'}
+                            </span>
+                        </div>
+
+                        <div class="mt-2 flex flex-wrap gap-1.5">
+                            ${s.meus_numeros.map(n => {
+                                const venceu = s.vencedor_bilhete === n;
+                                return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono text-xs ${venceu ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-600'}">
+                                    ${venceu ? '🏆 ' : ''}${n}
+                                </span>`;
+                            }).join('')}
+                        </div>
+
+                        ${!ehCancelado && s.vencedor ? `
+                            <p class="text-xs text-slate-500 mt-3">
+                                ${eVencedor
+                                    ? `<i class="ri-trophy-fill text-amber-500"></i> <strong>Você venceu!</strong>`
+                                    : `<i class="ri-trophy-line"></i> Vencedor: <strong>${s.vencedor}</strong>`}
+                            </p>
                         ` : ''}
                     </div>
                 </div>

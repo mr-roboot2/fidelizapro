@@ -15,7 +15,7 @@ class Sorteio extends Model
         'empresa_id', 'nome', 'descricao', 'imagem',
         'recompensa_id', 'valor_estimado',
         'data_sorteio', 'status',
-        'max_bilhetes_por_cliente',
+        'max_bilhetes_por_cliente', 'limite_bilhetes_dia_por_ip',
         'vencedor_cliente_id', 'vencedor_bilhete_id', 'sorteado_em',
     ];
 

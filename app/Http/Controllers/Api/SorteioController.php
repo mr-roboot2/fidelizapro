@@ -6,9 +6,58 @@ use App\Http\Controllers\Controller;
 use App\Models\Sorteio;
 use App\Models\SorteioBilhete;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class SorteioController extends Controller
 {
+    /**
+     * Sorteios passados (finalizado ou cancelado) onde o cliente teve bilhete
+     * ou venceu. Diferente do index, que mostra só o que tá vivo.
+     */
+    public function historico(Request $request)
+    {
+        $cliente = $request->user();
+
+        $sorteios = Sorteio::where('empresa_id', $cliente->empresa_id)
+            ->whereIn('status', ['finalizado', 'cancelado'])
+            ->whereExists(function ($q) use ($cliente) {
+                $q->select(DB::raw(1))
+                  ->from('sorteio_bilhetes')
+                  ->whereColumn('sorteio_bilhetes.sorteio_id', 'sorteios.id')
+                  ->where('sorteio_bilhetes.cliente_id', $cliente->id);
+            })
+            ->orderByDesc('data_sorteio')
+            ->with(['recompensa', 'vencedor:id,nome', 'vencedorBilhete:id,sorteio_id,numero'])
+            ->limit(50)
+            ->get();
+
+        $bilhetesDoCliente = SorteioBilhete::where('cliente_id', $cliente->id)
+            ->whereIn('sorteio_id', $sorteios->pluck('id'))
+            ->orderBy('numero')
+            ->get(['id', 'sorteio_id', 'numero'])
+            ->groupBy('sorteio_id');
+
+        return response()->json([
+            'sorteios' => $sorteios->map(fn (Sorteio $s) => [
+                'id'             => $s->id,
+                'nome'           => $s->nome,
+                'descricao'      => $s->descricao,
+                'imagem'         => $s->imagem ? asset('storage/'.$s->imagem) : null,
+                'data_sorteio'   => $s->data_sorteio->format('d/m/Y'),
+                'status'         => $s->status,
+                'recompensa'     => $s->recompensa?->nome,
+                'valor_estimado' => $s->valor_estimado ? (float) $s->valor_estimado : null,
+                'meus_bilhetes'  => $bilhetesDoCliente->has($s->id) ? $bilhetesDoCliente[$s->id]->count() : 0,
+                'meus_numeros'   => $bilhetesDoCliente->has($s->id)
+                    ? $bilhetesDoCliente[$s->id]->map(fn ($b) => '#'.str_pad((string) $b->numero, 4, '0', STR_PAD_LEFT))->all()
+                    : [],
+                'vencedor'         => $s->vencedor?->nome,
+                'vencedor_bilhete' => $s->vencedorBilhete?->numeroFormatado(),
+                'eu_venci'         => $s->vencedor_cliente_id === $cliente->id,
+            ])->values(),
+        ]);
+    }
+
     /**
      * Lista sorteios da empresa do cliente:
      *  - ativos (sempre)
@@ -66,6 +115,9 @@ class SorteioController extends Controller
             'total_bilhetes_ativos' => (int) SorteioBilhete::where('cliente_id', $cliente->id)
                 ->whereHas('sorteio', fn ($q) => $q->where('empresa_id', $cliente->empresa_id)->where('status', 'ativo'))
                 ->count(),
+            'tem_historico' => SorteioBilhete::where('cliente_id', $cliente->id)
+                ->whereHas('sorteio', fn ($q) => $q->where('empresa_id', $cliente->empresa_id)->whereIn('status', ['finalizado', 'cancelado']))
+                ->exists(),
         ]);
     }
 }

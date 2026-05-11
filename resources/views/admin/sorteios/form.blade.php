@@ -63,12 +63,17 @@
             <input type="number" name="max_bilhetes_por_cliente" value="{{ old('max_bilhetes_por_cliente', $sorteio->max_bilhetes_por_cliente) }}" min="1" max="1000" class="w-full border rounded-lg px-3 py-2 text-sm">
         </div>
         <div>
-            <label class="text-xs text-slate-600">Imagem (opcional)</label>
-            <input type="file" name="imagem" accept="image/*" class="w-full text-sm">
-            @if ($sorteio->imagem)
-                <img src="{{ asset('storage/'.$sorteio->imagem) }}" class="h-16 mt-2 rounded">
-            @endif
+            <label class="text-xs text-slate-600">Antifraude: limite por IP/dia</label>
+            <input type="number" name="limite_bilhetes_dia_por_ip" value="{{ old('limite_bilhetes_dia_por_ip', $sorteio->limite_bilhetes_dia_por_ip) }}" min="1" max="200" placeholder="vazio = sem limite" class="w-full border rounded-lg px-3 py-2 text-sm">
         </div>
+    </div>
+
+    <div>
+        <label class="text-xs text-slate-600">Imagem (opcional)</label>
+        <input type="file" name="imagem" accept="image/*" class="w-full text-sm">
+        @if ($sorteio->imagem)
+            <img src="{{ asset('storage/'.$sorteio->imagem) }}" class="h-16 mt-2 rounded">
+        @endif
     </div>
 
     <div class="flex justify-end gap-2 border-t pt-4">

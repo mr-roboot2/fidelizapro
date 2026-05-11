@@ -72,6 +72,7 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
     Route::post('cliente/roleta/girar', [RoletaController::class, 'girar']);
 
     Route::get('cliente/sorteios', [SorteioController::class, 'index']);
+    Route::get('cliente/sorteios/historico', [SorteioController::class, 'historico']);
 
     // PWA da loja — operadores autenticados via Sanctum (User com empresa_id)
     Route::post('loja/logout', [LojaController::class, 'logout']);
