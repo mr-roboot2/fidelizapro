@@ -55,15 +55,33 @@
                         <td class="p-3">{{ $r->cliente->nome }}</td>
                         <td class="p-3">{{ $r->recompensa->nome }}</td>
                         <td class="p-3 text-right">{{ number_format($r->pontos_usados, 0, ',', '.') }}</td>
-                        <td class="p-3">{{ $r->created_at->format('d/m/Y H:i') }}</td>
+                        <td class="p-3">
+                            {{ $r->created_at->format('d/m/Y H:i') }}
+                            @if ($r->expira_em && !in_array($r->status, ['entregue', 'cancelado']))
+                                <p @class([
+                                    'text-[10px] mt-0.5',
+                                    'text-rose-600 font-semibold' => $r->expirado(),
+                                    'text-amber-600' => !$r->expirado() && $r->expira_em->diffInDays(now()) <= 3,
+                                    'text-slate-400' => !$r->expirado() && $r->expira_em->diffInDays(now()) > 3,
+                                ])>
+                                    <i class="ri-time-line"></i>
+                                    {{ $r->expirado() ? 'Expirou em ' : 'Expira em ' }}
+                                    {{ $r->expira_em->format('d/m/Y') }}
+                                </p>
+                            @endif
+                        </td>
                         <td class="p-3 text-center">
-                            <span @class([
-                                'text-xs px-2 py-0.5 rounded-full',
-                                'bg-amber-100 text-amber-700' => $r->status === 'pendente',
-                                'bg-blue-100 text-blue-700' => $r->status === 'aprovado',
-                                'bg-emerald-100 text-emerald-700' => $r->status === 'entregue',
-                                'bg-slate-200 text-slate-600' => $r->status === 'cancelado',
-                            ])>{{ ucfirst($r->status) }}</span>
+                            @if ($r->expirado())
+                                <span class="text-xs px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">Expirado</span>
+                            @else
+                                <span @class([
+                                    'text-xs px-2 py-0.5 rounded-full',
+                                    'bg-amber-100 text-amber-700' => $r->status === 'pendente',
+                                    'bg-blue-100 text-blue-700' => $r->status === 'aprovado',
+                                    'bg-emerald-100 text-emerald-700' => $r->status === 'entregue',
+                                    'bg-slate-200 text-slate-600' => $r->status === 'cancelado',
+                                ])>{{ ucfirst($r->status) }}</span>
+                            @endif
                         </td>
                         <td class="p-3 text-center space-x-1">
                             @if ($r->status === 'pendente')

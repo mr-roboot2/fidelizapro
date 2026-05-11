@@ -1572,10 +1572,14 @@ async function telaResgates() {
                 </div>
             ` : ''}
             ${data.resgates.map(r => {
-                const info = statusInfo(r.status);
-                const utilizavel = ['pendente','aprovado'].includes(r.status);
+                const info = r.expirado
+                    ? { label: 'Expirado', cls: 'bg-rose-100 text-rose-700', icon: 'ri-time-line' }
+                    : statusInfo(r.status);
+                const utilizavel = ['pendente','aprovado'].includes(r.status) && !r.expirado;
+                const diasRestantes = r.expira_em_iso ? Math.ceil((new Date(r.expira_em_iso) - new Date()) / 86400000) : null;
+                const alertaPrazo = diasRestantes !== null && diasRestantes >= 0 && diasRestantes <= 3;
                 return `
-                <div class="bg-white border border-slate-200 rounded-2xl p-4">
+                <div class="bg-white border ${r.expirado ? 'border-rose-200 opacity-75' : 'border-slate-200'} rounded-2xl p-4">
                     <div class="flex items-start gap-3">
                         <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background:${cor}15">
                             <i class="ri-gift-line text-xl" style="color:${cor}"></i>
@@ -1583,18 +1587,23 @@ async function telaResgates() {
                         <div class="flex-1 min-w-0">
                             <p class="font-semibold text-slate-800 truncate">${r.recompensa}</p>
                             <p class="text-xs text-slate-500 mt-0.5">${r.data}</p>
-                            <div class="flex items-center gap-2 mt-2">
+                            <div class="flex items-center gap-2 mt-2 flex-wrap">
                                 <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 ${info.cls}">
                                     <i class="${info.icon}"></i> ${info.label}
                                 </span>
-                                <span class="text-xs text-amber-700">−${fmtNum(r.pontos_usados)} pts</span>
+                                ${r.pontos_usados > 0 ? `<span class="text-xs text-amber-700">−${fmtNum(r.pontos_usados)} pts</span>` : ''}
+                                ${r.expira_em && !r.expirado && ['pendente','aprovado'].includes(r.status) ? `
+                                    <span class="text-[11px] ${alertaPrazo ? 'text-rose-600 font-semibold' : 'text-slate-500'}">
+                                        <i class="ri-time-line"></i> Resgate até ${r.expira_em}
+                                    </span>` : ''}
                             </div>
                         </div>
                     </div>
                     ${utilizavel ? `
-                        <div class="mt-3 p-3 bg-amber-50 border-2 border-dashed border-amber-300 rounded-xl text-center">
-                            <p class="text-[11px] text-amber-700 mb-1 uppercase tracking-wider">Apresente no caixa</p>
-                            <p class="text-2xl font-bold font-mono tracking-wider text-amber-800">${r.codigo}</p>
+                        <div class="mt-3 p-3 ${alertaPrazo ? 'bg-rose-50 border-rose-300' : 'bg-amber-50 border-amber-300'} border-2 border-dashed rounded-xl text-center">
+                            <p class="text-[11px] ${alertaPrazo ? 'text-rose-700' : 'text-amber-700'} mb-1 uppercase tracking-wider">Apresente no caixa</p>
+                            <p class="text-2xl font-bold font-mono tracking-wider ${alertaPrazo ? 'text-rose-800' : 'text-amber-800'}">${r.codigo}</p>
+                            ${alertaPrazo ? `<p class="text-[11px] text-rose-600 mt-1">⏰ ${diasRestantes === 0 ? 'Expira hoje!' : `Resta${diasRestantes === 1 ? '' : 'm'} ${diasRestantes} dia${diasRestantes === 1 ? '' : 's'}`}</p>` : ''}
                         </div>
                     ` : `
                         <p class="text-[11px] font-mono text-slate-400 mt-2">${r.codigo}</p>
@@ -2120,7 +2129,9 @@ function easeOutQuart(t) { return 1 - Math.pow(1 - t, 4); }
 async function roletaAnimar(canvas, premios, indicePremio, duracaoMs) {
     const n = premios.length;
     const setor = (Math.PI * 2) / n;
-    const voltas = 5 + Math.random() * 2;
+    // voltas precisa ser INTEIRO — qualquer fração desalinha o ângulo final
+    // do centro do setor sorteado e faz o ponteiro cair fora do prêmio.
+    const voltas = 5 + Math.floor(Math.random() * 3); // 5, 6 ou 7
     const anguloFinal = voltas * Math.PI * 2 + (Math.PI * 2 - (indicePremio * setor + setor / 2));
 
     let inicio = null;
@@ -2173,6 +2184,10 @@ function roletaModalResultado(resultado, premio) {
                 <div class="text-6xl mb-3 animate-bounce">${icone}</div>
                 <h2 class="text-2xl font-bold">${titulo}</h2>
                 <p class="text-white/95 mt-2 text-sm">${resultado.mensagem}</p>
+                ${resultado.expira_em ? `
+                    <p class="text-white/80 text-xs mt-3 inline-flex items-center gap-1 bg-white/15 px-3 py-1 rounded-full">
+                        <i class="ri-time-line"></i> Apresente o código até ${resultado.expira_em}
+                    </p>` : ''}
             </div>
             <div class="p-5 flex flex-col gap-2" style="padding-bottom: max(1.25rem, env(safe-area-inset-bottom));">
                 ${resultado.resgate_id ? `
@@ -2297,10 +2312,23 @@ async function telaRoleta() {
             try {
                 roletaTic(1500); roletaVibrar(20);
                 const resp = await api('/cliente/roleta/girar', { method: 'POST' });
-                const idx = resp.premio
-                    ? premios.findIndex(p => p.id === resp.premio.id)
-                    : -1;
-                const idxAnimar = idx >= 0 ? idx : 0;
+
+                // Servidor manda a lista atual + o índice — sincroniza antes de
+                // animar pra não cair em sector errado se o admin tiver mexido
+                // nos prêmios durante a sessão.
+                if (Array.isArray(resp.premios) && resp.premios.length) {
+                    const mudou = resp.premios.length !== premios.length
+                        || resp.premios.some((p, i) => p.id !== (premios[i] && premios[i].id));
+                    if (mudou) {
+                        premios.length = 0;
+                        premios.push(...resp.premios);
+                        roletaDesenhar(canvas, premios, 0);
+                    }
+                }
+
+                const idxAnimar = (resp.premio_index !== null && resp.premio_index !== undefined)
+                    ? resp.premio_index
+                    : 0;
                 const dur = status.tempo_min_ms + Math.random() * (status.tempo_max_ms - status.tempo_min_ms);
                 await roletaAnimar(canvas, premios, idxAnimar, dur);
 

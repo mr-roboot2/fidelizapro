@@ -84,16 +84,32 @@ class RoletaService
                 $credito->increment('giros_disponiveis');
             }
 
+            // Lista atual de prêmios visíveis (mesma ordem usada no canvas).
+            // Mandamos o índice direto: elimina findIndex no cliente e protege
+            // contra cache stale (admin editou prêmios durante a sessão).
+            $premiosVisiveis = $roleta->premios->values();
+            $premioIndex = $premio
+                ? $premiosVisiveis->search(fn (RoletaPremio $p) => $p->id === $premio->id)
+                : null;
+
             return [
-                'roleta_id'  => $roleta->id,
-                'premio'     => $premio ? [
+                'roleta_id'    => $roleta->id,
+                'premio'       => $premio ? [
                     'id'    => $premio->id,
                     'ordem' => $premio->ordem,
                     'label' => $premio->label,
                     'cor'   => $premio->cor,
                     'tipo'  => $premio->tipo,
                 ] : null,
-                'resultado'  => $resultado,
+                'premio_index' => $premioIndex === false ? null : $premioIndex,
+                'premios'      => $premiosVisiveis->map(fn (RoletaPremio $p) => [
+                    'id'    => $p->id,
+                    'ordem' => $p->ordem,
+                    'label' => $p->label,
+                    'cor'   => $p->cor,
+                    'tipo'  => $p->tipo,
+                ])->values(),
+                'resultado'    => $resultado,
             ];
         });
     }
@@ -226,9 +242,11 @@ class RoletaService
                 'status'        => 'aprovado',
                 'observacao'    => "Prêmio da roleta: {$premio->label}",
                 'aprovado_em'   => now(),
+                'expira_em'     => $roleta->validade_dias ? now()->addDays($roleta->validade_dias) : null,
             ]);
             $giro->recompensa_id = $premio->recompensa_id;
             $giro->resgate_id    = $resgate->id;
+            $expiraEm            = $resgate->expira_em;
         }
 
         $giro->save();
@@ -238,6 +256,7 @@ class RoletaService
             'pontos_concedidos' => $giro->pontos_concedidos,
             'recompensa_id'     => $giro->recompensa_id,
             'resgate_id'        => $giro->resgate_id,
+            'expira_em'         => isset($expiraEm) ? $expiraEm?->format('d/m/Y') : null,
             'mensagem'          => $this->mensagem($roleta, $premio, $giro),
         ];
     }
@@ -273,6 +292,7 @@ class RoletaService
             'pontos_concedidos' => $pontos,
             'recompensa_id'     => null,
             'resgate_id'        => null,
+            'expira_em'         => null,
             'mensagem'          => str_replace('{pontos}', (string) $pontos, $roleta->mensagem_consolacao),
         ];
     }

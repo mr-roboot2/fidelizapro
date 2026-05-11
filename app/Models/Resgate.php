@@ -14,15 +14,23 @@ class Resgate extends Model
 
     protected $fillable = [
         'empresa_id', 'cliente_id', 'recompensa_id', 'codigo', 'pontos_usados',
-        'status', 'observacao', 'aprovado_por', 'aprovado_em',
+        'status', 'observacao', 'aprovado_por', 'aprovado_em', 'expira_em',
         'entregue_em', 'cancelado_em', 'ip',
     ];
 
     protected $casts = [
         'aprovado_em' => 'datetime',
+        'expira_em'   => 'datetime',
         'entregue_em' => 'datetime',
         'cancelado_em' => 'datetime',
     ];
+
+    public function expirado(): bool
+    {
+        if (!$this->expira_em) return false;
+        if (in_array($this->status, ['entregue', 'cancelado'])) return false;
+        return $this->expira_em->isPast();
+    }
 
     protected static function booted(): void
     {

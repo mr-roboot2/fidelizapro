@@ -15,7 +15,7 @@ class Roleta extends Model
         'empresa_id', 'nome', 'ativa', 'modo',
         'tempo_min_ms', 'tempo_max_ms',
         'mensagem_consolacao', 'pontos_consolacao',
-        'limite_giros_dia',
+        'limite_giros_dia', 'validade_dias',
     ];
 
     protected $casts = [

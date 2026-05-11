@@ -82,6 +82,10 @@
                     <input type="number" name="pontos_consolacao" value="{{ old('pontos_consolacao', $roleta->pontos_consolacao) }}" min="0" max="255" class="w-full border rounded-lg px-3 py-2 text-sm">
                 </div>
                 <div>
+                    <label class="text-xs text-slate-600">Validade do prêmio (dias)</label>
+                    <input type="number" name="validade_dias" value="{{ old('validade_dias', $roleta->validade_dias) }}" min="1" max="365" placeholder="vazio = sem validade" class="w-full border rounded-lg px-3 py-2 text-sm">
+                </div>
+                <div>
                     <label class="text-xs text-slate-600">Tempo mínimo da animação (ms)</label>
                     <input type="number" name="tempo_min_ms" value="{{ old('tempo_min_ms', $roleta->tempo_min_ms) }}" min="1500" max="15000" step="100" class="w-full border rounded-lg px-3 py-2 text-sm">
                 </div>

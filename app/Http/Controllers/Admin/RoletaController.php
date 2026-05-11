@@ -151,6 +151,7 @@ class RoletaController extends Controller
             'mensagem_consolacao' => 'required|string|max:255',
             'pontos_consolacao'   => 'required|integer|min:0|max:255',
             'limite_giros_dia'    => 'required|integer|min:1|max:50',
+            'validade_dias'       => 'nullable|integer|min:1|max:365',
         ]);
         $dados['ativa'] = $request->boolean('ativa');
         $roleta->update($dados);

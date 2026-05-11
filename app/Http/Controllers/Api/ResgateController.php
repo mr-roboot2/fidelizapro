@@ -21,6 +21,9 @@ class ResgateController extends Controller
                 'data' => $r->created_at->format('d/m/Y H:i'),
                 'aprovado_em' => $r->aprovado_em?->format('d/m/Y H:i'),
                 'entregue_em' => $r->entregue_em?->format('d/m/Y H:i'),
+                'expira_em' => $r->expira_em?->format('d/m/Y'),
+                'expira_em_iso' => $r->expira_em?->toIso8601String(),
+                'expirado' => $r->expirado(),
             ]);
 
         return response()->json(['resgates' => $resgates]);
