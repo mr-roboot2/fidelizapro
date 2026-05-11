@@ -35,6 +35,17 @@ class Plano extends Model
      * Catálogo de módulos que um plano pode habilitar. A chave é usada nos
      * checks (Empresa::temModulo('roleta')) e o valor é o rótulo de UI.
      */
+    /**
+     * Módulos considerados "avançados" — caem no bloqueio_parcial quando a
+     * empresa tem cobrança atrasada entre 8-30 dias. Os básicos (clientes,
+     * compras, recompensas) continuam disponíveis pra não derrubar a operação
+     * essencial.
+     */
+    public const MODULOS_AVANCADOS = [
+        'roleta', 'sorteio', 'whatsapp', 'automacoes', 'parceiros',
+        'campanhas', 'antifraude',
+    ];
+
     public const MODULOS_DISPONIVEIS = [
         'roleta'      => 'Roleta da Sorte',
         'sorteio'     => 'Sorteios',

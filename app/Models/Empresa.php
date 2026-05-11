@@ -83,6 +83,43 @@ class Empresa extends Model
         return $plano->temModulo($chave);
     }
 
+    /**
+     * Status financeiro pra controle de bloqueio gradual:
+     *   em_dia         → tudo liberado
+     *   trial          → tudo liberado, banner informativo
+     *   aviso          → 0-7 dias após vencimento, libera tudo
+     *   bloqueio_parcial → 8-30 dias, bloqueia módulos avançados
+     *   bloqueio_total   → 30+ dias OU status='cancelada'/'pausada'
+     *   sem_assinatura → nunca teve, libera (modo "instalação")
+     */
+    public function statusInadimplencia(): string
+    {
+        $a = $this->assinatura;
+        if (!$a) return 'sem_assinatura';
+
+        if (in_array($a->status, ['cancelada', 'pausada'], true)) return 'bloqueio_total';
+        if ($a->emTrial()) return 'trial';
+        if (!$a->proximo_vencimento) return 'em_dia';
+
+        $hoje = now()->startOfDay();
+        $venc = $a->proximo_vencimento->startOfDay();
+        if ($venc->gte($hoje)) return 'em_dia';
+
+        $diasAtraso = (int) $venc->diffInDays($hoje);
+        if ($diasAtraso <= 7)  return 'aviso';
+        if ($diasAtraso <= 30) return 'bloqueio_parcial';
+        return 'bloqueio_total';
+    }
+
+    public function diasAtraso(): int
+    {
+        $a = $this->assinatura;
+        if (!$a || !$a->proximo_vencimento) return 0;
+        $venc = $a->proximo_vencimento->startOfDay();
+        $hoje = now()->startOfDay();
+        return $venc->lt($hoje) ? (int) $venc->diffInDays($hoje) : 0;
+    }
+
     public function users(): HasMany
     {
         return $this->hasMany(User::class);

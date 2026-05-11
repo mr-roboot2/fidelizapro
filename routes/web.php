@@ -81,7 +81,7 @@ Route::get('/loja/', [\App\Http\Controllers\LojaPwaController::class, 'app']);
 Route::get('/loja/manifest.json', [\App\Http\Controllers\LojaPwaController::class, 'manifest']);
 
 // Painel admin
-Route::middleware(['admin.auth', 'empresa.scope'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['admin.auth', 'empresa.scope', 'verifica.pagamento'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::get('caixa', [CaixaController::class, 'index'])->name('caixa.index');

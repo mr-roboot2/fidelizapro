@@ -25,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'install.gate' => EnsureNotInstalled::class,
             'empresa.throttle' => EmpresaThrottle::class,
             'modulo' => RequireModulo::class,
+            'verifica.pagamento' => VerificaPagamento::class,
         ]);
 
         // API consumida via Bearer token (sem cookies/CSRF). Não usar statefulApi(),

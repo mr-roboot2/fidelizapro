@@ -82,6 +82,7 @@
 </aside>
 
 <main class="flex-1 flex flex-col overflow-hidden">
+    @include('admin._partials.banner_inadimplencia')
     @if (session('impersonate_origem_id'))
         <div class="bg-amber-500 text-white px-4 py-2 text-sm flex items-center justify-between">
             <span><i class="ri-spy-line"></i> Você está acessando como <strong>{{ $userAtivo->name ?? '' }}</strong> ({{ $empresaAtiva->nome ?? '' }})</span>
