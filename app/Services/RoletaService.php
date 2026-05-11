@@ -8,6 +8,7 @@ use App\Models\Roleta;
 use App\Models\RoletaCredito;
 use App\Models\RoletaGiro;
 use App\Models\RoletaPremio;
+use App\Models\Sorteio;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -16,6 +17,7 @@ class RoletaService
     public function __construct(
         private PontuacaoService $pontuacao,
         private WhatsappService $whatsapp,
+        private SorteioService $sorteioService,
     ) {}
 
     public function statusParaCliente(Cliente $cliente): array
@@ -265,6 +267,19 @@ class RoletaService
             return $this->aplicarConsolacao($roleta, $cliente, $premio, $ip);
         }
 
+        // Sorteio_bilhete só funciona se há sorteio ativo na empresa. Sem
+        // sorteio ativo, fallback pra consolação (cliente não fica sem nada).
+        $sorteioAtivo = null;
+        if ($premio->tipo === 'sorteio_bilhete') {
+            $sorteioAtivo = Sorteio::where('empresa_id', $cliente->empresa_id)
+                ->where('status', 'ativo')
+                ->orderByDesc('id')
+                ->first();
+            if (!$sorteioAtivo) {
+                return $this->aplicarConsolacao($roleta, $cliente, $premio, $ip);
+            }
+        }
+
         $giro = new RoletaGiro([
             'roleta_id'        => $roleta->id,
             'cliente_id'       => $cliente->id,
@@ -304,6 +319,22 @@ class RoletaService
             $expiraEm            = $resgate->expira_em;
 
             $this->notificarPremioGanho($cliente, $premio->label, $resgate->codigo, $resgate->expira_em);
+        }
+
+        if ($premio->tipo === 'sorteio_bilhete' && $sorteioAtivo) {
+            $giro->save();
+            $bilhete = $this->sorteioService->criarBilhete($sorteioAtivo, $cliente, 'roleta', 'roleta_giro:'.$giro->id);
+            return [
+                'tipo_resultado'    => 'sorteio_bilhete',
+                'pontos_concedidos' => null,
+                'recompensa_id'     => null,
+                'resgate_id'        => null,
+                'expira_em'         => null,
+                'sorteio_nome'      => $sorteioAtivo->nome,
+                'sorteio_data'      => $sorteioAtivo->data_sorteio->format('d/m/Y'),
+                'bilhete_numero'    => $bilhete?->numeroFormatado(),
+                'mensagem'          => $this->mensagemBilhete($roleta, $cliente, $sorteioAtivo),
+            ];
         }
 
         $giro->save();
@@ -373,5 +404,11 @@ class RoletaService
             '{primeiro_nome}' => explode(' ', $cliente->nome)[0] ?? '',
             '{nome}'          => $cliente->nome,
         ]);
+    }
+
+    private function mensagemBilhete(Roleta $roleta, Cliente $cliente, Sorteio $sorteio): string
+    {
+        $primeiroNome = explode(' ', $cliente->nome)[0] ?? '';
+        return "🎟️ {$primeiroNome}, você ganhou um bilhete pro sorteio \"{$sorteio->nome}\"! Sorteio dia {$sorteio->data_sorteio->format('d/m/Y')}.";
     }
 }

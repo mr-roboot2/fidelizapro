@@ -194,6 +194,7 @@ async function showScreen(nome, params = {}) {
         parceiros: telaParceiros,
         meusCupons: telaMeusCupons,
         roleta: telaRoleta,
+        sorteios: telaSorteios,
     };
     screenContainer.innerHTML = '<div class="flex-1 flex items-center justify-center"><i class="ri-loader-4-line animate-spin text-3xl text-slate-400"></i></div>';
     try {
@@ -648,9 +649,10 @@ async function telaRegistrar() {
 
 // Tela 3: HOME
 async function telaHome() {
-    const [data, roleta] = await Promise.all([
+    const [data, roleta, sorteiosData] = await Promise.all([
         api('/cliente/dashboard'),
         api('/cliente/roleta/status').catch(() => ({ ativa: false })),
+        api('/cliente/sorteios').catch(() => ({ sorteios: [], total_bilhetes_ativos: 0 })),
     ]);
     Object.assign(STATE.cliente, { pontos_atual: data.pontos, cashback_atual: data.cashback });
     persistir();
@@ -752,6 +754,45 @@ async function telaHome() {
                 </div>
             </button>
         </div>` : ''}
+
+        ${(() => {
+            const lista          = sorteiosData.sorteios || [];
+            const temBilhetes    = sorteiosData.total_bilhetes_ativos > 0;
+            const sorteioAtivo   = lista.find(s => s.status === 'ativo');
+            const venceu         = lista.find(s => s.eu_venci);
+            const sortidoComBilh = lista.find(s => s.status === 'sorteado' && s.meus_bilhetes > 0 && !s.eu_venci);
+
+            if (!temBilhetes && !sorteioAtivo && !venceu && !sortidoComBilh) return '';
+
+            let icone = '🎟️', titulo, sub, cor = 'border-amber-200';
+            if (venceu) {
+                icone = '🏆'; cor = 'border-amber-400 bg-amber-50';
+                titulo = `Você venceu "${venceu.nome}"!`;
+                sub = 'Toque pra ver o resultado';
+            } else if (temBilhetes) {
+                titulo = `Você tem ${sorteiosData.total_bilhetes_ativos} ${sorteiosData.total_bilhetes_ativos === 1 ? 'bilhete' : 'bilhetes'} ativos`;
+                sub = 'Toque pra ver os sorteios';
+            } else if (sorteioAtivo) {
+                titulo = `Sorteio "${sorteioAtivo.nome}" tá rolando!`;
+                sub = 'Gire a roleta pra ganhar bilhetes';
+            } else {
+                titulo = `Resultado de "${sortidoComBilh.nome}" saiu`;
+                sub = 'Toque pra ver';
+            }
+            return `
+            <div class="px-4 mt-3">
+                <button onclick="showScreen('sorteios')" class="w-full text-left rounded-2xl p-4 bg-white border ${cor} shadow-sm transition active:scale-[0.99]">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-2xl">${icone}</div>
+                        <div class="flex-1 min-w-0">
+                            <p class="font-bold text-slate-800">${titulo}</p>
+                            <p class="text-xs text-slate-500">${sub}</p>
+                        </div>
+                        <i class="ri-arrow-right-s-line text-slate-300 text-xl"></i>
+                    </div>
+                </button>
+            </div>`;
+        })()}
 
         <div class="p-4 mt-2">
             <h3 class="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-3 px-1">Acessar</h3>
@@ -2171,9 +2212,11 @@ function roletaConfete() {
 function roletaModalResultado(resultado, premio) {
     const ehGanho = resultado.tipo_resultado !== 'consolacao';
     const cor = ehGanho ? 'linear-gradient(135deg,#f59e0b,#ef4444 60%,#a855f7)' : 'linear-gradient(135deg,#6366f1,#8b5cf6)';
-    const icone = ehGanho ? '🎉' : '💛';
+    const icone = resultado.tipo_resultado === 'sorteio_bilhete' ? '🎟️' : (ehGanho ? '🎉' : '💛');
     const titulo = ehGanho
-        ? (resultado.tipo_resultado === 'nova_chance' ? 'Nova chance!' : 'Você ganhou!')
+        ? (resultado.tipo_resultado === 'nova_chance' ? 'Nova chance!'
+           : resultado.tipo_resultado === 'sorteio_bilhete' ? 'Bilhete garantido!'
+           : 'Você ganhou!')
         : 'Quase lá!';
 
     const wrap = document.createElement('div');
@@ -2188,12 +2231,26 @@ function roletaModalResultado(resultado, premio) {
                     <p class="text-white/80 text-xs mt-3 inline-flex items-center gap-1 bg-white/15 px-3 py-1 rounded-full">
                         <i class="ri-time-line"></i> Apresente o código até ${resultado.expira_em}
                     </p>` : ''}
+                ${resultado.sorteio_nome ? `
+                    <p class="text-white/80 text-xs mt-3 inline-flex items-center gap-1 bg-white/15 px-3 py-1 rounded-full">
+                        <i class="ri-calendar-event-line"></i> Sorteio "${resultado.sorteio_nome}" — ${resultado.sorteio_data}
+                    </p>
+                    ${resultado.bilhete_numero ? `
+                        <p class="text-white mt-3 inline-flex items-center gap-2 bg-white/25 backdrop-blur px-4 py-2 rounded-full font-bold">
+                            <i class="ri-ticket-2-fill"></i> Seu bilhete: ${resultado.bilhete_numero}
+                        </p>` : ''}
+                ` : ''}
             </div>
             <div class="p-5 flex flex-col gap-2" style="padding-bottom: max(1.25rem, env(safe-area-inset-bottom));">
                 ${resultado.resgate_id ? `
                     <button data-acao="resgates" class="w-full py-3 rounded-xl text-white font-semibold text-sm shadow"
                             style="background:var(--cor-primaria,#6366f1)">
                         Ver meu prêmio <i class="ri-arrow-right-line"></i>
+                    </button>` : ''}
+                ${resultado.tipo_resultado === 'sorteio_bilhete' ? `
+                    <button data-acao="sorteios" class="w-full py-3 rounded-xl text-white font-semibold text-sm shadow"
+                            style="background:var(--cor-primaria,#6366f1)">
+                        Ver meus bilhetes <i class="ri-arrow-right-line"></i>
                     </button>` : ''}
                 <button data-acao="fechar" class="w-full py-3 rounded-xl bg-slate-100 text-slate-700 font-semibold text-sm">
                     ${resultado.tipo_resultado === 'nova_chance' ? 'Girar de novo' : 'Continuar'}
@@ -2334,6 +2391,8 @@ async function telaRoleta() {
 
                 if (resp.resultado.tipo_resultado === 'recompensa' || resp.resultado.tipo_resultado === 'pontos') {
                     roletaWin(); roletaVibrar([60, 40, 60, 40, 120]); roletaConfete();
+                } else if (resp.resultado.tipo_resultado === 'sorteio_bilhete') {
+                    roletaWin(); roletaVibrar([50, 30, 80]); roletaConfete();
                 } else if (resp.resultado.tipo_resultado === 'nova_chance') {
                     roletaWin(); roletaVibrar([40, 30, 40]);
                 } else {
@@ -2342,6 +2401,7 @@ async function telaRoleta() {
 
                 const acao = await roletaModalResultado(resp.resultado, resp.premio);
                 if (acao === 'resgates') return showScreen('resgates');
+                if (acao === 'sorteios') return showScreen('sorteios');
                 showScreen('roleta');
             } catch (e) {
                 toast(e.message || 'Erro ao girar', 'error');
@@ -2353,6 +2413,99 @@ async function telaRoleta() {
             }
         };
     }
+}
+
+// ============ SORTEIOS ============
+
+async function telaSorteios() {
+    const data = await api('/cliente/sorteios');
+    const e = STATE.empresa;
+    const cor = e.cor_primaria, corSec = e.cor_secundaria;
+
+    const statusInfo = (s) => ({
+        ativo:     { label: 'Aceitando bilhetes', cls: 'bg-emerald-100 text-emerald-700', icon: 'ri-play-circle-line' },
+        planejado: { label: 'Em breve',           cls: 'bg-amber-100 text-amber-700',     icon: 'ri-time-line' },
+        sorteado:  { label: 'Sorteado',           cls: 'bg-indigo-100 text-indigo-700',   icon: 'ri-checkbox-circle-line' },
+        cancelado: { label: 'Cancelado',          cls: 'bg-slate-200 text-slate-500',     icon: 'ri-close-circle-line' },
+    }[s] || { label: s, cls: 'bg-slate-200 text-slate-600', icon: 'ri-question-line' });
+
+    screenContainer.innerHTML = `
+    <div class="fade-in flex-1 flex flex-col overflow-y-auto bg-slate-50">
+        <div class="px-5 pt-6 pb-10 text-white" style="background:linear-gradient(135deg,${cor},${corSec})">
+            <button onclick="showScreen('home')" class="text-white/80 mb-3 flex items-center gap-1 text-sm hover:text-white transition">
+                <i class="ri-arrow-left-line"></i> Voltar
+            </button>
+            <h1 class="text-2xl font-bold">Sorteios</h1>
+            <p class="text-white/80 text-sm mt-1">${data.total_bilhetes_ativos} ${data.total_bilhetes_ativos === 1 ? 'bilhete ativo' : 'bilhetes ativos'}</p>
+        </div>
+
+        <div class="px-4 -mt-6 pb-6 space-y-3">
+            ${data.sorteios.length === 0 ? `
+                <div class="bg-white rounded-2xl shadow-md border border-slate-100 p-8 text-center">
+                    <div class="w-14 h-14 mx-auto rounded-full bg-slate-100 flex items-center justify-center mb-3">
+                        <i class="ri-ticket-2-line text-3xl text-slate-400"></i>
+                    </div>
+                    <p class="text-sm text-slate-500 font-medium">Nenhum sorteio ativo</p>
+                    <p class="text-xs text-slate-400 mt-1">Gire a roleta pra ganhar bilhetes!</p>
+                </div>
+            ` : ''}
+            ${data.sorteios.map(s => {
+                const info = statusInfo(s.status);
+                const eVencedor = s.eu_venci;
+                const corCard = eVencedor ? 'border-amber-300 bg-amber-50' : 'border-slate-200 bg-white';
+                return `
+                <div class="rounded-2xl border-2 ${corCard} overflow-hidden shadow-sm">
+                    ${s.imagem ? `<img src="${s.imagem}" class="w-full h-32 object-cover">` : ''}
+                    <div class="p-4">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex-1 min-w-0">
+                                <p class="font-bold text-slate-800">${s.nome}</p>
+                                ${s.descricao ? `<p class="text-xs text-slate-500 mt-0.5 line-clamp-2">${s.descricao}</p>` : ''}
+                            </div>
+                            <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 ${info.cls} shrink-0">
+                                <i class="${info.icon}"></i> ${info.label}
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2 mt-3 text-xs">
+                            <div class="bg-slate-50 rounded-lg p-2">
+                                <p class="text-slate-400 text-[10px] uppercase tracking-wider">Sorteio</p>
+                                <p class="font-semibold text-slate-700">${s.data_sorteio}</p>
+                            </div>
+                            <div class="bg-slate-50 rounded-lg p-2">
+                                <p class="text-slate-400 text-[10px] uppercase tracking-wider">Prêmio</p>
+                                <p class="font-semibold text-slate-700 truncate">
+                                    ${s.recompensa || (s.valor_estimado ? 'R$ ' + Number(s.valor_estimado).toFixed(2).replace('.', ',') : '—')}
+                                </p>
+                            </div>
+                        </div>
+
+                        ${s.meus_bilhetes > 0 ? `
+                            <div class="mt-3 p-3 ${eVencedor ? 'bg-amber-100 border-amber-300' : 'bg-emerald-50 border-emerald-200'} border-2 border-dashed rounded-xl">
+                                <p class="text-[11px] ${eVencedor ? 'text-amber-700' : 'text-emerald-700'} uppercase tracking-wider font-semibold">
+                                    <i class="ri-ticket-2-fill"></i>
+                                    ${eVencedor ? 'BILHETE VENCEDOR!' : `Seus ${s.meus_bilhetes} ${s.meus_bilhetes === 1 ? 'bilhete' : 'bilhetes'}`}
+                                </p>
+                                <div class="flex flex-wrap gap-1.5 mt-2">
+                                    ${s.meus_numeros.map(n => {
+                                        const venceu = s.vencedor_bilhete === n;
+                                        return `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg font-mono font-bold text-sm ${venceu ? 'bg-amber-500 text-white shadow' : 'bg-white text-slate-700 border border-slate-200'}">
+                                            ${venceu ? '🏆 ' : ''}${n}
+                                        </span>`;
+                                    }).join('')}
+                                </div>
+                                ${s.limite ? `<p class="text-[10px] text-slate-500 mt-2">Limite: ${s.meus_bilhetes}/${s.limite} bilhetes por pessoa</p>` : ''}
+                            </div>
+                        ` : ''}
+
+                        ${s.status === 'sorteado' && s.vencedor && !eVencedor ? `
+                            <p class="text-xs text-slate-500 mt-3"><i class="ri-trophy-line"></i> Vencedor: <strong>${s.vencedor}</strong></p>
+                        ` : ''}
+                    </div>
+                </div>
+            `}).join('')}
+        </div>
+    </div>`;
 }
 
 // ============ PWA INSTALL ============

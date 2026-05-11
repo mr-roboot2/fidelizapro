@@ -23,6 +23,7 @@ use App\Http\Controllers\SuperAdmin\PlanoController as SuperPlanoController;
 use App\Http\Controllers\Admin\ParceiroController;
 use App\Http\Controllers\Admin\BeneficioController;
 use App\Http\Controllers\Admin\RoletaController;
+use App\Http\Controllers\Admin\SorteioController;
 use App\Http\Controllers\ParceiroPublicoController;
 use App\Http\Controllers\PwaController;
 use App\Http\Controllers\SuperAdmin\DashboardController as SuperDashboardController;
@@ -140,6 +141,13 @@ Route::middleware(['admin.auth', 'empresa.scope'])->prefix('admin')->name('admin
     Route::delete('roleta/{roleta}/premios/{premio}', [RoletaController::class, 'premioDestroy'])->name('roleta.premios.destroy');
     Route::post('roleta/{roleta}/creditar', [RoletaController::class, 'creditar'])->name('roleta.creditar');
     Route::post('roleta/{roleta}/gatilhos', [RoletaController::class, 'gatilhoSalvar'])->name('roleta.gatilhos.salvar');
+
+    Route::resource('sorteios', SorteioController::class);
+    Route::post('sorteios/{sorteio}/ativar', [SorteioController::class, 'ativar'])->name('sorteios.ativar');
+    Route::post('sorteios/{sorteio}/cancelar', [SorteioController::class, 'cancelar'])->name('sorteios.cancelar');
+    Route::post('sorteios/{sorteio}/finalizar', [SorteioController::class, 'finalizar'])->name('sorteios.finalizar');
+    Route::post('sorteios/{sorteio}/sortear', [SorteioController::class, 'sortear'])->name('sorteios.sortear');
+    Route::post('sorteios/{sorteio}/bilhetes', [SorteioController::class, 'creditarBilhete'])->name('sorteios.bilhetes');
 });
 
 // Tela pública de validação de cupom (parceiro acessa por URL com secret)

@@ -27,10 +27,11 @@ class RoletaPremio extends Model
     ];
 
     public const TIPOS = [
-        'recompensa'  => 'Prêmio do catálogo',
-        'pontos'      => 'Pontos extras',
-        'nova_chance' => 'Nova chance (gira de novo)',
-        'nada'        => 'Nada (cai na consolação)',
+        'recompensa'      => 'Prêmio do catálogo',
+        'pontos'          => 'Pontos extras',
+        'nova_chance'     => 'Nova chance (gira de novo)',
+        'sorteio_bilhete' => 'Bilhete pro sorteio ativo',
+        'nada'            => 'Nada (cai na consolação)',
     ];
 
     public function roleta(): BelongsTo

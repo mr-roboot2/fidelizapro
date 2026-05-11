@@ -82,6 +82,18 @@ class WhatsappTemplate extends Model
             'parametros' => ['nome_cliente', 'recompensa', 'codigo', 'expira_em'],
             'exemplo' => '🎉 {{1}}, você ganhou {{2}} na Roleta da Sorte! Apresente o código {{3}} até {{4}}.',
         ],
+        'sorteio_bilhete_ganho' => [
+            'rotulo' => 'Bilhete de sorteio ganho',
+            'descricao' => 'Quando o cliente recebe um bilhete pra um sorteio (geralmente via roleta).',
+            'parametros' => ['nome_cliente', 'nome_sorteio', 'data_sorteio'],
+            'exemplo' => '🎟️ {{1}}, você ganhou um bilhete pro sorteio "{{2}}"! Sorteio dia {{3}}.',
+        ],
+        'sorteio_vencedor' => [
+            'rotulo' => 'Vencedor de sorteio',
+            'descricao' => 'Quando o cliente é o vencedor sorteado de uma rifa.',
+            'parametros' => ['nome_cliente', 'nome_sorteio'],
+            'exemplo' => '🏆 {{1}}, parabéns! Você foi sorteado(a) em "{{2}}"! Entre em contato com a loja pra retirar.',
+        ],
     ];
 
     public function definicaoEvento(): ?array
