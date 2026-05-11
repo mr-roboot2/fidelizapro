@@ -63,29 +63,65 @@
 
             @if ($cobrancaPendente)
                 <div @class([
-                    'rounded-xl p-4 border-2 flex items-center justify-between gap-3',
+                    'rounded-xl p-4 border-2 space-y-4',
                     'bg-amber-50 border-amber-300' => $statusInad === 'aviso',
                     'bg-orange-50 border-orange-300' => $statusInad === 'bloqueio_parcial',
                     'bg-rose-50 border-rose-300' => $statusInad === 'bloqueio_total',
                     'bg-blue-50 border-blue-200' => in_array($statusInad, ['em_dia', 'trial']),
                 ])>
-                    <div>
-                        <p class="font-semibold text-slate-800">Cobrança pendente</p>
-                        <p class="text-sm text-slate-600">
-                            R$ {{ number_format($cobrancaPendente->valor, 2, ',', '.') }} ·
-                            vence em {{ $cobrancaPendente->vencimento->format('d/m/Y') }}
-                            @if ($cobrancaPendente->vencida())
-                                <span class="text-rose-600 font-semibold">(vencida)</span>
-                            @endif
-                        </p>
+                    @php $meta = $cobrancaPendente->meta ?? []; @endphp
+                    <div class="flex items-start justify-between gap-3 flex-wrap">
+                        <div>
+                            <p class="font-semibold text-slate-800">Cobrança pendente</p>
+                            <p class="text-sm text-slate-600">
+                                R$ {{ number_format($cobrancaPendente->valor, 2, ',', '.') }} ·
+                                vence em {{ $cobrancaPendente->vencimento->format('d/m/Y') }}
+                                @if ($cobrancaPendente->vencida())
+                                    <span class="text-rose-600 font-semibold">(vencida)</span>
+                                @endif
+                            </p>
+                        </div>
+                        @if ($cobrancaPendente->link_pagamento)
+                            <a href="{{ $cobrancaPendente->link_pagamento }}" target="_blank"
+                               class="px-3 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-semibold">
+                                <i class="ri-external-link-line"></i> Abrir no gateway
+                            </a>
+                        @endif
                     </div>
-                    @if ($cobrancaPendente->link_pagamento)
-                        <a href="{{ $cobrancaPendente->link_pagamento }}" target="_blank"
-                           class="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-semibold">
-                            <i class="ri-qr-code-line"></i> Pagar via PIX
-                        </a>
+
+                    @if (!empty($meta['pix_qr_code']) || !empty($meta['pix_copia_cola']))
+                        <div class="grid grid-cols-1 sm:grid-cols-[200px_1fr] gap-4 items-start pt-3 border-t border-current/20"
+                             x-data="{ copiado: false }">
+                            @if (!empty($meta['pix_qr_code']) || !empty($meta['pix_qr_code_svg']))
+                                <div class="bg-white p-2 rounded-lg border border-slate-200 inline-block w-48">
+                                    @if (!empty($meta['pix_qr_code']))
+                                        <img src="data:image/png;base64,{{ $meta['pix_qr_code'] }}" alt="QR PIX" class="w-full">
+                                    @else
+                                        <div class="[&_svg]:w-full [&_svg]:h-auto">{!! $meta['pix_qr_code_svg'] !!}</div>
+                                    @endif
+                                </div>
+                            @endif
+                            <div class="space-y-2">
+                                <div>
+                                    <p class="text-xs text-slate-600 font-semibold uppercase tracking-wider mb-1">PIX copia e cola</p>
+                                    <textarea readonly rows="3"
+                                              class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono bg-white"
+                                              x-ref="codigo">{{ $meta['pix_copia_cola'] }}</textarea>
+                                </div>
+                                <button type="button" @click="$refs.codigo.select(); document.execCommand('copy'); copiado=true; setTimeout(()=>copiado=false,2000)"
+                                        class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold">
+                                    <i class="ri-file-copy-line"></i>
+                                    <span x-text="copiado ? 'Copiado!' : 'Copiar código'"></span>
+                                </button>
+                                @if (!empty($meta['pix_expira_em']))
+                                    <p class="text-[11px] text-slate-500">
+                                        <i class="ri-time-line"></i> QR expira em {{ \Carbon\Carbon::parse($meta['pix_expira_em'])->format('d/m/Y H:i') }}
+                                    </p>
+                                @endif
+                            </div>
+                        </div>
                     @else
-                        <span class="text-xs text-slate-500">Aguardando geração do link</span>
+                        <p class="text-xs text-slate-500"><i class="ri-loader-line animate-spin"></i> Aguardando geração do código PIX...</p>
                     @endif
                 </div>
             @endif

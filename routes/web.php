@@ -225,6 +225,7 @@ Route::middleware(['super.auth'])->prefix('super')->name('super.')->group(functi
 
 // Webhooks de gateway de pagamento (públicos)
 Route::post('/webhook/pagamento/{gateway}', [WebhookPagamentoController::class, 'receber'])->name('webhook.pagamento');
+Route::post('/webhook/pix/{token}', [\App\Http\Controllers\PixWebhookController::class, 'receber'])->name('webhook.pix');
 
 // Webhook WhatsApp Cloud API (Meta) — global (uma WABA pra todas empresas)
 Route::get('/webhook/whatsapp/meta',  [WhatsappWebhookController::class, 'verificar'])->name('webhook.whatsapp.verificar');

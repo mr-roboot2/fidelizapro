@@ -47,7 +47,14 @@ class ConfiguracaoSistemaController extends Controller
             'otp_max_por_telefone' => 'required|integer|min:1|max:50',
             'otp_max_tentativas'   => 'required|integer|min:1|max:50',
             'max_resgates_24h'     => 'required|integer|min:1|max:100',
+            'pix_provider'         => 'required|in:mock,asaas',
+            'pix_ambiente'         => 'required|in:sandbox,producao',
+            'pix_api_key'          => 'nullable|string|max:500',
+            'pix_ativo'            => 'nullable|boolean',
         ]);
+        $dados['pix_ativo'] = $request->boolean('pix_ativo');
+        // Se não veio nova api_key, mantém a existente (campo encrypted)
+        if (empty($dados['pix_api_key'])) unset($dados['pix_api_key']);
 
         if ($request->boolean('remover_logo') && $config->logo) {
             Storage::disk('public')->delete($config->logo);

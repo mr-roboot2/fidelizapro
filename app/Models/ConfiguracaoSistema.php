@@ -22,10 +22,13 @@ class ConfiguracaoSistema extends Model
         'horario_automacoes', 'horario_cashback',
         'rate_limit_auth', 'rate_limit_pdv',
         'otp_max_por_telefone', 'otp_max_tentativas', 'max_resgates_24h',
+        'pix_provider', 'pix_ambiente', 'pix_api_key', 'pix_webhook_token', 'pix_ativo',
     ];
 
     protected $casts = [
         'whatsapp_ativo' => 'boolean',
+        'pix_ativo' => 'boolean',
+        'pix_api_key' => 'encrypted',
         'rate_limit_auth' => 'integer',
         'rate_limit_pdv' => 'integer',
         'otp_max_por_telefone' => 'integer',

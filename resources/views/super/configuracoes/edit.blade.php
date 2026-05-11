@@ -213,6 +213,58 @@
     </div>
 
     <div class="bg-white rounded-xl shadow-sm p-6">
+        <div class="flex items-center justify-between mb-1">
+            <h2 class="font-semibold text-slate-800">Pagamentos PIX</h2>
+            <label class="inline-flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" name="pix_ativo" value="1" {{ old('pix_ativo', $config->pix_ativo) ? 'checked' : '' }} class="sr-only peer">
+                <div class="w-11 h-6 bg-slate-200 peer-checked:bg-emerald-500 rounded-full relative transition">
+                    <div class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition peer-checked:translate-x-5"></div>
+                </div>
+                <span class="text-sm font-medium">{{ $config->pix_ativo ? 'Ativo' : 'Desativado' }}</span>
+            </label>
+        </div>
+        <p class="text-xs text-slate-500 mb-5">Gateway pra cobrar as assinaturas das empresas via PIX. Sem ativar, fica em modo mock (QR fake só pra dev).</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Gateway</label>
+                <select name="pix_provider" class="w-full px-4 py-2.5 border border-slate-300 rounded-lg">
+                    <option value="mock" @selected(old('pix_provider', $config->pix_provider) === 'mock')>Mock (desenvolvimento)</option>
+                    <option value="asaas" @selected(old('pix_provider', $config->pix_provider) === 'asaas')>Asaas</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Ambiente</label>
+                <select name="pix_ambiente" class="w-full px-4 py-2.5 border border-slate-300 rounded-lg">
+                    <option value="sandbox" @selected(old('pix_ambiente', $config->pix_ambiente) === 'sandbox')>Sandbox (testes)</option>
+                    <option value="producao" @selected(old('pix_ambiente', $config->pix_ambiente) === 'producao')>Produção</option>
+                </select>
+            </div>
+            <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-slate-700 mb-1">API Key</label>
+                <input type="password" name="pix_api_key" autocomplete="off"
+                       placeholder="{{ $config->pix_api_key ? '••••••••• (salva — só sobrescreve se preencher)' : 'Cole aqui sua chave do Asaas' }}"
+                       class="w-full px-4 py-2.5 border border-slate-300 rounded-lg font-mono text-sm">
+                <p class="text-xs text-slate-500 mt-1">
+                    A chave fica criptografada no banco. Pegue em <a href="https://www.asaas.com/" target="_blank" class="text-rose-600 hover:underline">asaas.com</a> → Configurações → Integrações.
+                </p>
+            </div>
+            @if ($config->pix_webhook_token)
+                <div class="md:col-span-2 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                    <p class="text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+                        <i class="ri-link"></i> URL do webhook (configure no painel do gateway)
+                    </p>
+                    <code class="block text-xs font-mono bg-white border border-slate-200 px-3 py-2 rounded break-all">{{ url('/webhook/pix/'.$config->pix_webhook_token) }}</code>
+                    <p class="text-[11px] text-slate-500 mt-2">
+                        O Asaas avisa essa URL quando o cliente paga. Configure como webhook de eventos
+                        <code>PAYMENT_RECEIVED</code> e <code>PAYMENT_CONFIRMED</code>.
+                    </p>
+                </div>
+            @endif
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm p-6">
         <h2 class="font-semibold text-slate-800 mb-1">Tarefas agendadas (cron)</h2>
         <p class="text-xs text-slate-500 mb-5">Horários em que o sistema roda tarefas automáticas. Os horários abaixo só são respeitados se o cron <code class="bg-slate-100 px-1 rounded">php artisan schedule:run</code> estiver rodando a cada minuto no servidor.</p>
 

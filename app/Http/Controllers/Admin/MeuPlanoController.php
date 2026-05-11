@@ -7,6 +7,7 @@ use App\Models\Assinatura;
 use App\Models\Cobranca;
 use App\Models\Plano;
 use App\Services\PlanoLimiteService;
+use App\Services\Pix\PixService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -35,28 +36,27 @@ class MeuPlanoController extends Controller
      * Por enquanto sem gateway — a cobrança fica como 'pendente' até o admin
      * super marcar como paga. Quando integrarmos PIX (Fase 4), gera link aqui.
      */
-    public function upgrade(Request $request, Plano $plano)
+    public function upgrade(Request $request, Plano $plano, PixService $pix)
     {
         $empresa = Auth::user()->empresa;
         if (!$plano->ativo) {
             return back()->with('error', 'Plano indisponível.');
         }
 
-        DB::transaction(function () use ($empresa, $plano) {
+        $cobranca = DB::transaction(function () use ($empresa, $plano) {
             $assinatura = Assinatura::firstOrNew(
                 ['empresa_id' => $empresa->id],
             );
             $assinatura->fill([
                 'plano_id'           => $plano->id,
                 'status'             => $assinatura->exists ? $assinatura->status : 'ativa',
-                'gateway'            => 'mock',
+                'gateway'            => \App\Models\ConfiguracaoSistema::instancia()->pix_provider ?: 'mock',
                 'valor_mensal'       => $plano->preco_mensal,
                 'inicio'             => $assinatura->exists ? $assinatura->inicio : now(),
-                'proximo_vencimento' => now()->addDays(7), // 7 dias pra pagar
+                'proximo_vencimento' => now()->addDays(7),
             ])->save();
 
-            // Cria cobrança pendente
-            Cobranca::create([
+            $cobranca = Cobranca::create([
                 'assinatura_id' => $assinatura->id,
                 'empresa_id'    => $empresa->id,
                 'valor'         => $plano->preco_mensal,
@@ -64,11 +64,14 @@ class MeuPlanoController extends Controller
                 'status'        => 'pendente',
             ]);
 
-            // Atualiza o plano padrão da empresa (espelho)
             $empresa->update(['plano_id' => $plano->id]);
+            return $cobranca;
         });
 
+        // Gera PIX fora da transação (chamada HTTP externa)
+        $pix->gerarParaCobranca($cobranca, $empresa);
+
         return redirect()->route('admin.meu-plano.index')
-            ->with('success', "Plano {$plano->nome} ativado! Pague a cobrança pendente em até 7 dias.");
+            ->with('success', "Plano {$plano->nome} ativado! Pague o PIX abaixo pra liberar.");
     }
 }
