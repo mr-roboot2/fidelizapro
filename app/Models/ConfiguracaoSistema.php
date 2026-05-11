@@ -24,6 +24,7 @@ class ConfiguracaoSistema extends Model
         'otp_max_por_telefone', 'otp_max_tentativas', 'max_resgates_24h',
         'pix_provider', 'pix_ambiente', 'pix_api_key', 'pix_webhook_token', 'pix_ativo',
         'cobranca_avisos_antes', 'cobranca_avisos_depois',
+        'trial_dias_padrao', 'plano_padrao_id',
     ];
 
     /**

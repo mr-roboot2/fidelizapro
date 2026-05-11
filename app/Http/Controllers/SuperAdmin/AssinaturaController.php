@@ -91,9 +91,27 @@ class AssinaturaController extends Controller
 
     public function marcarPaga(Request $request, AssinaturaService $service, $cobrancaId)
     {
-        $cobranca = \App\Models\Cobranca::findOrFail($cobrancaId);
+        $cobranca = Cobranca::findOrFail($cobrancaId);
         $service->marcarPaga($cobranca);
         return back()->with('success', 'Cobrança marcada como paga.');
+    }
+
+    public function cobrancaShow(Cobranca $cobranca)
+    {
+        $cobranca->load('assinatura.plano', 'empresa');
+        return view('super.assinaturas.cobranca_show', compact('cobranca'));
+    }
+
+    public function regerarPix(Cobranca $cobranca, \App\Services\Pix\PixService $pix)
+    {
+        if ($cobranca->status !== 'pendente') {
+            return back()->with('error', 'Cobrança já não é mais pendente.');
+        }
+        $meta = $cobranca->meta ?? [];
+        unset($meta['pix_qr_code'], $meta['pix_qr_code_svg'], $meta['pix_copia_cola'], $meta['pix_expira_em']);
+        $cobranca->update(['meta' => $meta, 'gateway_charge_id' => null]);
+        $pix->gerarParaCobranca($cobranca->fresh(), $cobranca->empresa);
+        return back()->with('success', 'Novo PIX gerado.');
     }
 
     public function cancelar(Assinatura $assinatura, AssinaturaService $service)

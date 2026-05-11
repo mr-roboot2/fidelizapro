@@ -221,6 +221,8 @@ Route::middleware(['super.auth'])->prefix('super')->name('super.')->group(functi
     Route::post('assinaturas/{assinatura}/gerar-cobranca', [SuperAssinaturaController::class, 'gerarCobranca'])->name('assinaturas.gerar-cobranca');
     Route::post('assinaturas/{assinatura}/cancelar', [SuperAssinaturaController::class, 'cancelar'])->name('assinaturas.cancelar');
     Route::post('cobrancas/{cobranca}/marcar-paga', [SuperAssinaturaController::class, 'marcarPaga'])->name('cobrancas.marcar-paga');
+    Route::get('cobrancas/{cobranca}', [SuperAssinaturaController::class, 'cobrancaShow'])->name('cobrancas.show');
+    Route::post('cobrancas/{cobranca}/regerar-pix', [SuperAssinaturaController::class, 'regerarPix'])->name('cobrancas.regerar-pix');
 });
 
 // Webhooks de gateway de pagamento (públicos)

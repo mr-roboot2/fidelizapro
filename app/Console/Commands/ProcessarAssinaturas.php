@@ -19,16 +19,48 @@ class ProcessarAssinaturas extends Command
     {
         $this->info('Processando assinaturas...');
 
+        $regerados    = $this->regerarPixExpirados($pix);
         $gerados      = $this->gerarProximasCobrancas($pix);
         $marcadas     = $this->marcarInadimplentes();
         $notifProx    = $this->notificarProximas($whatsapp);
         $notifVencida = $this->notificarVencidas($whatsapp);
 
+        $this->info("PIX regerados (expirados): {$regerados}");
         $this->info("Cobranças geradas: {$gerados}");
         $this->info("Inadimplentes marcadas: {$marcadas}");
         $this->info("Notificações de próximo vencimento: {$notifProx}");
         $this->info("Notificações de vencidas: {$notifVencida}");
         return self::SUCCESS;
+    }
+
+    /**
+     * Cobranças pendentes cujo PIX já expirou (meta.pix_expira_em < agora)
+     * ganham novo QR/copia-cola via gateway.
+     */
+    private function regerarPixExpirados(PixService $pix): int
+    {
+        $n = 0;
+        $cobrancas = Cobranca::with('empresa')
+            ->where('status', 'pendente')
+            ->whereNotNull('meta')
+            ->get();
+
+        foreach ($cobrancas as $c) {
+            $expiraEm = $c->meta['pix_expira_em'] ?? null;
+            if (!$expiraEm) continue;
+            if (!\Carbon\Carbon::parse($expiraEm)->isPast()) continue;
+
+            try {
+                $meta = $c->meta;
+                unset($meta['pix_qr_code'], $meta['pix_qr_code_svg'], $meta['pix_copia_cola'], $meta['pix_expira_em']);
+                $c->update(['meta' => $meta, 'gateway_charge_id' => null]);
+                $pix->gerarParaCobranca($c->fresh(), $c->empresa);
+                $n++;
+            } catch (Throwable $e) {
+                report($e);
+            }
+        }
+        return $n;
     }
 
     /**

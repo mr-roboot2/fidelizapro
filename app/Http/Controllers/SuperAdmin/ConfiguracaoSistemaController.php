@@ -12,7 +12,8 @@ class ConfiguracaoSistemaController extends Controller
     public function edit()
     {
         $config = ConfiguracaoSistema::instancia();
-        return view('super.configuracoes.edit', compact('config'));
+        $planos = \App\Models\Plano::where('ativo', true)->orderBy('preco_mensal')->get();
+        return view('super.configuracoes.edit', compact('config', 'planos'));
     }
 
     public function update(Request $request)
@@ -53,6 +54,8 @@ class ConfiguracaoSistemaController extends Controller
             'pix_ativo'            => 'nullable|boolean',
             'cobranca_avisos_antes'  => 'nullable|string|max:60|regex:/^[0-9,\s]*$/',
             'cobranca_avisos_depois' => 'nullable|string|max:60|regex:/^[0-9,\s]*$/',
+            'trial_dias_padrao'      => 'required|integer|min:0|max:90',
+            'plano_padrao_id'        => 'nullable|exists:planos,id',
         ]);
         $dados['pix_ativo'] = $request->boolean('pix_ativo');
         // Se não veio nova api_key, mantém a existente (campo encrypted)
