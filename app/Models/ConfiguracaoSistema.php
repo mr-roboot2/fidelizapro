@@ -9,7 +9,8 @@ class ConfiguracaoSistema extends Model
     protected $table = 'configuracoes_sistema';
 
     protected $fillable = [
-        'nome_sistema', 'slogan', 'logo', 'favicon',
+        'nome_sistema', 'slogan', 'logo', 'logo_bg_color', 'logo_scale',
+        'favicon', 'favicon_bg_color', 'favicon_scale',
         'email_suporte', 'telefone_suporte', 'whatsapp_suporte',
         'razao_social', 'cnpj', 'endereco',
         'cor_primaria', 'cor_secundaria',

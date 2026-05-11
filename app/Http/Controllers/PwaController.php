@@ -37,7 +37,7 @@ class PwaController extends Controller
             'scope' => $scopePath,
             'display' => 'standalone',
             'orientation' => 'portrait',
-            'background_color' => '#ffffff',
+            'background_color' => $config->logo_bg_color ?: '#ffffff',
             'theme_color' => $config->cor_primaria,
             'lang' => 'pt-BR',
             'icons' => [
@@ -84,7 +84,7 @@ class PwaController extends Controller
             'scope' => $scopePath,
             'display' => 'standalone',
             'orientation' => 'portrait',
-            'background_color' => '#ffffff',
+            'background_color' => $empresa->logo_bg_color ?: '#ffffff',
             'theme_color' => $empresa->cor_primaria,
             'lang' => 'pt-BR',
             'icons' => [

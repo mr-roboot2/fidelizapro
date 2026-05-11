@@ -46,14 +46,26 @@ class EmpresaController extends Controller
             'endereco' => 'nullable|string|max:255',
             'cor_primaria' => 'required|string|max:7',
             'cor_secundaria' => 'required|string|max:7',
-            'pontos_por_real' => 'required|numeric|min:0',
-            'cashback_percentual' => 'required|numeric|min:0|max:100',
-            'validade_pontos_dias' => 'required|integer|min:30',
-            'logo' => 'nullable|image|max:1024',
+            'modo_fidelidade' => 'required|in:pontos,cashback,ambos',
+            'pontos_por_real' => 'required_unless:modo_fidelidade,cashback|nullable|numeric|min:0',
+            'cashback_percentual' => 'required_unless:modo_fidelidade,pontos|nullable|numeric|min:0|max:100',
+            'validade_pontos_dias' => 'required_unless:modo_fidelidade,cashback|nullable|integer|min:30',
+            'dias_liberar_cashback' => 'nullable|integer|min:0',
+            'logo' => 'nullable|image|max:8192',
+            'logo_bg_color' => 'nullable|string|regex:/^#[0-9a-fA-F]{6}$/',
+            'logo_scale' => 'nullable|integer|min:30|max:150',
             'admin_nome' => 'required|string|max:255',
             'admin_email' => 'required|email|unique:users,email',
             'admin_password' => 'required|string|min:6',
         ]);
+
+        // Zera os campos que não correspondem ao modo escolhido
+        if ($dados['modo_fidelidade'] === 'cashback') {
+            $dados['pontos_por_real'] = 0;
+        }
+        if ($dados['modo_fidelidade'] === 'pontos') {
+            $dados['cashback_percentual'] = 0;
+        }
 
         DB::transaction(function () use ($dados, $request) {
             if ($request->hasFile('logo')) {
@@ -112,12 +124,23 @@ class EmpresaController extends Controller
             'endereco' => 'nullable|string|max:255',
             'cor_primaria' => 'required|string|max:7',
             'cor_secundaria' => 'required|string|max:7',
-            'pontos_por_real' => 'required|numeric|min:0',
-            'cashback_percentual' => 'required|numeric|min:0|max:100',
-            'validade_pontos_dias' => 'required|integer|min:30',
-            'logo' => 'nullable|image|max:1024',
+            'modo_fidelidade' => 'required|in:pontos,cashback,ambos',
+            'pontos_por_real' => 'required_unless:modo_fidelidade,cashback|nullable|numeric|min:0',
+            'cashback_percentual' => 'required_unless:modo_fidelidade,pontos|nullable|numeric|min:0|max:100',
+            'validade_pontos_dias' => 'required_unless:modo_fidelidade,cashback|nullable|integer|min:30',
+            'dias_liberar_cashback' => 'nullable|integer|min:0',
+            'logo' => 'nullable|image|max:8192',
+            'logo_bg_color' => 'nullable|string|regex:/^#[0-9a-fA-F]{6}$/',
+            'logo_scale' => 'nullable|integer|min:30|max:150',
             'ativo' => 'boolean',
         ]);
+
+        if ($dados['modo_fidelidade'] === 'cashback') {
+            $dados['pontos_por_real'] = 0;
+        }
+        if ($dados['modo_fidelidade'] === 'pontos') {
+            $dados['cashback_percentual'] = 0;
+        }
 
         if ($request->hasFile('logo')) {
             if ($empresa->logo) Storage::disk('public')->delete($empresa->logo);

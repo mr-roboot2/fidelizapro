@@ -16,13 +16,31 @@ class Empresa extends Model
 
     protected $fillable = [
         'nome', 'slug', 'cnpj', 'telefone', 'email', 'endereco', 'logo',
+        'logo_bg_color', 'logo_scale',
         'cor_primaria', 'cor_secundaria', 'pontos_por_real',
-        'cashback_percentual', 'dias_liberar_cashback', 'validade_pontos_dias', 'ativo',
+        'cashback_percentual', 'modo_fidelidade',
+        'dias_liberar_cashback', 'validade_pontos_dias', 'ativo',
         'pdv_secret', 'plano_id',
         'whatsapp_provider', 'whatsapp_api_url', 'whatsapp_api_token',
         'whatsapp_instance', 'whatsapp_phone_id', 'whatsapp_ativo',
         'whatsapp_webhook_verify_token', 'whatsapp_waba_id',
     ];
+
+    public const MODOS_FIDELIDADE = [
+        'pontos'   => 'Apenas pontos',
+        'cashback' => 'Apenas cashback',
+        'ambos'    => 'Pontos + cashback',
+    ];
+
+    public function usaPontos(): bool
+    {
+        return in_array($this->modo_fidelidade ?? 'ambos', ['pontos', 'ambos'], true);
+    }
+
+    public function usaCashback(): bool
+    {
+        return in_array($this->modo_fidelidade ?? 'ambos', ['cashback', 'ambos'], true);
+    }
 
     protected $casts = [
         'pontos_por_real' => 'decimal:2',
@@ -51,6 +69,18 @@ class Empresa extends Model
     public function assinatura()
     {
         return $this->hasOne(Assinatura::class)->whereNotIn('status', ['cancelada']);
+    }
+
+    /**
+     * Verifica se a empresa tem acesso ao módulo. Lê do plano via assinatura
+     * ativa; sem assinatura cai no plano default (campo $empresa->plano_id);
+     * sem nada disponível, libera tudo (modo "instalação", evita travar).
+     */
+    public function temModulo(string $chave): bool
+    {
+        $plano = $this->assinatura?->plano ?? $this->plano;
+        if (!$plano) return true;
+        return $plano->temModulo($chave);
     }
 
     public function users(): HasMany

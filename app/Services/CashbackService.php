@@ -15,6 +15,7 @@ class CashbackService
 
     public function calcularCashback(Empresa $empresa, float $valor): float
     {
+        if (!$empresa->usaCashback()) return 0;
         if ($empresa->cashback_percentual <= 0) return 0;
         return round($valor * ($empresa->cashback_percentual / 100), 2);
     }

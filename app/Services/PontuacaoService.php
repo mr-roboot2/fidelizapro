@@ -13,6 +13,8 @@ class PontuacaoService
 {
     public function calcularPontosCompra(Empresa $empresa, float $valor): float
     {
+        if (!$empresa->usaPontos()) return 0;
+
         $regra = RegraPontuacao::where('empresa_id', $empresa->id)
             ->where('tipo', 'compra')
             ->where('ativo', true)

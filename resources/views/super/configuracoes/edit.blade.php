@@ -45,36 +45,115 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
-            <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">Logo</label>
-                @if ($config->logo)
-                    <div class="flex items-center gap-3 mb-2 p-3 bg-slate-50 rounded-lg border border-slate-200">
-                        <img src="{{ $config->logoUrl() }}" alt="Logo atual" class="h-12 w-12 object-contain rounded bg-white p-1">
-                        <span class="text-xs text-slate-500 flex-1 break-all">{{ $config->logo }}</span>
-                        <label class="text-xs text-rose-600 cursor-pointer">
-                            <input type="checkbox" name="remover_logo" value="1" class="mr-1"> Remover
-                        </label>
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 mt-6">
+            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200"
+                 x-data="iconePreview({
+                    src: '{{ $config->logoUrl() ?? '' }}',
+                    bg: '{{ old('logo_bg_color', $config->logo_bg_color ?? '#000000') }}',
+                    scale: {{ old('logo_scale', $config->logo_scale ?? 100) }},
+                 })">
+                <h3 class="font-semibold mb-1 text-slate-700 flex items-center gap-2 text-sm">
+                    <i class="ri-image-fill text-indigo-600"></i> Ícone do app
+                </h3>
+                <p class="text-[11px] text-slate-500 mb-3">PNG transparente quadrado. Máx 8 MB.</p>
+
+                <div class="flex gap-4">
+                    <div class="text-center shrink-0">
+                        <div class="w-24 h-24 rounded-xl shadow-sm flex items-center justify-center overflow-hidden"
+                             :style="`background:${bg}`">
+                            <template x-if="src">
+                                <img :src="src" :style="`width:${scale}%;height:${scale}%;object-fit:contain`" alt="">
+                            </template>
+                            <template x-if="!src">
+                                <i class="ri-image-line text-3xl text-white/60"></i>
+                            </template>
+                        </div>
+                        @if ($config->logo)
+                            <label class="inline-flex items-center gap-1 text-[10px] text-rose-600 cursor-pointer mt-1">
+                                <input type="checkbox" name="remover_logo" value="1"> Remover
+                            </label>
+                        @endif
                     </div>
-                @endif
-                <input type="file" name="logo" accept="image/png,image/jpeg,image/svg+xml,image/webp"
-                       class="block w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-rose-50 file:text-rose-700 hover:file:bg-rose-100">
-                <p class="text-xs text-slate-500 mt-1">PNG, JPG, SVG ou WEBP. Máx 1 MB.</p>
+
+                    <div class="flex-1 min-w-0 space-y-2">
+                        <label class="block border-2 border-dashed border-slate-300 rounded-lg p-3 text-center cursor-pointer hover:border-rose-400 hover:bg-white transition">
+                            <i class="ri-upload-cloud-2-line text-xl text-slate-400"></i>
+                            <p class="text-xs font-semibold text-slate-700">Enviar logo (PNG)</p>
+                            <input type="file" name="logo" accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                                   @change="previewArquivo($event)" class="hidden">
+                        </label>
+
+                        <div class="flex gap-2 items-center">
+                            <input type="color" :value="bg" @input="bg = $event.target.value" class="w-9 h-8 border border-slate-300 rounded cursor-pointer shrink-0">
+                            <input type="text" name="logo_bg_color" x-model="bg" maxlength="7"
+                                   class="flex-1 px-2 py-1.5 border border-slate-300 rounded-lg text-xs font-mono">
+                        </div>
+
+                        <div>
+                            <label class="text-[10px] text-slate-500 flex items-center justify-between">
+                                <span>Tamanho do PNG</span>
+                                <span class="text-rose-600 font-semibold" x-text="`${scale}%`"></span>
+                            </label>
+                            <input type="range" name="logo_scale" min="30" max="150" step="5" x-model.number="scale"
+                                   class="w-full accent-rose-600">
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">Favicon</label>
-                @if ($config->favicon)
-                    <div class="flex items-center gap-3 mb-2 p-3 bg-slate-50 rounded-lg border border-slate-200">
-                        <img src="{{ $config->faviconUrl() }}" alt="Favicon atual" class="h-8 w-8 object-contain rounded bg-white p-0.5">
-                        <span class="text-xs text-slate-500 flex-1 break-all">{{ $config->favicon }}</span>
-                        <label class="text-xs text-rose-600 cursor-pointer">
-                            <input type="checkbox" name="remover_favicon" value="1" class="mr-1"> Remover
-                        </label>
+
+            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200"
+                 x-data="iconePreview({
+                    src: '{{ $config->faviconUrl() ?? '' }}',
+                    bg: '{{ old('favicon_bg_color', $config->favicon_bg_color ?? '#000000') }}',
+                    scale: {{ old('favicon_scale', $config->favicon_scale ?? 100) }},
+                 })">
+                <h3 class="font-semibold mb-1 text-slate-700 flex items-center gap-2 text-sm">
+                    <i class="ri-shape-2-line text-indigo-600"></i> Favicon (aba do navegador)
+                </h3>
+                <p class="text-[11px] text-slate-500 mb-3">64×64 px PNG transparente. Máx 1 MB.</p>
+
+                <div class="flex gap-4">
+                    <div class="text-center shrink-0">
+                        <div class="w-24 h-24 rounded-xl shadow-sm flex items-center justify-center overflow-hidden"
+                             :style="`background:${bg}`">
+                            <template x-if="src">
+                                <img :src="src" :style="`width:${scale}%;height:${scale}%;object-fit:contain`" alt="">
+                            </template>
+                            <template x-if="!src">
+                                <i class="ri-shape-2-line text-3xl text-white/60"></i>
+                            </template>
+                        </div>
+                        @if ($config->favicon)
+                            <label class="inline-flex items-center gap-1 text-[10px] text-rose-600 cursor-pointer mt-1">
+                                <input type="checkbox" name="remover_favicon" value="1"> Remover
+                            </label>
+                        @endif
                     </div>
-                @endif
-                <input type="file" name="favicon" accept="image/png,image/jpeg,image/svg+xml,image/webp,image/x-icon"
-                       class="block w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-rose-50 file:text-rose-700 hover:file:bg-rose-100">
-                <p class="text-xs text-slate-500 mt-1">Idealmente 32×32 ou 64×64 px. Máx 256 KB.</p>
+
+                    <div class="flex-1 min-w-0 space-y-2">
+                        <label class="block border-2 border-dashed border-slate-300 rounded-lg p-3 text-center cursor-pointer hover:border-rose-400 hover:bg-white transition">
+                            <i class="ri-upload-cloud-2-line text-xl text-slate-400"></i>
+                            <p class="text-xs font-semibold text-slate-700">Enviar favicon</p>
+                            <input type="file" name="favicon" accept="image/png,image/jpeg,image/svg+xml,image/webp,image/x-icon"
+                                   @change="previewArquivo($event)" class="hidden">
+                        </label>
+
+                        <div class="flex gap-2 items-center">
+                            <input type="color" :value="bg" @input="bg = $event.target.value" class="w-9 h-8 border border-slate-300 rounded cursor-pointer shrink-0">
+                            <input type="text" name="favicon_bg_color" x-model="bg" maxlength="7"
+                                   class="flex-1 px-2 py-1.5 border border-slate-300 rounded-lg text-xs font-mono">
+                        </div>
+
+                        <div>
+                            <label class="text-[10px] text-slate-500 flex items-center justify-between">
+                                <span>Tamanho do ícone</span>
+                                <span class="text-rose-600 font-semibold" x-text="`${scale}%`"></span>
+                            </label>
+                            <input type="range" name="favicon_scale" min="30" max="150" step="5" x-model.number="scale"
+                                   class="w-full accent-rose-600">
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -219,4 +298,21 @@
         </button>
     </div>
 </form>
+
+<script>
+function iconePreview(initial) {
+    return {
+        src: initial.src,
+        bg: initial.bg,
+        scale: initial.scale,
+        previewArquivo(e) {
+            const f = e.target.files?.[0];
+            if (!f) return;
+            const reader = new FileReader();
+            reader.onload = () => { this.src = reader.result; };
+            reader.readAsDataURL(f);
+        },
+    }
+}
+</script>
 @endsection
