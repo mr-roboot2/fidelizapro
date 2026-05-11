@@ -25,12 +25,14 @@ class RoletaGatilho extends Model
      * Tipos sem `valor` deixam `campo` como null.
      */
     public const TIPOS = [
-        'primeiro_cadastro' => ['rotulo' => 'Primeiro cadastro',                  'campo' => null,    'sufixo' => null],
-        'aniversario'       => ['rotulo' => 'Aniversário do cliente',             'campo' => null,    'sufixo' => null],
-        'indicacao'         => ['rotulo' => 'Indicação realizada (indicado se cadastrou)', 'campo' => null, 'sufixo' => null],
-        'compra_acima'      => ['rotulo' => 'Compra acima de R$ X',               'campo' => 'valor', 'sufixo' => 'reais'],
-        'inativo_dias'      => ['rotulo' => 'Cliente inativo há X dias',          'campo' => 'valor', 'sufixo' => 'dias'],
-        'atingiu_pontos'    => ['rotulo' => 'Cliente atingiu X pontos',           'campo' => 'valor', 'sufixo' => 'pontos'],
+        'primeiro_cadastro'   => ['rotulo' => 'Primeiro cadastro',                                'campo' => null,    'sufixo' => null],
+        'aniversario'         => ['rotulo' => 'Aniversário do cliente',                           'campo' => null,    'sufixo' => null],
+        'indicacao'           => ['rotulo' => 'Indicação realizada (indicado se cadastrou)',       'campo' => null,    'sufixo' => null],
+        'compra_acima'        => ['rotulo' => 'Compra acima de R$ X',                             'campo' => 'valor', 'sufixo' => 'reais'],
+        'inativo_dias'        => ['rotulo' => 'Cliente inativo há X dias',                        'campo' => 'valor', 'sufixo' => 'dias'],
+        'atingiu_pontos'      => ['rotulo' => 'Cliente atingiu X pontos',                         'campo' => 'valor', 'sufixo' => 'pontos'],
+        'vip_gasto'           => ['rotulo' => 'Cliente VIP (gastou R$ X no total)',               'campo' => 'valor', 'sufixo' => 'reais'],
+        'recorrente_compras'  => ['rotulo' => 'Cliente recorrente (X compras no total)',          'campo' => 'valor', 'sufixo' => 'compras'],
     ];
 
     public function roleta(): BelongsTo
