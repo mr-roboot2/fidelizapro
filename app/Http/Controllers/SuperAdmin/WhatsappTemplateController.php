@@ -29,24 +29,27 @@ class WhatsappTemplateController extends Controller
         $dados = $request->validate([
             'nome_template' => 'nullable|string|max:120',
             'idioma'        => 'required|string|max:10',
+            'texto'         => 'nullable|string|max:1500',
             'ativo'         => 'boolean',
         ]);
 
-        if (empty($dados['nome_template'])) {
+        // Se nem nome_template nem texto preenchidos, remove o registro
+        if (empty($dados['nome_template']) && empty($dados['texto'])) {
             WhatsappTemplate::where('evento', $evento)->delete();
-            return back()->with('success', 'Template removido — esse evento volta a enviar texto livre.');
+            return back()->with('success', 'Configuração removida — volta pro texto padrão do sistema.');
         }
 
         WhatsappTemplate::updateOrCreate(
             ['evento' => $evento],
             [
-                'nome_template' => $dados['nome_template'],
+                'nome_template' => $dados['nome_template'] ?: null,
                 'idioma'        => $dados['idioma'],
+                'texto'         => $dados['texto'] ?: null,
                 'ativo'         => $request->boolean('ativo', true),
             ]
         );
 
-        return back()->with('success', 'Template salvo.');
+        return back()->with('success', 'Configuração salva.');
     }
 
     public function listarMeta()

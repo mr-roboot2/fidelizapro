@@ -91,8 +91,9 @@ class WhatsappService
         }
 
         if ($textoFallback === null) {
-            $def = WhatsappTemplate::EVENTOS[$evento] ?? null;
-            $textoFallback = $def['exemplo'] ?? '';
+            // Prioridade: texto personalizado salvo no banco → exemplo da constante
+            $tplCustom = WhatsappTemplate::where('evento', $evento)->first();
+            $textoFallback = $tplCustom?->texto ?: (WhatsappTemplate::EVENTOS[$evento]['exemplo'] ?? '');
             $i = 1;
             foreach ($parametros as $valor) {
                 $textoFallback = str_replace("{{{$i}}}", (string) $valor, $textoFallback);

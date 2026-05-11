@@ -9,7 +9,7 @@ class WhatsappTemplate extends Model
     protected $table = 'whatsapp_templates';
 
     protected $fillable = [
-        'evento', 'nome_template', 'idioma', 'ativo',
+        'evento', 'nome_template', 'idioma', 'texto', 'ativo',
     ];
 
     protected $casts = [
