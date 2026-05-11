@@ -148,10 +148,13 @@ class RoletaController extends Controller
             'ativa'               => 'nullable|boolean',
             'tempo_min_ms'        => 'required|integer|min:1500|max:15000',
             'tempo_max_ms'        => 'required|integer|min:1500|max:15000|gte:tempo_min_ms',
-            'mensagem_consolacao' => 'required|string|max:255',
-            'pontos_consolacao'   => 'required|integer|min:0|max:255',
-            'limite_giros_dia'    => 'required|integer|min:1|max:50',
-            'validade_dias'       => 'nullable|integer|min:1|max:365',
+            'mensagem_consolacao'  => 'required|string|max:255',
+            'mensagem_pontos'      => 'required|string|max:255',
+            'mensagem_recompensa'  => 'required|string|max:255',
+            'mensagem_nova_chance' => 'required|string|max:255',
+            'pontos_consolacao'    => 'required|integer|min:0|max:255',
+            'limite_giros_dia'     => 'required|integer|min:1|max:50',
+            'validade_dias'        => 'nullable|integer|min:1|max:365',
         ]);
         $dados['ativa'] = $request->boolean('ativa');
         $roleta->update($dados);

@@ -314,7 +314,7 @@ class RoletaService
             'recompensa_id'     => $giro->recompensa_id,
             'resgate_id'        => $giro->resgate_id,
             'expira_em'         => isset($expiraEm) ? $expiraEm?->format('d/m/Y') : null,
-            'mensagem'          => $this->mensagem($roleta, $premio, $giro),
+            'mensagem'          => $this->mensagem($roleta, $premio, $giro, $cliente),
         ];
     }
 
@@ -350,17 +350,28 @@ class RoletaService
             'recompensa_id'     => null,
             'resgate_id'        => null,
             'expira_em'         => null,
-            'mensagem'          => str_replace('{pontos}', (string) $pontos, $roleta->mensagem_consolacao),
+            'mensagem'          => strtr($roleta->mensagem_consolacao, [
+                '{pontos}'        => (string) $pontos,
+                '{primeiro_nome}' => explode(' ', $cliente->nome)[0] ?? '',
+                '{nome}'          => $cliente->nome,
+            ]),
         ];
     }
 
-    private function mensagem(Roleta $roleta, RoletaPremio $premio, RoletaGiro $giro): string
+    private function mensagem(Roleta $roleta, RoletaPremio $premio, RoletaGiro $giro, Cliente $cliente): string
     {
-        return match ($premio->tipo) {
-            'pontos'      => "Você ganhou {$giro->pontos_concedidos} pontos! 🎉",
-            'recompensa'  => "Você ganhou: {$premio->label}! 🎁",
-            'nova_chance' => 'Boa! Você ganhou um giro extra! 🎰',
-            default       => str_replace('{pontos}', (string) ($giro->pontos_concedidos ?? 0), $roleta->mensagem_consolacao),
+        $template = match ($premio->tipo) {
+            'pontos'      => $roleta->mensagem_pontos      ?: 'Você ganhou {pontos} pontos! 🎉',
+            'recompensa'  => $roleta->mensagem_recompensa  ?: 'Você ganhou: {premio}! 🎁',
+            'nova_chance' => $roleta->mensagem_nova_chance ?: 'Boa, {primeiro_nome}! Você ganhou um giro extra! 🎰',
+            default       => $roleta->mensagem_consolacao,
         };
+
+        return strtr($template, [
+            '{pontos}'        => (string) ($giro->pontos_concedidos ?? 0),
+            '{premio}'        => $premio->label,
+            '{primeiro_nome}' => explode(' ', $cliente->nome)[0] ?? '',
+            '{nome}'          => $cliente->nome,
+        ]);
     }
 }

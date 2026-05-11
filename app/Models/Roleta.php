@@ -15,6 +15,7 @@ class Roleta extends Model
         'empresa_id', 'nome', 'ativa', 'modo',
         'tempo_min_ms', 'tempo_max_ms',
         'mensagem_consolacao', 'pontos_consolacao',
+        'mensagem_pontos', 'mensagem_recompensa', 'mensagem_nova_chance',
         'limite_giros_dia', 'validade_dias',
     ];
 

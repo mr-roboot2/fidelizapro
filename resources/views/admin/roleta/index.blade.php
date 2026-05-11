@@ -93,8 +93,27 @@
                     <label class="text-xs text-slate-600">Tempo máximo da animação (ms)</label>
                     <input type="number" name="tempo_max_ms" value="{{ old('tempo_max_ms', $roleta->tempo_max_ms) }}" min="1500" max="15000" step="100" class="w-full border rounded-lg px-3 py-2 text-sm">
                 </div>
-                <div class="md:col-span-2 lg:col-span-3">
-                    <label class="text-xs text-slate-600">Mensagem de consolação (use {pontos} pra inserir os pontos ganhos)</label>
+            </div>
+
+            <div class="border-t pt-4 space-y-3">
+                <div class="flex items-center justify-between">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Mensagens exibidas no resultado</p>
+                    <p class="text-[10px] text-slate-400">Placeholders: <code>{primeiro_nome}</code>, <code>{nome}</code>, <code>{pontos}</code>, <code>{premio}</code></p>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-600">Quando ganha pontos extras</label>
+                    <input name="mensagem_pontos" value="{{ old('mensagem_pontos', $roleta->mensagem_pontos) }}" class="w-full border rounded-lg px-3 py-2 text-sm" required>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-600">Quando ganha um prêmio do catálogo</label>
+                    <input name="mensagem_recompensa" value="{{ old('mensagem_recompensa', $roleta->mensagem_recompensa) }}" class="w-full border rounded-lg px-3 py-2 text-sm" required>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-600">Quando ganha um giro extra (nova chance)</label>
+                    <input name="mensagem_nova_chance" value="{{ old('mensagem_nova_chance', $roleta->mensagem_nova_chance) }}" class="w-full border rounded-lg px-3 py-2 text-sm" required>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-600">Consolação (quando cai na "nada" — placeholder <code>{pontos}</code>)</label>
                     <input name="mensagem_consolacao" value="{{ old('mensagem_consolacao', $roleta->mensagem_consolacao) }}" class="w-full border rounded-lg px-3 py-2 text-sm" required>
                 </div>
             </div>
