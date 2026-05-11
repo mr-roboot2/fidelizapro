@@ -1,90 +1,226 @@
 @extends('layouts.admin')
 @section('title', 'Meu plano')
 @section('content')
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-6xl">
-    <!-- Plano atual + consumo -->
-    <div class="lg:col-span-2 bg-white rounded-xl shadow-sm p-6">
-        <h2 class="font-semibold text-lg mb-4">Plano atual</h2>
 
-        @if ($empresa->plano)
-            <div class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl p-5 mb-6">
-                <p class="text-white/80 text-sm">Você está no plano</p>
-                <p class="text-2xl font-bold">{{ $empresa->plano->nome }}</p>
-                <p class="text-white/80 text-sm mt-2">
-                    R$ {{ number_format($empresa->plano->preco_mensal, 2, ',', '.') }} / mês
-                </p>
-            </div>
-        @else
-            <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
-                <p class="font-semibold text-amber-800"><i class="ri-information-line"></i> Sem plano atribuído</p>
-                <p class="text-sm text-amber-700">Sua empresa está em modo livre (sem limites). Entre em contato com o super admin para definir um plano.</p>
-            </div>
-        @endif
-
-        <h3 class="font-semibold mb-3">Consumo atual</h3>
-        <div class="space-y-3">
-            @foreach ([
-                'clientes' => 'Clientes cadastrados',
-                'compras_mes' => 'Compras este mês',
-                'recompensas' => 'Recompensas ativas',
-                'parceiros' => 'Parceiros ativos',
-                'users' => 'Usuários administradores',
-                'campanhas_mes' => 'Campanhas este mês',
-            ] as $k => $rotulo)
-                @php $c = $consumo[$k]; $pct = $c['percentual']; @endphp
-                <div>
-                    <div class="flex justify-between text-sm mb-1">
-                        <span>{{ $rotulo }}</span>
-                        <span class="font-semibold">
-                            {{ $c['atual'] }}
-                            @if ($c['limite']) / {{ $c['limite'] }}
-                            @else <span class="text-emerald-600">(ilimitado)</span>
-                            @endif
-                        </span>
-                    </div>
-                    @if ($c['limite'])
-                        <div class="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-                            <div @class([
-                                'h-full transition-all',
-                                'bg-emerald-500' => $pct < 70,
-                                'bg-amber-500' => $pct >= 70 && $pct < 90,
-                                'bg-rose-500' => $pct >= 90,
-                            ]) style="width: {{ min($pct, 100) }}%"></div>
-                        </div>
-                    @endif
-                </div>
-            @endforeach
-        </div>
+@if (session('success'))
+    <div class="mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-lg">
+        <i class="ri-check-line"></i> {{ session('success') }}
     </div>
+@endif
+@if (session('error'))
+    <div class="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-lg">
+        <i class="ri-error-warning-line"></i> {{ session('error') }}
+    </div>
+@endif
 
-    <!-- Planos disponíveis -->
-    <div class="bg-white rounded-xl shadow-sm p-6">
-        <h2 class="font-semibold text-lg mb-4">Planos disponíveis</h2>
-        <div class="space-y-3">
-            @forelse ($planosDisponiveis as $p)
-                <div @class([
-                    'border-2 rounded-xl p-4',
-                    'border-indigo-500 bg-indigo-50' => $empresa->plano_id === $p->id,
-                    'border-slate-200' => $empresa->plano_id !== $p->id,
-                ])>
-                    <div class="flex items-center justify-between">
-                        <p class="font-semibold">{{ $p->nome }}</p>
-                        @if ($empresa->plano_id === $p->id)
-                            <span class="text-xs bg-indigo-600 text-white px-2 py-0.5 rounded-full">Atual</span>
+@php
+    $planoAtual = $assinatura?->plano ?? $empresa->plano;
+    $statusInad = $empresa->statusInadimplencia();
+    $cobrancaPendente = $cobrancas->where('status', 'pendente')->first();
+@endphp
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl">
+
+    <div class="lg:col-span-2 space-y-6">
+
+        <div class="bg-white rounded-xl shadow-sm p-6">
+            @if ($planoAtual)
+                <div class="bg-gradient-to-br from-indigo-500 via-purple-500 to-rose-500 text-white rounded-2xl p-6 mb-5 relative overflow-hidden">
+                    <div class="absolute -right-8 -bottom-8 opacity-15 text-9xl"><i class="ri-vip-crown-fill"></i></div>
+                    <div class="relative">
+                        <p class="text-white/80 text-xs uppercase tracking-wider">Plano atual</p>
+                        <p class="text-3xl font-bold mt-1">{{ $planoAtual->nome }}</p>
+                        <p class="text-white/90 text-sm mt-1">R$ {{ number_format($planoAtual->preco_mensal, 2, ',', '.') }} / mês</p>
+                        @if ($assinatura && $assinatura->proximo_vencimento)
+                            <p class="text-white/80 text-xs mt-3">
+                                <i class="ri-calendar-event-line"></i>
+                                Próximo vencimento: <strong>{{ $assinatura->proximo_vencimento->format('d/m/Y') }}</strong>
+                            </p>
                         @endif
                     </div>
-                    <p class="text-2xl font-bold mt-1">R$ {{ number_format($p->preco_mensal, 2, ',', '.') }}<span class="text-xs text-slate-500 font-normal">/mês</span></p>
-                    <ul class="text-xs text-slate-600 mt-2 space-y-1">
-                        @if ($p->limite_clientes)<li>✓ Até {{ number_format($p->limite_clientes, 0, ',', '.') }} clientes</li>@else<li>✓ Clientes ilimitados</li>@endif
-                        @if ($p->limite_compras_mes)<li>✓ Até {{ number_format($p->limite_compras_mes, 0, ',', '.') }} compras/mês</li>@else<li>✓ Compras ilimitadas</li>@endif
-                        @if ($p->automacoes_disponivel)<li>✓ Automações WhatsApp</li>@endif
-                        @if ($p->parceiros_disponivel)<li>✓ Área de parceiros</li>@endif
-                        @if ($p->white_label_disponivel)<li>✓ White label PWA</li>@endif
-                    </ul>
                 </div>
-            @empty
-                <p class="text-sm text-slate-400">Sem planos cadastrados.</p>
-            @endforelse
+
+                <h3 class="font-semibold text-sm mb-2 text-slate-700">Módulos habilitados</h3>
+                <div class="flex flex-wrap gap-1.5 mb-5">
+                    @foreach (\App\Models\Plano::MODULOS_DISPONIVEIS as $chave => $rotulo)
+                        @if ($planoAtual->temModulo($chave))
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 text-xs rounded-full border border-emerald-200">
+                                <i class="ri-check-line"></i> {{ $rotulo }}
+                            </span>
+                        @else
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-50 text-slate-400 text-xs rounded-full border border-slate-200">
+                                <i class="ri-close-line"></i> {{ $rotulo }}
+                            </span>
+                        @endif
+                    @endforeach
+                </div>
+            @else
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+                    <p class="font-semibold text-amber-800"><i class="ri-information-line"></i> Sem plano atribuído</p>
+                    <p class="text-sm text-amber-700">Escolha um plano ao lado pra começar.</p>
+                </div>
+            @endif
+
+            @if ($cobrancaPendente)
+                <div @class([
+                    'rounded-xl p-4 border-2 flex items-center justify-between gap-3',
+                    'bg-amber-50 border-amber-300' => $statusInad === 'aviso',
+                    'bg-orange-50 border-orange-300' => $statusInad === 'bloqueio_parcial',
+                    'bg-rose-50 border-rose-300' => $statusInad === 'bloqueio_total',
+                    'bg-blue-50 border-blue-200' => in_array($statusInad, ['em_dia', 'trial']),
+                ])>
+                    <div>
+                        <p class="font-semibold text-slate-800">Cobrança pendente</p>
+                        <p class="text-sm text-slate-600">
+                            R$ {{ number_format($cobrancaPendente->valor, 2, ',', '.') }} ·
+                            vence em {{ $cobrancaPendente->vencimento->format('d/m/Y') }}
+                            @if ($cobrancaPendente->vencida())
+                                <span class="text-rose-600 font-semibold">(vencida)</span>
+                            @endif
+                        </p>
+                    </div>
+                    @if ($cobrancaPendente->link_pagamento)
+                        <a href="{{ $cobrancaPendente->link_pagamento }}" target="_blank"
+                           class="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-semibold">
+                            <i class="ri-qr-code-line"></i> Pagar via PIX
+                        </a>
+                    @else
+                        <span class="text-xs text-slate-500">Aguardando geração do link</span>
+                    @endif
+                </div>
+            @endif
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm p-6">
+            <h2 class="font-semibold text-lg mb-4">Consumo atual</h2>
+            <div class="space-y-3">
+                @foreach ([
+                    'clientes' => 'Clientes cadastrados',
+                    'compras_mes' => 'Compras este mês',
+                    'recompensas' => 'Recompensas ativas',
+                    'parceiros' => 'Parceiros ativos',
+                    'users' => 'Usuários administradores',
+                    'campanhas_mes' => 'Campanhas este mês',
+                ] as $k => $rotulo)
+                    @php $c = $consumo[$k]; $pct = $c['percentual']; @endphp
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span>{{ $rotulo }}</span>
+                            <span class="font-semibold">
+                                {{ $c['atual'] }}
+                                @if ($c['limite']) / {{ $c['limite'] }}
+                                @else <span class="text-emerald-600">(ilimitado)</span>
+                                @endif
+                            </span>
+                        </div>
+                        @if ($c['limite'])
+                            <div class="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                                <div @class([
+                                    'h-full transition-all',
+                                    'bg-emerald-500' => $pct < 70,
+                                    'bg-amber-500' => $pct >= 70 && $pct < 90,
+                                    'bg-rose-500' => $pct >= 90,
+                                ]) style="width: {{ min($pct, 100) }}%"></div>
+                            </div>
+                        @endif
+                    </div>
+                @endforeach
+            </div>
+        </div>
+
+        @if ($cobrancas->isNotEmpty())
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h2 class="font-semibold text-lg mb-4">Histórico de cobranças</h2>
+                <table class="w-full text-sm">
+                    <thead class="text-xs text-slate-500 border-b">
+                        <tr class="text-left">
+                            <th class="py-2">Vencimento</th>
+                            <th>Valor</th>
+                            <th>Status</th>
+                            <th class="text-right">Pago em</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($cobrancas as $c)
+                            <tr class="border-b last:border-b-0">
+                                <td class="py-2">{{ $c->vencimento->format('d/m/Y') }}</td>
+                                <td class="font-semibold">R$ {{ number_format($c->valor, 2, ',', '.') }}</td>
+                                <td>
+                                    <span @class([
+                                        'text-xs px-2 py-0.5 rounded-full',
+                                        'bg-emerald-100 text-emerald-700' => $c->status === 'pago',
+                                        'bg-amber-100 text-amber-700' => $c->status === 'pendente' && !$c->vencida(),
+                                        'bg-rose-100 text-rose-700' => $c->status === 'pendente' && $c->vencida(),
+                                        'bg-slate-200 text-slate-500' => in_array($c->status, ['cancelado', 'estornado']),
+                                    ])>
+                                        {{ $c->status === 'pendente' && $c->vencida() ? 'Vencida' : ucfirst($c->status) }}
+                                    </span>
+                                </td>
+                                <td class="text-right text-xs text-slate-500">
+                                    {{ $c->pago_em?->format('d/m/Y H:i') ?? '—' }}
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
+    </div>
+
+    <div>
+        <div class="bg-white rounded-xl shadow-sm p-5 sticky top-4">
+            <h2 class="font-semibold text-lg mb-4">Planos disponíveis</h2>
+            <div class="space-y-3">
+                @forelse ($planosDisponiveis as $p)
+                    @php
+                        $atual = $planoAtual && $planoAtual->id === $p->id;
+                        $superior = $planoAtual && $p->preco_mensal > $planoAtual->preco_mensal;
+                    @endphp
+                    <div @class([
+                        'border-2 rounded-xl p-4 transition',
+                        'border-indigo-500 bg-indigo-50' => $atual,
+                        'border-slate-200 hover:border-slate-300' => !$atual,
+                    ])>
+                        <div class="flex items-center justify-between">
+                            <p class="font-semibold">{{ $p->nome }}</p>
+                            @if ($atual)
+                                <span class="text-xs bg-indigo-600 text-white px-2 py-0.5 rounded-full">Atual</span>
+                            @elseif ($superior)
+                                <span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Upgrade</span>
+                            @endif
+                        </div>
+                        <p class="text-2xl font-bold mt-1">
+                            R$ {{ number_format($p->preco_mensal, 2, ',', '.') }}<span class="text-xs text-slate-500 font-normal">/mês</span>
+                        </p>
+                        @if ($p->descricao)
+                            <p class="text-xs text-slate-500 mt-1">{{ $p->descricao }}</p>
+                        @endif
+
+                        <ul class="text-xs text-slate-600 mt-3 space-y-0.5">
+                            @if ($p->limite_clientes)<li>· Até {{ number_format($p->limite_clientes, 0, ',', '.') }} clientes</li>@else<li>· Clientes ilimitados</li>@endif
+                            @php $mods = array_slice($p->modulos ?? [], 0, 5); @endphp
+                            @foreach ($mods as $m)
+                                <li>· {{ \App\Models\Plano::MODULOS_DISPONIVEIS[$m] ?? $m }}</li>
+                            @endforeach
+                            @if (count($p->modulos ?? []) > 5)
+                                <li class="text-slate-400">+ {{ count($p->modulos) - 5 }} módulos</li>
+                            @endif
+                        </ul>
+
+                        @if (!$atual)
+                            <form action="{{ route('admin.meu-plano.upgrade', $p) }}" method="POST" class="mt-3"
+                                  onsubmit="return confirm('Mudar pra plano {{ $p->nome }}? Uma cobrança será gerada.')">
+                                @csrf
+                                <button class="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-sm font-semibold">
+                                    {{ $superior ? 'Fazer upgrade' : 'Mudar pra esse plano' }}
+                                </button>
+                            </form>
+                        @endif
+                    </div>
+                @empty
+                    <p class="text-sm text-slate-400">Sem planos cadastrados.</p>
+                @endforelse
+            </div>
         </div>
     </div>
 </div>

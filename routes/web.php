@@ -124,6 +124,7 @@ Route::middleware(['admin.auth', 'empresa.scope', 'verifica.pagamento'])->prefix
 
     Route::get('atividade-suspeita', [AtividadeSuspeitaController::class, 'index'])->name('atividade.suspeita');
     Route::get('meu-plano', [MeuPlanoController::class, 'index'])->name('meu-plano.index');
+    Route::post('meu-plano/upgrade/{plano}', [MeuPlanoController::class, 'upgrade'])->name('meu-plano.upgrade');
 
     Route::get('parceiros/relatorio', [ParceiroController::class, 'relatorio'])->name('parceiros.relatorio');
     Route::resource('parceiros', ParceiroController::class);
