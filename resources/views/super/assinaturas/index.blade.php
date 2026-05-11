@@ -26,6 +26,56 @@
     @endforeach
 </div>
 
+@if ($vencidas->isNotEmpty() || $proximasCobrancas->isNotEmpty())
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+    @if ($vencidas->isNotEmpty())
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden border-l-4 border-rose-500">
+            <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                    <h3 class="font-semibold text-rose-700"><i class="ri-error-warning-line"></i> Cobranças vencidas</h3>
+                    <p class="text-xs text-slate-500">{{ $vencidas->count() }} em atraso</p>
+                </div>
+                <p class="text-sm font-bold text-rose-600">R$ {{ number_format($vencidas->sum('valor'), 2, ',', '.') }}</p>
+            </div>
+            <div class="divide-y divide-slate-100 max-h-80 overflow-y-auto">
+                @foreach ($vencidas as $c)
+                    <div class="p-3 hover:bg-slate-50 flex items-center justify-between gap-2 text-sm">
+                        <div class="min-w-0 flex-1">
+                            <p class="font-medium text-slate-700 truncate">{{ $c->empresa->nome ?? '—' }}</p>
+                            <p class="text-xs text-rose-600">venceu {{ $c->vencimento->format('d/m/Y') }} ({{ $c->vencimento->diffInDays(now()) }}d atrás)</p>
+                        </div>
+                        <p class="font-semibold whitespace-nowrap">R$ {{ number_format($c->valor, 2, ',', '.') }}</p>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
+    @if ($proximasCobrancas->isNotEmpty())
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden border-l-4 border-amber-500">
+            <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                    <h3 class="font-semibold text-amber-700"><i class="ri-time-line"></i> Vencendo em 7 dias</h3>
+                    <p class="text-xs text-slate-500">{{ $proximasCobrancas->count() }} cobranças</p>
+                </div>
+                <p class="text-sm font-bold text-amber-600">R$ {{ number_format($proximasCobrancas->sum('valor'), 2, ',', '.') }}</p>
+            </div>
+            <div class="divide-y divide-slate-100 max-h-80 overflow-y-auto">
+                @foreach ($proximasCobrancas as $c)
+                    <div class="p-3 hover:bg-slate-50 flex items-center justify-between gap-2 text-sm">
+                        <div class="min-w-0 flex-1">
+                            <p class="font-medium text-slate-700 truncate">{{ $c->empresa->nome ?? '—' }}</p>
+                            <p class="text-xs text-slate-500">vence {{ $c->vencimento->format('d/m/Y') }} (em {{ now()->diffInDays($c->vencimento) }}d)</p>
+                        </div>
+                        <p class="font-semibold whitespace-nowrap">R$ {{ number_format($c->valor, 2, ',', '.') }}</p>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+</div>
+@endif
+
 <div class="bg-white rounded-xl shadow-sm">
     <div class="p-4 border-b border-slate-200 flex justify-between items-center">
         <div class="flex flex-wrap gap-2">

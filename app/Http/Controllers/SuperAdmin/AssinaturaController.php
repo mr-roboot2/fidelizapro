@@ -4,6 +4,7 @@ namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Assinatura;
+use App\Models\Cobranca;
 use App\Models\Empresa;
 use App\Models\Plano;
 use App\Services\AssinaturaService;
@@ -26,7 +27,21 @@ class AssinaturaController extends Controller
             'mrr' => Assinatura::whereIn('status', ['ativa', 'trial'])->sum('valor_mensal'),
         ];
 
-        return view('super.assinaturas.index', compact('assinaturas', 'resumo'));
+        $proximasCobrancas = Cobranca::with('empresa:id,nome,telefone')
+            ->where('status', 'pendente')
+            ->whereBetween('vencimento', [now()->toDateString(), now()->addDays(7)->toDateString()])
+            ->orderBy('vencimento')
+            ->limit(20)
+            ->get();
+
+        $vencidas = Cobranca::with('empresa:id,nome,telefone')
+            ->where('status', 'pendente')
+            ->whereDate('vencimento', '<', now()->toDateString())
+            ->orderBy('vencimento')
+            ->limit(20)
+            ->get();
+
+        return view('super.assinaturas.index', compact('assinaturas', 'resumo', 'proximasCobrancas', 'vencidas'));
     }
 
     public function show(Assinatura $assinatura)

@@ -94,6 +94,18 @@ class WhatsappTemplate extends Model
             'parametros' => ['nome_cliente', 'nome_sorteio'],
             'exemplo' => '🏆 {{1}}, parabéns! Você foi sorteado(a) em "{{2}}"! Entre em contato com a loja pra retirar.',
         ],
+        'cobranca_vence_em_breve' => [
+            'rotulo' => 'Cobrança vence em breve (empresa)',
+            'descricao' => 'Aviso pra empresa-cliente quando a cobrança da assinatura está próxima de vencer.',
+            'parametros' => ['nome_empresa', 'valor', 'dias_pro_vencimento'],
+            'exemplo' => 'Olá {{1}}, sua cobrança de R$ {{2}} vence em {{3}} dia(s). Pague pra não perder acesso ao sistema.',
+        ],
+        'cobranca_vencida' => [
+            'rotulo' => 'Cobrança vencida (empresa)',
+            'descricao' => 'Aviso pra empresa-cliente quando a cobrança da assinatura passou do vencimento.',
+            'parametros' => ['nome_empresa', 'valor', 'dias_atraso'],
+            'exemplo' => '⚠️ {{1}}, sua cobrança de R$ {{2}} venceu há {{3}} dia(s). Regularize pra evitar bloqueio.',
+        ],
     ];
 
     public function definicaoEvento(): ?array

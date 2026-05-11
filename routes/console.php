@@ -26,3 +26,4 @@ try {
 Schedule::command('cashback:liberar')->dailyAt($horarioCashback);
 Schedule::command('automacoes:executar')->dailyAt($horarioAutomacoes);
 Schedule::command('roleta:processar-gatilhos')->dailyAt('06:00');
+Schedule::command('assinaturas:processar')->dailyAt('07:00');
