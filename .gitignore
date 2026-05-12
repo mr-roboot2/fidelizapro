@@ -31,6 +31,9 @@ composer-setup.php
 # Logs
 storage/logs/*.log
 
+# Trava do instalador — gerada por ambiente (cada deploy tem o seu)
+storage/installed.lock
+
 # OS
 .DS_Store
 Thumbs.db
