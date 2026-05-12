@@ -58,17 +58,19 @@
         margin-bottom: 10px;
     }
     .titulo-chamativo h2 {
-        font-size: 32px;
+        font-size: 30px;
         font-weight: 800;
         letter-spacing: -0.025em;
-        line-height: 1.1;
+        line-height: 1.15;
         color: #0f172a;
     }
     .titulo-chamativo h2 span { color: {{ $empresa->cor_primaria ?? '#6366f1' }}; }
+    .titulo-chamativo h2 u { text-decoration-color: #f59e0b; text-decoration-thickness: 3px; text-underline-offset: 4px; }
     .titulo-chamativo p {
         font-size: 14px;
         color: #475569;
-        margin-top: 8px;
+        margin-top: 10px;
+        line-height: 1.45;
     }
 
     .qr-area {
@@ -176,19 +178,31 @@
     </div>
 
     <div class="titulo-chamativo">
-        <div class="badge">É grátis e rápido</div>
+        <div class="badge"><i class="ri-vip-crown-line"></i> Programa de fidelidade</div>
         <h2>
-            Escaneie e
+            Participe e
             @if ($empresa->usaPontos() && $empresa->usaCashback())
                 <span>ganhe pontos e cashback</span>
             @elseif ($empresa->usaCashback())
-                <span>ganhe cashback</span>
+                <span>ganhe cashback de volta</span>
             @else
-                <span>ganhe pontos</span>
+                <span>acumule pontos</span>
             @endif
-            a cada compra!
+            <br>em <u>cada compra</u> que fizer!
         </h2>
-        <p>Use seus benefícios em descontos, brindes e recompensas exclusivas.</p>
+        <p>
+            @if ($empresa->usaPontos() && $empresa->usaCashback())
+                Junte pontos e cashback e troque por descontos, brindes e recompensas exclusivas.
+            @elseif ($empresa->usaCashback())
+                Receba uma % de volta a cada compra pra usar como desconto na próxima.
+            @else
+                Cada compra vale pontos. Troque por descontos, brindes e recompensas exclusivas.
+            @endif
+        </p>
+        <p style="margin-top:10px; font-weight:600; color:#0f172a;">
+            <i class="ri-gift-fill" style="color:{{ $empresa->cor_primaria ?? '#6366f1' }}"></i>
+            É <strong>grátis</strong>, leva <strong>30 segundos</strong> e os benefícios começam <strong>agora</strong>.
+        </p>
     </div>
 
     <div class="qr-area">
@@ -198,18 +212,25 @@
     <div class="passos">
         <div class="passo">
             <div class="num">1</div>
-            <div class="label">Escaneie</div>
-            <div class="sub">Aponte a câmera do celular</div>
+            <div class="label">Escaneie o QR</div>
+            <div class="sub">Câmera do seu celular</div>
         </div>
         <div class="passo">
             <div class="num">2</div>
             <div class="label">Cadastre-se</div>
-            <div class="sub">Só nome e WhatsApp</div>
+            <div class="sub">Nome e WhatsApp, só isso</div>
         </div>
         <div class="passo">
             <div class="num">3</div>
             <div class="label">Aproveite</div>
-            <div class="sub">Junte pontos a cada compra</div>
+            <div class="sub">Benefícios a cada compra</div>
+        </div>
+    </div>
+
+    <div style="text-align:center; padding: 0 24px 22px;">
+        <div style="display:inline-flex; align-items:center; gap:8px; background: #fef3c7; color:#92400e; padding: 10px 16px; border-radius: 999px; font-size: 13px; font-weight: 700;">
+            <i class="ri-flashlight-fill"></i>
+            Diga ao caixa quando finalizar — ele credita seus benefícios!
         </div>
     </div>
 
