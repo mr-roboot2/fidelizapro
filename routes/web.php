@@ -186,6 +186,12 @@ Route::middleware(['super.auth'])->prefix('super')->name('super.')->group(functi
 
     Route::resource('planos', SuperPlanoController::class)->except(['show']);
 
+    Route::get('cron', [\App\Http\Controllers\SuperAdmin\CronController::class, 'index'])->name('cron.index');
+    Route::get('cron/{execucao}', [\App\Http\Controllers\SuperAdmin\CronController::class, 'show'])->name('cron.show');
+    Route::post('cron/executar/{comando}', [\App\Http\Controllers\SuperAdmin\CronController::class, 'executar'])
+        ->where('comando', '[a-z0-9:_-]+')
+        ->name('cron.executar');
+
     Route::get('configuracoes', [ConfiguracaoSistemaController::class, 'edit'])->name('configuracoes.edit');
     Route::put('configuracoes', [ConfiguracaoSistemaController::class, 'update'])->name('configuracoes.update');
 

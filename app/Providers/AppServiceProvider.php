@@ -2,12 +2,16 @@
 
 namespace App\Providers;
 
+use App\Listeners\RegistrarCronExecucao;
 use App\Models\Cliente;
 use App\Models\ConfiguracaoSistema;
 use App\Models\Empresa;
 use App\Observers\ClienteObserver;
 use App\Observers\EmpresaObserver;
+use Illuminate\Console\Events\CommandFinished;
+use Illuminate\Console\Events\CommandStarting;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
@@ -25,6 +29,12 @@ class AppServiceProvider extends ServiceProvider
     {
         Cliente::observe(ClienteObserver::class);
         Empresa::observe(EmpresaObserver::class);
+
+        // Mesma instância pra start e finish, pra preservar o array static
+        // de execucoes ativas entre os dois eventos.
+        $cronListener = new RegistrarCronExecucao();
+        Event::listen(CommandStarting::class, fn ($e) => $cronListener->handleStart($e));
+        Event::listen(CommandFinished::class, fn ($e) => $cronListener->handleFinish($e));
 
         Paginator::useTailwind();
         if (config('app.env') === 'production') {

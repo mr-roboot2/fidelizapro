@@ -41,6 +41,7 @@
                 ['super.automacoes.index', 'ri-magic-line', 'Automações'],
                 ['super.campanhas.index', 'ri-megaphone-line', 'Campanhas'],
                 ['super.whatsapp-logs.index', 'ri-history-line', 'Logs WhatsApp'],
+                ['super.cron.index', 'ri-time-line', 'Tarefas (cron)'],
                 ['super.configuracoes.edit', 'ri-settings-3-line', 'Configurações'],
             ];
         @endphp
