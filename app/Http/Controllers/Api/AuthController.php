@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Cliente;
 use App\Models\Empresa;
+use App\Rules\CpfValido;
+use App\Rules\TelefoneBr;
 use App\Services\AutomacaoService;
 use App\Services\PontuacaoService;
 use Illuminate\Http\Request;
@@ -52,7 +54,8 @@ class AuthController extends Controller
         $dados = $request->validate([
             'empresa_slug' => 'required|string',
             'nome' => 'required|string|max:255',
-            'telefone' => 'required|string|max:20',
+            'telefone' => ['required', 'string', 'max:20', new TelefoneBr()],
+            'cpf' => ['required', 'string', new CpfValido()],
             'email' => 'nullable|email',
             'data_nascimento' => 'nullable|date',
             'password' => 'required|string|min:6',
@@ -61,8 +64,14 @@ class AuthController extends Controller
 
         $empresa = Empresa::where('slug', $dados['empresa_slug'])->where('ativo', true)->firstOrFail();
 
+        $cpfNorm = preg_replace('/\D/', '', $dados['cpf']);
+
         if (Cliente::where('empresa_id', $empresa->id)->whereTelefone($dados['telefone'])->exists()) {
             throw ValidationException::withMessages(['telefone' => 'Telefone já cadastrado.']);
+        }
+
+        if (Cliente::where('empresa_id', $empresa->id)->where('cpf', $cpfNorm)->exists()) {
+            throw ValidationException::withMessages(['cpf' => 'CPF já cadastrado.']);
         }
 
         $indicador = null;
@@ -75,6 +84,7 @@ class AuthController extends Controller
             'empresa_id' => $empresa->id,
             'nome' => $dados['nome'],
             'telefone' => $dados['telefone'],
+            'cpf' => $cpfNorm,
             'email' => $dados['email'] ?? null,
             'data_nascimento' => $dados['data_nascimento'] ?? null,
             'password' => Hash::make($dados['password']),

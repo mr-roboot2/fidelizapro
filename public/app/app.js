@@ -119,6 +119,31 @@ function formatarTelefone(v) {
     return '(' + v.slice(0, 2) + ') ' + v.slice(2, 7) + '-' + v.slice(7);
 }
 
+// Valida CPF (11 dígitos + dígitos verificadores corretos)
+function validarCpf(cpf) {
+    cpf = String(cpf || '').replace(/\D/g, '');
+    if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
+    let soma = 0;
+    for (let i = 0; i < 9; i++) soma += parseInt(cpf[i]) * (10 - i);
+    let d1 = (soma * 10) % 11; if (d1 === 10) d1 = 0;
+    if (d1 !== parseInt(cpf[9])) return false;
+    soma = 0;
+    for (let i = 0; i < 10; i++) soma += parseInt(cpf[i]) * (11 - i);
+    let d2 = (soma * 10) % 11; if (d2 === 10) d2 = 0;
+    return d2 === parseInt(cpf[10]);
+}
+
+// Valida telefone BR — 10 (fixo) ou 11 (celular) dígitos, DDD entre 11 e 99
+function validarTelefone(tel) {
+    const d = String(tel || '').replace(/\D/g, '');
+    if (d.length !== 10 && d.length !== 11) return false;
+    const ddd = parseInt(d.slice(0, 2));
+    if (ddd < 11 || ddd > 99) return false;
+    // Celular tem que começar com 9 no 3º dígito
+    if (d.length === 11 && d[2] !== '9') return false;
+    return true;
+}
+
 // Aplica máscara em todos inputs de telefone (login, OTP, registrar, indicação)
 document.addEventListener('input', (ev) => {
     const el = ev.target;
@@ -571,10 +596,19 @@ async function telaRegistrar() {
                     <label class="block text-sm font-medium text-slate-700 mb-1.5">Telefone <span class="text-rose-500">*</span></label>
                     <div class="relative">
                         <i class="ri-smartphone-line absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                        <input name="telefone" required placeholder="(11) 99999-9999"
+                        <input name="telefone" required inputmode="numeric" placeholder="(11) 99999-9999"
                                class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-slate-400 focus:outline-none transition">
                     </div>
                     <p class="text-xs text-slate-500 mt-1 ml-1">Usado para login e notificações</p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">CPF <span class="text-rose-500">*</span></label>
+                    <div class="relative">
+                        <i class="ri-id-card-line absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input name="cpf" required inputmode="numeric" placeholder="000.000.000-00" maxlength="14"
+                               class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-slate-400 focus:outline-none transition">
+                    </div>
                 </div>
 
                 <div>
@@ -635,6 +669,14 @@ async function telaRegistrar() {
         ev.preventDefault();
         const fd = Object.fromEntries(new FormData(ev.target));
         Object.keys(fd).forEach(k => { if (fd[k] === '') delete fd[k]; });
+
+        if (!validarTelefone(fd.telefone)) return toast('Telefone inválido. Use DDD + número (10 ou 11 dígitos).', 'error');
+        if (!validarCpf(fd.cpf)) return toast('CPF inválido. Verifique os dígitos.', 'error');
+
+        const btn = ev.target.querySelector('button[type="submit"]');
+        const labelOriginal = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="ri-loader-4-line animate-spin"></i> Criando conta...';
         try {
             const res = await api('/auth/registrar', {
                 method: 'POST',
@@ -644,7 +686,11 @@ async function telaRegistrar() {
             persistir(); aplicarTemaEmpresa();
             toast('Cadastro realizado!', 'success');
             showScreen('home');
-        } catch (e) { toast(e.message, 'error'); }
+        } catch (e) {
+            toast(e.message, 'error');
+            btn.disabled = false;
+            btn.innerHTML = labelOriginal;
+        }
     });
 }
 

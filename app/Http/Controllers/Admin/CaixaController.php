@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Cliente;
+use App\Rules\CpfValido;
+use App\Rules\TelefoneBr;
 use App\Services\CashbackService;
 use App\Services\CompraService;
 use Illuminate\Http\Request;
@@ -11,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class CaixaController extends Controller
@@ -137,16 +140,22 @@ class CaixaController extends Controller
         $empresaId = Auth::user()->empresa_id;
         $dados = $request->validate([
             'nome' => 'required|string|max:255',
-            'telefone' => "required|string|max:20|unique:clientes,telefone,NULL,id,empresa_id,{$empresaId}",
-            'cpf' => 'nullable|string|max:14',
+            'telefone' => ['required', 'string', 'max:20', new TelefoneBr(), "unique:clientes,telefone,NULL,id,empresa_id,{$empresaId}"],
+            'cpf' => ['required', 'string', new CpfValido()],
             'data_nascimento' => 'nullable|date',
         ]);
+
+        $cpfNorm = preg_replace('/\D/', '', $dados['cpf']);
+
+        if (Cliente::where('empresa_id', $empresaId)->where('cpf', $cpfNorm)->exists()) {
+            throw ValidationException::withMessages(['cpf' => 'CPF já cadastrado para esta empresa.']);
+        }
 
         $cliente = Cliente::create([
             'empresa_id' => $empresaId,
             'nome' => $dados['nome'],
             'telefone' => $dados['telefone'],
-            'cpf' => $dados['cpf'] ?? null,
+            'cpf' => $cpfNorm,
             'data_nascimento' => $dados['data_nascimento'] ?? null,
             'password' => Hash::make(substr(preg_replace('/\D/', '', $dados['telefone']), -6)),
             'aceita_whatsapp' => true,

@@ -47,13 +47,33 @@
             <!-- Form de cadastro rápido -->
             <div x-show="abrirCadastro" x-cloak class="mt-4 p-4 bg-indigo-50 rounded-lg space-y-2">
                 <h3 class="font-semibold text-sm mb-2">Cadastro rápido</h3>
-                <input type="text" x-model="novo.nome" placeholder="Nome completo *" class="w-full px-3 py-2 border border-slate-300 rounded">
-                <input type="text" x-model="novo.telefone" placeholder="Telefone *" class="w-full px-3 py-2 border border-slate-300 rounded">
-                <input type="text" x-model="novo.cpf" placeholder="CPF (opcional)" class="w-full px-3 py-2 border border-slate-300 rounded">
+
+                <input type="text" x-model="novo.nome" placeholder="Nome completo *"
+                       :class="erros.nome ? 'border-rose-400' : 'border-slate-300'"
+                       class="w-full px-3 py-2 border rounded">
+                <p x-show="erros.nome" x-text="erros.nome" class="text-xs text-rose-600 -mt-1"></p>
+
+                <input type="text" x-model="novo.telefone" placeholder="Telefone *" maxlength="15" inputmode="numeric"
+                       @input="novo.telefone = mascararTelefone($event.target.value)"
+                       :class="erros.telefone ? 'border-rose-400' : 'border-slate-300'"
+                       class="w-full px-3 py-2 border rounded">
+                <p x-show="erros.telefone" x-text="erros.telefone" class="text-xs text-rose-600 -mt-1"></p>
+
+                <input type="text" x-model="novo.cpf" placeholder="CPF *" maxlength="14" inputmode="numeric"
+                       @input="novo.cpf = mascararCpf($event.target.value)"
+                       :class="erros.cpf ? 'border-rose-400' : 'border-slate-300'"
+                       class="w-full px-3 py-2 border rounded">
+                <p x-show="erros.cpf" x-text="erros.cpf" class="text-xs text-rose-600 -mt-1"></p>
+
                 <input type="date" x-model="novo.data_nascimento" placeholder="Aniversário" class="w-full px-3 py-2 border border-slate-300 rounded">
+
                 <div class="flex gap-2 pt-2">
-                    <button @click="cadastrar()" class="flex-1 py-2 bg-indigo-600 text-white rounded">Cadastrar</button>
-                    <button @click="abrirCadastro = false" class="px-4 py-2 bg-slate-200 rounded">Cancelar</button>
+                    <button @click="cadastrar()" :disabled="salvando"
+                            class="flex-1 py-2 bg-indigo-600 text-white rounded disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                        <i x-show="salvando" class="ri-loader-4-line animate-spin"></i>
+                        <span x-text="salvando ? 'Cadastrando...' : 'Cadastrar'"></span>
+                    </button>
+                    <button @click="abrirCadastro = false" :disabled="salvando" class="px-4 py-2 bg-slate-200 rounded disabled:opacity-60">Cancelar</button>
                 </div>
             </div>
         </div>
@@ -158,11 +178,48 @@
 function caixa() {
     return {
         busca: '', resultados: [], carregando: false,
-        cliente: null, abrirCadastro: false,
+        cliente: null, abrirCadastro: false, salvando: false,
         novo: { nome: '', telefone: '', cpf: '', data_nascimento: '' },
+        erros: {},
         valor: null, usarCashback: 0, descricao: '',
         ultimaCompra: null,
         csrf: document.querySelector('meta[name=csrf-token]').content,
+
+        mascararTelefone(v) {
+            v = String(v || '').replace(/\D/g, '').slice(0, 11);
+            if (!v) return '';
+            if (v.length <= 2) return '(' + v;
+            if (v.length <= 6) return '(' + v.slice(0,2) + ') ' + v.slice(2);
+            if (v.length <= 10) return '(' + v.slice(0,2) + ') ' + v.slice(2,6) + '-' + v.slice(6);
+            return '(' + v.slice(0,2) + ') ' + v.slice(2,7) + '-' + v.slice(7);
+        },
+        mascararCpf(v) {
+            v = String(v || '').replace(/\D/g, '').slice(0, 11);
+            if (v.length > 9) return v.slice(0,3)+'.'+v.slice(3,6)+'.'+v.slice(6,9)+'-'+v.slice(9);
+            if (v.length > 6) return v.slice(0,3)+'.'+v.slice(3,6)+'.'+v.slice(6);
+            if (v.length > 3) return v.slice(0,3)+'.'+v.slice(3);
+            return v;
+        },
+        validarTelefone(t) {
+            const d = String(t || '').replace(/\D/g, '');
+            if (d.length !== 10 && d.length !== 11) return false;
+            const ddd = parseInt(d.slice(0,2));
+            if (ddd < 11 || ddd > 99) return false;
+            if (d.length === 11 && d[2] !== '9') return false;
+            return true;
+        },
+        validarCpf(cpf) {
+            cpf = String(cpf || '').replace(/\D/g, '');
+            if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
+            let soma = 0;
+            for (let i = 0; i < 9; i++) soma += parseInt(cpf[i]) * (10 - i);
+            let d1 = (soma * 10) % 11; if (d1 === 10) d1 = 0;
+            if (d1 !== parseInt(cpf[9])) return false;
+            soma = 0;
+            for (let i = 0; i < 10; i++) soma += parseInt(cpf[i]) * (11 - i);
+            let d2 = (soma * 10) % 11; if (d2 === 10) d2 = 0;
+            return d2 === parseInt(cpf[10]);
+        },
 
         init() {},
 
@@ -178,17 +235,35 @@ function caixa() {
         },
 
         async cadastrar() {
-            this.carregando = true;
-            const r = await fetch(`{{ route('admin.caixa.criar') }}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': this.csrf },
-                body: JSON.stringify(this.novo),
-            });
-            const d = await r.json();
-            this.carregando = false;
-            if (!r.ok) { alert(d.message || JSON.stringify(d.errors)); return; }
-            this.cliente = d.cliente;
-            this.abrirCadastro = false;
+            this.erros = {};
+            if (!this.novo.nome || this.novo.nome.trim().length < 2) this.erros.nome = 'Informe o nome completo';
+            if (!this.validarTelefone(this.novo.telefone)) this.erros.telefone = 'Telefone inválido (DDD + número)';
+            if (!this.validarCpf(this.novo.cpf)) this.erros.cpf = 'CPF inválido';
+            if (Object.keys(this.erros).length) return;
+
+            this.salvando = true;
+            try {
+                const r = await fetch(`{{ route('admin.caixa.criar') }}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': this.csrf },
+                    body: JSON.stringify(this.novo),
+                });
+                const d = await r.json();
+                if (!r.ok) {
+                    if (d.errors) {
+                        // Mapeia erros do Laravel (primeira msg de cada campo)
+                        Object.keys(d.errors).forEach(k => this.erros[k] = d.errors[k][0]);
+                    } else {
+                        alert(d.message || 'Erro ao cadastrar');
+                    }
+                    return;
+                }
+                this.cliente = d.cliente;
+                this.abrirCadastro = false;
+                this.novo = { nome: '', telefone: '', cpf: '', data_nascimento: '' };
+            } finally {
+                this.salvando = false;
+            }
         },
 
         async lancar() {
