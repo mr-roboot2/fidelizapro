@@ -75,7 +75,7 @@ class SetupService
             'rota_acao' => 'admin.pwa.share',
             'label_acao' => 'Ver QR Code',
             'obrigatorio' => false,
-            'concluido' => false, // marca via session quando o cliente visualiza
+            'concluido' => $empresa->passoVisto('pwa'),
         ];
 
         // ─── POR MÓDULO ──────────────────────────────────────────────────────
@@ -143,7 +143,7 @@ class SetupService
                 'rota_acao' => 'admin.ai-growth.index',
                 'label_acao' => 'Abrir',
                 'obrigatorio' => false,
-                'concluido' => false, // marcado por session quando visita
+                'concluido' => $empresa->passoVisto('ai_growth'),
             ];
         }
 

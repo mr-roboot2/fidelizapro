@@ -17,6 +17,7 @@ class AIGrowthController extends Controller
     public function index(Request $request)
     {
         $empresaId = Auth::user()->empresa_id;
+        Auth::user()->empresa?->marcarPassoVisto('ai_growth');
         [$de, $ate] = $this->parsePeriodo($request);
         return view('admin.ai_growth.index', $this->dados($empresaId, $de, $ate));
     }

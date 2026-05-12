@@ -11,6 +11,7 @@ class PwaShareController extends Controller
     public function index()
     {
         $empresa = Auth::user()->empresa;
+        $empresa->marcarPassoVisto('pwa');
         $url = url('/app/'.$empresa->slug.'/');
         $qrSvg = (new QrGenerator())->format('svg')->size(360)->margin(2)->generate($url);
         return view('admin.pwa.share', compact('empresa', 'url', 'qrSvg'));

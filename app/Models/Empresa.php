@@ -19,7 +19,7 @@ class Empresa extends Model
         'logo_bg_color', 'logo_scale',
         'cor_primaria', 'cor_secundaria', 'pontos_por_real',
         'cashback_percentual', 'modo_fidelidade',
-        'dias_liberar_cashback', 'validade_pontos_dias', 'ativo', 'setup_concluido',
+        'dias_liberar_cashback', 'validade_pontos_dias', 'ativo', 'setup_concluido', 'setup_passos_vistos',
         'pdv_secret', 'plano_id',
         'whatsapp_provider', 'whatsapp_api_url', 'whatsapp_api_token',
         'whatsapp_instance', 'whatsapp_phone_id', 'whatsapp_ativo',
@@ -47,7 +47,24 @@ class Empresa extends Model
         'cashback_percentual' => 'decimal:2',
         'ativo' => 'boolean',
         'whatsapp_ativo' => 'boolean',
+        'setup_concluido' => 'boolean',
+        'setup_passos_vistos' => 'array',
     ];
+
+    public function passoVisto(string $chave): bool
+    {
+        return in_array($chave, $this->setup_passos_vistos ?? [], true);
+    }
+
+    public function marcarPassoVisto(string $chave): void
+    {
+        $vistos = $this->setup_passos_vistos ?? [];
+        if (!in_array($chave, $vistos, true)) {
+            $vistos[] = $chave;
+            $this->setup_passos_vistos = $vistos;
+            $this->save();
+        }
+    }
 
     protected static function booted(): void
     {
