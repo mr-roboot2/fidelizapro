@@ -5,7 +5,7 @@
 <title>Cartaz - {{ $empresa->nome }}</title>
 <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
 <style>
-    @page { size: A4 portrait; margin: 12mm; }
+    @page { size: A4 portrait; margin: 0; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
         font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -153,12 +153,12 @@
     .acoes .ghost { background: #fff; color: #0f172a; border: 1px solid #cbd5e1; }
 
     @media print {
-        body { background: #fff; padding: 0; }
+        body { background: #fff; padding: 12mm; }
         .cartaz {
             border: none; box-shadow: none; border-radius: 0;
             max-width: none;
         }
-        .acoes { display: none; }
+        .acoes, .dica-print { display: none !important; }
     }
 </style>
 </head>
@@ -238,6 +238,11 @@
         <div class="url">{{ $url }}</div>
         <div class="marca">FidelizaPro</div>
     </div>
+</div>
+
+<div class="dica-print" style="max-width:720px; margin: 14px auto 0; padding: 10px 14px; background:#fef3c7; border:1px solid #fcd34d; border-radius:10px; color:#92400e; font-size:12px; text-align:center;">
+    <i class="ri-information-line"></i>
+    Se aparecer data/URL na impressão, desmarque <strong>"Cabeçalhos e rodapés"</strong> no diálogo do navegador (em "Mais definições").
 </div>
 
 <div class="acoes">
