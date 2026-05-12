@@ -11,9 +11,9 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css">
     <style>[x-cloak]{display:none!important}</style>
 </head>
-<body class="bg-slate-100 text-slate-800 min-h-screen flex">
+<body class="bg-slate-100 text-slate-800 h-screen flex overflow-hidden">
 <aside x-data="{open:true}" :class="open?'w-64':'w-20'"
-       class="bg-gradient-to-b from-slate-900 via-slate-900 to-rose-950 text-slate-200 transition-all duration-200 flex flex-col">
+       class="bg-gradient-to-b from-slate-900 via-slate-900 to-rose-950 text-slate-200 transition-all duration-200 flex flex-col h-screen sticky top-0 shrink-0">
     <div class="p-4 flex items-center justify-between border-b border-slate-800">
         <div class="flex items-center gap-2" x-show="open">
             <div class="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold bg-gradient-to-br from-rose-500 to-orange-500">S</div>
@@ -85,7 +85,7 @@
     </div>
 </aside>
 
-<main class="flex-1 flex flex-col overflow-hidden">
+<main class="flex-1 flex flex-col overflow-y-auto h-screen">
     <header class="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between">
         <div>
             <h1 class="text-xl font-semibold text-slate-700">@yield('title', 'Super Admin')</h1>

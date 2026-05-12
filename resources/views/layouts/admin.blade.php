@@ -11,8 +11,8 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css">
     <style>[x-cloak]{display:none!important}</style>
 </head>
-<body class="bg-slate-100 text-slate-800 min-h-screen flex">
-<aside x-data="{open:true}" :class="open?'w-64':'w-20'" class="bg-slate-900 text-slate-200 transition-all duration-200 flex flex-col">
+<body class="bg-slate-100 text-slate-800 h-screen flex overflow-hidden">
+<aside x-data="{open:true}" :class="open?'w-64':'w-20'" class="bg-slate-900 text-slate-200 transition-all duration-200 flex flex-col h-screen sticky top-0 shrink-0">
     <div class="p-4 flex items-center justify-between border-b border-slate-800">
         @php $nomeSistema = $sistema->nome_sistema ?? 'FidelizaPro'; @endphp
         <div class="flex items-center gap-2" x-show="open">
@@ -80,7 +80,7 @@
     </div>
 </aside>
 
-<main class="flex-1 flex flex-col overflow-hidden">
+<main class="flex-1 flex flex-col overflow-y-auto h-screen">
     @include('admin._partials.banner_inadimplencia')
     @if (session('impersonate_origem_id'))
         <div class="bg-amber-500 text-white px-4 py-2 text-sm flex items-center justify-between">
