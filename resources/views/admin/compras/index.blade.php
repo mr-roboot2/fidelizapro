@@ -28,7 +28,7 @@
                     <th class="text-right p-3">Pontos</th>
                     <th class="text-right p-3">Cashback</th>
                     <th class="text-left p-3">Origem</th>
-                    <th class="text-right p-3">Cupom</th>
+                    <th class="text-left p-3 w-px whitespace-nowrap">Cupom</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -40,7 +40,7 @@
                         <td class="p-3 text-right text-amber-600">+{{ number_format($c->pontos_gerados, 0, ',', '.') }}</td>
                         <td class="p-3 text-right">R$ {{ number_format($c->cashback_gerado, 2, ',', '.') }}</td>
                         <td class="p-3"><span class="text-xs bg-slate-100 px-2 py-0.5 rounded-full">{{ $c->origem }}</span></td>
-                        <td class="p-3 text-right">
+                        <td class="p-3 w-px whitespace-nowrap">
                             <div class="inline-flex gap-1">
                                 <a href="{{ route('admin.caixa.cupom', $c) }}" target="_blank"
                                    class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700"
