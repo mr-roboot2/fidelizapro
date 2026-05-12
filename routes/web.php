@@ -138,6 +138,7 @@ Route::middleware(['admin.auth', 'empresa.scope', 'verifica.pagamento'])->prefix
     });
 
     Route::get('pwa/compartilhar', [\App\Http\Controllers\Admin\PwaShareController::class, 'index'])->name('pwa.share');
+    Route::get('pwa/cartaz', [\App\Http\Controllers\Admin\PwaShareController::class, 'cartaz'])->name('pwa.cartaz');
 
     Route::get('parceiros/relatorio', [ParceiroController::class, 'relatorio'])->name('parceiros.relatorio');
     Route::resource('parceiros', ParceiroController::class);

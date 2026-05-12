@@ -32,10 +32,16 @@
                     {!! $qrSvg !!}
                 </div>
                 <div class="text-xs text-slate-500">QR para impressão</div>
-                <button onclick="window.print()"
-                        class="mt-3 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-sm font-medium">
-                    <i class="ri-printer-line"></i> Imprimir
-                </button>
+                <div class="flex gap-2 mt-3">
+                    <a href="{{ route('admin.pwa.cartaz') }}" target="_blank"
+                       class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium">
+                        <i class="ri-eye-line"></i> Ver cartaz
+                    </a>
+                    <a href="{{ route('admin.pwa.cartaz') }}?auto=1" target="_blank"
+                       class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-sm font-medium">
+                        <i class="ri-printer-line"></i> Imprimir cartaz
+                    </a>
+                </div>
             </div>
 
             {{-- LINK --}}
@@ -84,12 +90,5 @@ function copiarUrl() {
     });
 }
 </script>
-
-<style>
-@media print {
-    nav, aside, header, .no-print, button, a[href]:not([data-print]) { display: none !important; }
-    body { background: white; }
-}
-</style>
 
 @endsection
