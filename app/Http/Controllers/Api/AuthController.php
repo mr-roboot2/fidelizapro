@@ -163,6 +163,7 @@ class AuthController extends Controller
             'codigo_indicacao' => $c->codigo_indicacao,
             'total_compras' => $c->total_compras,
             'total_gasto' => (float) $c->total_gasto,
+            'senha_temporaria' => (bool) $c->senha_temporaria,
         ];
     }
 

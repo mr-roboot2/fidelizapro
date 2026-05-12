@@ -105,6 +105,24 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Aviso de senha temporária (logo após cadastro pelo caixa) -->
+            <div x-show="senhaTemp" x-cloak class="mt-3 bg-amber-50 border-2 border-amber-300 rounded-xl p-4">
+                <div class="flex items-start gap-3">
+                    <i class="ri-key-2-fill text-amber-600 text-2xl"></i>
+                    <div class="flex-1">
+                        <p class="font-bold text-amber-900 text-sm">Senha temporária do cliente:</p>
+                        <p class="font-mono text-3xl font-bold text-amber-900 my-1 tracking-widest" x-text="senhaTemp"></p>
+                        <p class="text-xs text-amber-800 leading-snug">
+                            Avise o cliente que pra entrar no app é só usar os <strong>últimos 6 dígitos do celular</strong>.
+                            Ele será obrigado a trocar a senha no primeiro acesso.
+                        </p>
+                    </div>
+                    <button @click="senhaTemp = null" class="text-amber-700 hover:text-amber-900">
+                        <i class="ri-close-line"></i>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -178,7 +196,7 @@
 function caixa() {
     return {
         busca: '', resultados: [], carregando: false,
-        cliente: null, abrirCadastro: false, salvando: false,
+        cliente: null, abrirCadastro: false, salvando: false, senhaTemp: null,
         novo: { nome: '', telefone: '', cpf: '', data_nascimento: '' },
         erros: {},
         valor: null, usarCashback: 0, descricao: '',
@@ -261,6 +279,7 @@ function caixa() {
                 this.cliente = d.cliente;
                 this.abrirCadastro = false;
                 this.novo = { nome: '', telefone: '', cpf: '', data_nascimento: '' };
+                if (d.senha_temporaria) this.senhaTemp = d.senha_temporaria;
             } finally {
                 this.salvando = false;
             }

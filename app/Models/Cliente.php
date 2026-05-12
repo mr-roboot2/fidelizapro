@@ -20,6 +20,7 @@ class Cliente extends Authenticatable
         'password', 'codigo_qr', 'codigo_indicacao', 'indicado_por_id',
         'pontos_atual', 'cashback_atual', 'cashback_pendente', 'total_gasto', 'total_compras',
         'ultimo_acesso', 'ultimo_ip', 'ultima_compra', 'ativo', 'aceita_whatsapp',
+        'senha_temporaria',
     ];
 
     protected $hidden = [
@@ -35,6 +36,7 @@ class Cliente extends Authenticatable
             'password' => 'hashed',
             'ativo' => 'boolean',
             'aceita_whatsapp' => 'boolean',
+            'senha_temporaria' => 'boolean',
             'pontos_atual' => 'decimal:2',
             'cashback_atual' => 'decimal:2',
             'cashback_pendente' => 'decimal:2',

@@ -151,18 +151,22 @@ class CaixaController extends Controller
             throw ValidationException::withMessages(['cpf' => 'CPF já cadastrado para esta empresa.']);
         }
 
+        $senhaTemp = substr(preg_replace('/\D/', '', $dados['telefone']), -6);
+
         $cliente = Cliente::create([
             'empresa_id' => $empresaId,
             'nome' => $dados['nome'],
             'telefone' => $dados['telefone'],
             'cpf' => $cpfNorm,
             'data_nascimento' => $dados['data_nascimento'] ?? null,
-            'password' => Hash::make(substr(preg_replace('/\D/', '', $dados['telefone']), -6)),
+            'password' => Hash::make($senhaTemp),
+            'senha_temporaria' => true,
             'aceita_whatsapp' => true,
         ]);
 
         return response()->json([
             'message' => 'Cliente cadastrado!',
+            'senha_temporaria' => $senhaTemp,
             'cliente' => [
                 'id' => $cliente->id,
                 'nome' => $cliente->nome,

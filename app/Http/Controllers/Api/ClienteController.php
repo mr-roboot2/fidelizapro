@@ -191,18 +191,28 @@ class ClienteController extends Controller
 
     public function alterarSenha(Request $request)
     {
-        $dados = $request->validate([
-            'senha_atual' => 'required|string',
-            'senha_nova'  => 'required|string|min:6|confirmed',
-        ]);
-
         $cliente = $request->user();
 
-        if (!Hash::check($dados['senha_atual'], $cliente->password)) {
+        // Em troca obrigatória (primeira entrada do cliente cadastrado pelo
+        // caixa) não exige a senha atual — ela é temporária e conhecida pelo
+        // operador, não pelo cliente.
+        $regras = [
+            'senha_nova' => 'required|string|min:6|confirmed',
+        ];
+        if (!$cliente->senha_temporaria) {
+            $regras['senha_atual'] = 'required|string';
+        }
+        $dados = $request->validate($regras);
+
+        if (!$cliente->senha_temporaria
+            && !Hash::check($dados['senha_atual'], $cliente->password)) {
             throw ValidationException::withMessages(['senha_atual' => 'Senha atual incorreta.']);
         }
 
-        $cliente->update(['password' => Hash::make($dados['senha_nova'])]);
+        $cliente->update([
+            'password' => Hash::make($dados['senha_nova']),
+            'senha_temporaria' => false,
+        ]);
 
         return response()->json(['message' => 'Senha alterada com sucesso!']);
     }

@@ -211,6 +211,7 @@ async function showScreen(nome, params = {}) {
         perfil: telaPerfil,
         editarPerfil: telaEditarPerfil,
         alterarSenha: telaAlterarSenha,
+        trocarSenha: telaAlterarSenha,
         empresa: telaEmpresa,
         extrato: telaExtrato,
         resgates: telaResgates,
@@ -416,7 +417,11 @@ async function telaLogin() {
             persistir();
             aplicarTemaEmpresa();
             toast('Bem-vindo, '+ res.cliente.nome.split(' ')[0] + '!', 'success');
-            showScreen('home');
+            if (res.cliente.senha_temporaria) {
+                showScreen('trocarSenha');
+            } else {
+                showScreen('home');
+            }
         } catch (e) { toast(e.message, 'error'); }
     });
 }
@@ -553,7 +558,7 @@ window.validarOtp = async () => {
         persistir();
         aplicarTemaEmpresa();
         toast('Bem-vindo de volta!', 'success');
-        showScreen('home');
+        showScreen(res.cliente.senha_temporaria ? 'trocarSenha' : 'home');
     } catch (e) { toast(e.message, 'error'); }
 };
 
@@ -1344,18 +1349,30 @@ async function telaEditarPerfil() {
 async function telaAlterarSenha() {
     const e = STATE.empresa;
     const cor = e.cor_primaria, corSec = e.cor_secundaria;
+    const primeiroAcesso = !!STATE.cliente?.senha_temporaria;
+
     screenContainer.innerHTML = `
     <div class="fade-in flex-1 flex flex-col overflow-y-auto bg-slate-50">
         <div class="px-5 pt-6 pb-10 text-white" style="background:linear-gradient(135deg,${cor},${corSec})">
+            ${primeiroAcesso ? '' : `
             <button onclick="showScreen('perfil')" class="text-white/80 mb-3 flex items-center gap-1 text-sm hover:text-white transition">
                 <i class="ri-arrow-left-line"></i> Voltar
-            </button>
-            <h1 class="text-2xl font-bold">Alterar senha</h1>
-            <p class="text-white/80 text-sm mt-1">Defina uma nova senha de acesso</p>
+            </button>`}
+            <h1 class="text-2xl font-bold">${primeiroAcesso ? 'Defina sua senha' : 'Alterar senha'}</h1>
+            <p class="text-white/80 text-sm mt-1">${primeiroAcesso ? 'Bem-vindo! Crie uma senha pessoal pra continuar.' : 'Defina uma nova senha de acesso'}</p>
         </div>
 
         <form id="form-alterar-senha" class="px-4 -mt-6 pb-6">
             <div class="bg-white rounded-2xl shadow-md border border-slate-100 p-5 space-y-4">
+
+                ${primeiroAcesso ? `
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-2">
+                    <i class="ri-information-line text-amber-600 mt-0.5"></i>
+                    <p class="text-xs text-amber-800">
+                        Você foi cadastrado pela loja com uma <strong>senha temporária</strong>.
+                        Pra continuar, crie agora uma senha pessoal só sua.
+                    </p>
+                </div>` : `
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1.5">Senha atual</label>
                     <div class="relative">
@@ -1363,7 +1380,7 @@ async function telaAlterarSenha() {
                         <input name="senha_atual" type="password" required placeholder="Sua senha atual"
                                class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-slate-400 focus:outline-none transition">
                     </div>
-                </div>
+                </div>`}
 
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1.5">Nova senha</label>
@@ -1383,20 +1400,22 @@ async function telaAlterarSenha() {
                     </div>
                 </div>
 
-                <div class="bg-amber-50 border border-amber-100 rounded-xl p-3 flex gap-2">
-                    <i class="ri-shield-check-line text-amber-600 mt-0.5"></i>
-                    <p class="text-xs text-amber-800">Use ao menos 6 caracteres. Misture letras, números e símbolos pra ficar mais segura.</p>
+                <div class="bg-slate-50 border border-slate-100 rounded-xl p-3 flex gap-2">
+                    <i class="ri-shield-check-line text-slate-500 mt-0.5"></i>
+                    <p class="text-xs text-slate-600">Use ao menos 6 caracteres. Misture letras, números e símbolos pra ficar mais segura.</p>
                 </div>
             </div>
 
-            <button type="submit" class="w-full mt-4 py-3.5 text-white rounded-2xl font-semibold flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition"
+            <button type="submit" id="btn-salvar-senha"
+                    class="w-full mt-4 py-3.5 text-white rounded-2xl font-semibold flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition"
                     style="background:linear-gradient(135deg,${cor},${corSec})">
-                <i class="ri-shield-keyhole-line"></i> Atualizar senha
+                <i class="ri-shield-keyhole-line"></i> ${primeiroAcesso ? 'Criar senha e continuar' : 'Atualizar senha'}
             </button>
 
+            ${primeiroAcesso ? '' : `
             <button type="button" onclick="showScreen('perfil')" class="w-full mt-2 py-3 text-slate-600 font-medium rounded-2xl hover:bg-slate-100 transition">
                 Cancelar
-            </button>
+            </button>`}
         </form>
     </div>`;
 
@@ -1406,11 +1425,24 @@ async function telaAlterarSenha() {
         if (fd.senha_nova !== fd.senha_nova_confirmation) {
             return toast('As senhas novas não conferem', 'error');
         }
+
+        const btn = $('#btn-salvar-senha');
+        const labelOrig = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="ri-loader-4-line animate-spin"></i> Salvando...';
         try {
             await api('/cliente/senha', { method: 'PUT', body: JSON.stringify(fd) });
-            toast('Senha alterada!', 'success');
-            showScreen('perfil');
-        } catch (e) { toast(e.message, 'error'); }
+            toast(primeiroAcesso ? 'Senha definida! Bem-vindo.' : 'Senha alterada!', 'success');
+            if (STATE.cliente) {
+                STATE.cliente.senha_temporaria = false;
+                persistir();
+            }
+            showScreen(primeiroAcesso ? 'home' : 'perfil');
+        } catch (e) {
+            toast(e.message, 'error');
+            btn.disabled = false;
+            btn.innerHTML = labelOrig;
+        }
     });
 }
 
@@ -2657,4 +2689,7 @@ if ('serviceWorker' in navigator) {
 
 // ============ BOOT ============
 aplicarTemaEmpresa();
-showScreen(STATE.token ? 'home' : 'escolherEmpresa');
+const telaInicial = STATE.token
+    ? (STATE.cliente?.senha_temporaria ? 'trocarSenha' : 'home')
+    : 'escolherEmpresa';
+showScreen(telaInicial);
