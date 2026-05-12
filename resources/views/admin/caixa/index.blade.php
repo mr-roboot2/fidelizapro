@@ -1,7 +1,14 @@
 @extends('layouts.admin')
 @section('title', 'Caixa rápido')
 @section('content')
-<div x-data="caixa()" x-init="init()" class="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-5xl">
+<div x-data="caixa(@js($clientePre ? [
+        'id' => $clientePre->id,
+        'nome' => $clientePre->nome,
+        'telefone' => $clientePre->telefone,
+        'pontos' => (float) $clientePre->pontos_atual,
+        'cashback' => (float) $clientePre->cashback_atual,
+        'cashback_pendente' => (float) $clientePre->cashback_pendente,
+    ] : null)" x-init="init()" class="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-5xl">
 
     <!-- COLUNA ESQUERDA: busca/cadastro de cliente -->
     <div class="bg-white rounded-xl shadow-sm p-6">
@@ -203,10 +210,10 @@
 </div>
 
 <script>
-function caixa() {
+function caixa(clientePre) {
     return {
         busca: '', resultados: [], carregando: false,
-        cliente: null, abrirCadastro: false, salvando: false, senhaTemp: null,
+        cliente: clientePre || null, abrirCadastro: false, salvando: false, senhaTemp: null,
         novo: { nome: '', telefone: '', cpf: '', data_nascimento: '' },
         erros: {},
         valor: null, usarCashback: 0, descricao: '',

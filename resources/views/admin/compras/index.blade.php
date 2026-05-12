@@ -8,9 +8,9 @@
             <input type="date" name="ate" value="{{ request('ate') }}" class="px-3 py-2 border border-slate-300 rounded-lg text-sm">
             <button class="px-4 py-2 bg-slate-200 rounded-lg text-sm">Filtrar</button>
         </form>
-        <a href="{{ route('admin.compras.create') }}"
+        <a href="{{ route('admin.caixa.index') }}"
            class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm">
-            <i class="ri-add-line"></i> Lançar compra
+            <i class="ri-cash-line"></i> Lançar compra
         </a>
     </div>
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 border-b border-slate-200 bg-slate-50">

@@ -19,9 +19,15 @@ use Throwable;
 
 class CaixaController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return view('admin.caixa.index');
+        $clientePre = null;
+        if ($request->filled('cliente_id')) {
+            $clientePre = Cliente::where('id', $request->integer('cliente_id'))
+                ->where('empresa_id', Auth::user()->empresa_id)
+                ->first(['id', 'nome', 'telefone', 'cpf', 'pontos_atual', 'cashback_atual', 'cashback_pendente']);
+        }
+        return view('admin.caixa.index', compact('clientePre'));
     }
 
     /**

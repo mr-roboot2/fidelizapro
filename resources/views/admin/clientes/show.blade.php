@@ -49,9 +49,9 @@
         </div>
 
         <div class="mt-5 flex gap-2">
-            <a href="{{ route('admin.compras.create', ['cliente_id' => $cliente->id]) }}"
+            <a href="{{ route('admin.caixa.index', ['cliente_id' => $cliente->id]) }}"
                class="flex-1 text-center text-sm bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700">
-                <i class="ri-add-line"></i> Lançar compra
+                <i class="ri-cash-line"></i> Lançar compra
             </a>
             <a href="{{ route('admin.clientes.edit', $cliente) }}"
                class="px-3 text-center text-sm bg-slate-200 py-2 rounded-lg">
