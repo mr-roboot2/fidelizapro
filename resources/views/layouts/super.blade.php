@@ -9,7 +9,14 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css">
-    <style>[x-cloak]{display:none!important}</style>
+    <style>
+        [x-cloak]{display:none!important}
+        .sidebar-scroll { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
+        .sidebar-scroll::-webkit-scrollbar { width: 6px; }
+        .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+        .sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+        .sidebar-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+    </style>
 </head>
 <body class="bg-slate-100 text-slate-800 h-screen flex overflow-hidden">
 <aside x-data="{open:true}" :class="open?'w-64':'w-20'"
@@ -26,7 +33,7 @@
             <i class="ri-menu-line text-xl"></i>
         </button>
     </div>
-    <nav class="flex-1 py-4 space-y-1 overflow-y-auto">
+    <nav class="flex-1 py-4 space-y-1 overflow-y-auto sidebar-scroll">
         @php
             $itens = [
                 ['super.dashboard', 'ri-dashboard-line', 'Dashboard global'],
