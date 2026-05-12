@@ -86,6 +86,94 @@ class OtpController extends Controller
     }
 
     /**
+     * POST /api/v1/auth/recuperar-senha
+     * Body: { telefone, codigo, senha_nova, empresa_slug }
+     * Valida OTP, troca a senha do cliente e retorna token (loga).
+     * Endpoint único pra evitar gastar 2 chamadas (e o código fica
+     * marcado como usado só uma vez).
+     */
+    public function recuperarSenha(Request $request)
+    {
+        $dados = $request->validate([
+            'telefone' => 'required|string|max:20',
+            'codigo' => 'required|string|size:6',
+            'senha_nova' => 'required|string|min:6|confirmed',
+            'empresa_slug' => 'required|string',
+        ]);
+
+        $empresa = Empresa::where('slug', $dados['empresa_slug'])->where('ativo', true)->firstOrFail();
+        $telefoneDigits = preg_replace('/\D/', '', $dados['telefone']);
+
+        $otp = OtpCodigo::where('empresa_id', $empresa->id)
+            ->where('telefone', $telefoneDigits)
+            ->where('usado', false)
+            ->latest()
+            ->first();
+
+        if (!$otp) {
+            throw ValidationException::withMessages(['codigo' => 'Solicite um novo código.']);
+        }
+        if ($otp->expirado()) {
+            $otp->update(['usado' => true]);
+            throw ValidationException::withMessages(['codigo' => 'Código expirado. Solicite um novo.']);
+        }
+
+        $maxTentativas = (int) (\App\Models\ConfiguracaoSistema::instancia()->otp_max_tentativas ?: 5);
+        $otp->increment('tentativas');
+        if ($otp->tentativas > $maxTentativas) {
+            $otp->update(['usado' => true]);
+            throw ValidationException::withMessages(['codigo' => 'Muitas tentativas. Solicite um novo código.']);
+        }
+        if (!hash_equals($otp->codigo, $dados['codigo'])) {
+            throw ValidationException::withMessages(['codigo' => 'Código incorreto.']);
+        }
+
+        $otp->update(['usado' => true]);
+
+        $cliente = Cliente::whereTelefone($dados['telefone'])
+            ->where('empresa_id', $empresa->id)
+            ->where('ativo', true)
+            ->firstOrFail();
+
+        $cliente->update([
+            'password' => Hash::make($dados['senha_nova']),
+            'senha_temporaria' => false,
+            'ultimo_acesso' => now(),
+            'ultimo_ip' => $request->ip(),
+        ]);
+
+        $token = $cliente->createToken('pwa-cliente-recovery')->plainTextToken;
+
+        return response()->json([
+            'message' => 'Senha redefinida com sucesso!',
+            'token' => $token,
+            'cliente' => [
+                'id' => $cliente->id,
+                'nome' => $cliente->nome,
+                'telefone' => $cliente->telefone,
+                'email' => $cliente->email,
+                'pontos' => (float) $cliente->pontos_atual,
+                'cashback' => (float) $cliente->cashback_atual,
+                'codigo_qr' => $cliente->codigo_qr,
+                'codigo_indicacao' => $cliente->codigo_indicacao,
+                'total_compras' => $cliente->total_compras,
+                'total_gasto' => (float) $cliente->total_gasto,
+                'senha_temporaria' => false,
+            ],
+            'empresa' => [
+                'id' => $empresa->id,
+                'slug' => $empresa->slug,
+                'nome' => $empresa->nome,
+                'logo' => $empresa->logo ? asset('storage/'.$empresa->logo) : null,
+                'cor_primaria' => $empresa->cor_primaria,
+                'cor_secundaria' => $empresa->cor_secundaria,
+                'pontos_por_real' => (float) $empresa->pontos_por_real,
+                'cashback_percentual' => (float) $empresa->cashback_percentual,
+            ],
+        ]);
+    }
+
+    /**
      * POST /api/v1/auth/otp/validar
      * Body: { telefone, codigo, empresa_slug }
      * Valida código e retorna token Sanctum.

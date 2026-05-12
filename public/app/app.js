@@ -212,6 +212,7 @@ async function showScreen(nome, params = {}) {
         editarPerfil: telaEditarPerfil,
         alterarSenha: telaAlterarSenha,
         trocarSenha: telaAlterarSenha,
+        recuperarSenha: telaRecuperarSenha,
         empresa: telaEmpresa,
         extrato: telaExtrato,
         resgates: telaResgates,
@@ -392,6 +393,12 @@ async function telaLogin() {
                 <i class="ri-whatsapp-line text-xl"></i> Entrar com WhatsApp
             </button>
 
+            <p class="text-center text-sm pt-1">
+                <a onclick="showScreen('recuperarSenha')" class="cursor-pointer text-slate-500 hover:text-slate-700 hover:underline">
+                    Esqueci minha senha
+                </a>
+            </p>
+
             <p class="text-center text-sm text-slate-500 pt-3">
                 Novo por aqui? <a onclick="showScreen('registrar')" class="font-semibold cursor-pointer hover:underline" style="color:${cor}">Criar conta</a>
             </p>
@@ -491,6 +498,180 @@ async function telaLoginOtp() {
         </div>
     </div>`;
 }
+
+// Tela 1.6: Recuperar senha (esqueci minha senha) — usa o mesmo OTP via
+// WhatsApp e troca a senha em um único request no fim.
+async function telaRecuperarSenha() {
+    const e = STATE.empresa;
+    const cor = e?.cor_primaria || '#6366f1';
+    const corSec = e?.cor_secundaria || '#8b5cf6';
+    screenContainer.innerHTML = `
+    <div class="fade-in flex-1 flex flex-col bg-slate-50">
+        <div class="px-5 pt-6 pb-10 text-white" style="background:linear-gradient(135deg,${cor},${corSec})">
+            <button onclick="showScreen('login')" class="text-white/80 mb-3 flex items-center gap-1 text-sm hover:text-white transition">
+                <i class="ri-arrow-left-line"></i> Voltar
+            </button>
+            <div class="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-3xl mb-3">
+                <i class="ri-lock-unlock-line"></i>
+            </div>
+            <h1 class="text-2xl font-bold">Recuperar senha</h1>
+            <p class="text-white/80 text-sm mt-1">Enviaremos um código no seu WhatsApp pra você definir uma nova senha</p>
+        </div>
+
+        <div id="rec-fase-1" class="px-4 -mt-6 pb-6">
+            <div class="bg-white rounded-2xl shadow-md border border-slate-100 p-5 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Telefone com DDD</label>
+                    <div class="relative">
+                        <i class="ri-smartphone-line absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input id="rec-tel" name="telefone" type="tel" required placeholder="(11) 99999-9999"
+                               class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-slate-400 focus:outline-none transition">
+                    </div>
+                </div>
+                <button onclick="recSolicitar()" id="rec-btn-enviar"
+                        class="w-full py-3.5 text-white rounded-xl font-semibold flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition"
+                        style="background:linear-gradient(135deg,${cor},${corSec})">
+                    <i class="ri-send-plane-line"></i> Enviar código
+                </button>
+            </div>
+        </div>
+
+        <div id="rec-fase-2" class="px-4 -mt-6 pb-6 hidden">
+            <div class="bg-white rounded-2xl shadow-md border border-slate-100 p-5 space-y-4">
+                <p class="text-sm text-slate-700 text-center">
+                    Código enviado para <strong id="rec-tel-show" style="color:${cor}"></strong>
+                </p>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Código recebido</label>
+                    <input id="rec-codigo" type="text" inputmode="numeric" maxlength="6" placeholder="000000"
+                           class="w-full px-4 py-4 bg-slate-50 border-2 border-slate-200 rounded-xl text-center text-2xl font-mono tracking-[0.4em] focus:bg-white focus:border-slate-400 focus:outline-none transition">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Nova senha</label>
+                    <div class="relative">
+                        <i class="ri-lock-2-line absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input id="rec-senha" type="password" minlength="6" placeholder="Mínimo 6 caracteres"
+                               class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-slate-400 focus:outline-none transition">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Confirmar nova senha</label>
+                    <div class="relative">
+                        <i class="ri-lock-2-line absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input id="rec-senha2" type="password" minlength="6" placeholder="Repita a senha"
+                               class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-slate-400 focus:outline-none transition">
+                    </div>
+                </div>
+
+                <button onclick="recConfirmar()" id="rec-btn-confirmar"
+                        class="w-full py-3.5 text-white rounded-xl font-semibold shadow-md hover:shadow-lg transition flex items-center justify-center gap-2"
+                        style="background:linear-gradient(135deg,${cor},${corSec})">
+                    <i class="ri-shield-keyhole-line"></i> Redefinir senha
+                </button>
+
+                <div class="flex justify-between text-sm pt-1 border-t border-slate-100 -mx-1">
+                    <button onclick="recReset()" class="text-slate-500 hover:text-slate-700 px-2 pt-3">
+                        <i class="ri-arrow-left-line"></i> Trocar telefone
+                    </button>
+                    <button onclick="recSolicitar(true)" id="rec-btn-reenviar" class="font-semibold hover:underline px-2 pt-3" style="color:${cor}">
+                        Reenviar código
+                    </button>
+                </div>
+
+                <p id="rec-dev" class="text-xs text-amber-600 text-center font-mono"></p>
+            </div>
+        </div>
+    </div>`;
+}
+
+window.recSolicitar = async (reenviar = false) => {
+    const tel = $('#rec-tel').value.trim();
+    if (!validarTelefone(tel)) return toast('Telefone inválido', 'error');
+
+    const btn = $(reenviar ? '#rec-btn-reenviar' : '#rec-btn-enviar');
+    if (btn?.disabled) return;
+    if (btn) { btn.disabled = true; }
+
+    try {
+        const res = await api('/auth/otp/solicitar', {
+            method: 'POST',
+            body: JSON.stringify({ telefone: tel, empresa_slug: STATE.empresa.slug }),
+        });
+        if (!reenviar) {
+            $('#rec-fase-1').classList.add('hidden');
+            $('#rec-fase-2').classList.remove('hidden');
+            $('#rec-tel-show').textContent = tel;
+            setTimeout(() => $('#rec-codigo').focus(), 100);
+        } else {
+            toast('Código reenviado!', 'success');
+        }
+        if (res.codigo_dev) $('#rec-dev').textContent = `🧪 Modo dev: código = ${res.codigo_dev}`;
+        // cooldown de 30s no reenvio
+        const reB = $('#rec-btn-reenviar');
+        if (reB) {
+            let s = 30; reB.disabled = true;
+            const label = reB.textContent;
+            const timer = setInterval(() => {
+                reB.textContent = `Reenviar em ${s}s`;
+                if (--s < 0) { clearInterval(timer); reB.disabled = false; reB.textContent = label; }
+            }, 1000);
+        }
+    } catch (e) {
+        toast(e.message, 'error');
+    } finally {
+        if (btn && !reenviar) btn.disabled = false;
+    }
+};
+
+window.recConfirmar = async () => {
+    const tel    = $('#rec-tel').value.trim();
+    const codigo = $('#rec-codigo').value.trim();
+    const s1     = $('#rec-senha').value;
+    const s2     = $('#rec-senha2').value;
+
+    if (codigo.length !== 6) return toast('Código deve ter 6 dígitos', 'error');
+    if (s1.length < 6) return toast('Senha precisa ter pelo menos 6 caracteres', 'error');
+    if (s1 !== s2) return toast('As senhas não conferem', 'error');
+
+    const btn = $('#rec-btn-confirmar');
+    const labelOrig = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="ri-loader-4-line animate-spin"></i> Redefinindo...';
+    try {
+        const res = await api('/auth/recuperar-senha', {
+            method: 'POST',
+            body: JSON.stringify({
+                telefone: tel,
+                codigo,
+                senha_nova: s1,
+                senha_nova_confirmation: s2,
+                empresa_slug: STATE.empresa.slug,
+            }),
+        });
+        STATE.token = res.token;
+        STATE.cliente = res.cliente;
+        STATE.empresa = res.empresa;
+        persistir(); aplicarTemaEmpresa();
+        toast('Senha redefinida! Bem-vindo de volta.', 'success');
+        showScreen('home');
+    } catch (e) {
+        toast(e.message, 'error');
+        btn.disabled = false;
+        btn.innerHTML = labelOrig;
+    }
+};
+
+window.recReset = () => {
+    $('#rec-fase-1').classList.remove('hidden');
+    $('#rec-fase-2').classList.add('hidden');
+    $('#rec-codigo').value = '';
+    $('#rec-senha').value = '';
+    $('#rec-senha2').value = '';
+    $('#rec-dev').textContent = '';
+};
 
 window.solicitarOtp = async (reenviar = false) => {
     const tel = $('#otp-tel').value.trim();

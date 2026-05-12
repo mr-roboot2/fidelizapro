@@ -27,6 +27,7 @@ Route::prefix('v1')->group(function () {
         Route::post('auth/registrar', [AuthController::class, 'registrar']);
         Route::post('auth/otp/solicitar', [OtpController::class, 'solicitar']);
         Route::post('auth/otp/validar', [OtpController::class, 'validar']);
+        Route::post('auth/recuperar-senha', [OtpController::class, 'recuperarSenha']);
         Route::post('loja/login', [LojaController::class, 'login']);
     });
 
