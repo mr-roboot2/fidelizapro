@@ -110,7 +110,9 @@ class EmpresaController extends Controller
 
     public function edit(Empresa $empresa)
     {
-        return view('super.empresas.form', compact('empresa'));
+        $planos = \App\Models\Plano::where('ativo', true)->orderBy('preco_mensal')->get();
+        $empresa->loadMissing('assinatura.plano');
+        return view('super.empresas.form', compact('empresa', 'planos'));
     }
 
     public function update(Request $request, Empresa $empresa)
@@ -129,11 +131,21 @@ class EmpresaController extends Controller
             'cashback_percentual' => 'required_unless:modo_fidelidade,pontos|nullable|numeric|min:0|max:100',
             'validade_pontos_dias' => 'required_unless:modo_fidelidade,cashback|nullable|integer|min:30',
             'dias_liberar_cashback' => 'nullable|integer|min:0',
+            'plano_id' => 'nullable|exists:planos,id',
             'logo' => 'nullable|image|max:8192',
             'logo_bg_color' => 'nullable|string|regex:/^#[0-9a-fA-F]{6}$/',
             'logo_scale' => 'nullable|integer|min:30|max:150',
             'ativo' => 'boolean',
         ]);
+
+        // Se mudou de plano e a empresa tem assinatura ativa, atualiza também
+        $planoNovo = !empty($dados['plano_id']) ? \App\Models\Plano::find($dados['plano_id']) : null;
+        if ($planoNovo && (int) $empresa->plano_id !== (int) $planoNovo->id) {
+            $empresa->assinatura?->update([
+                'plano_id'     => $planoNovo->id,
+                'valor_mensal' => $planoNovo->preco_mensal,
+            ]);
+        }
 
         if ($dados['modo_fidelidade'] === 'cashback') {
             $dados['pontos_por_real'] = 0;

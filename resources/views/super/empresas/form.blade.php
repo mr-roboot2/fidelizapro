@@ -103,6 +103,37 @@
             </div>
         </div>
 
+        @if ($empresa->exists && isset($planos))
+            <h3 class="font-semibold mt-6 mb-4 text-slate-700">Plano</h3>
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                @php
+                    $planoAtual = $empresa->assinatura?->plano ?? $empresa->plano;
+                @endphp
+                @if ($empresa->assinatura)
+                    <p class="text-xs text-slate-500 mb-2">
+                        Assinatura atual: <strong>{{ $empresa->assinatura->plano->nome ?? '—' }}</strong> ·
+                        status <strong>{{ ucfirst($empresa->assinatura->status) }}</strong> ·
+                        próximo venc. {{ $empresa->assinatura->proximo_vencimento?->format('d/m/Y') ?? '—' }}
+                    </p>
+                @else
+                    <p class="text-xs text-amber-700 mb-2">⚠️ Empresa sem assinatura — só atualiza o plano de referência.</p>
+                @endif
+                <label class="text-sm font-medium">Mudar plano</label>
+                <select name="plano_id" class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg">
+                    <option value="">— sem plano —</option>
+                    @foreach ($planos as $p)
+                        <option value="{{ $p->id }}" @selected(old('plano_id', $planoAtual?->id) == $p->id)>
+                            {{ $p->nome }} (R$ {{ number_format($p->preco_mensal, 2, ',', '.') }})
+                        </option>
+                    @endforeach
+                </select>
+                <p class="text-[11px] text-slate-500 mt-1">
+                    Se a empresa tem assinatura ativa, o plano dela é atualizado e o valor_mensal é ajustado.
+                    Nenhuma cobrança nova é gerada automaticamente — use o painel de Assinaturas pra isso.
+                </p>
+            </div>
+        @endif
+
         <h3 class="font-semibold mt-6 mb-4 text-slate-700">Identidade visual</h3>
         <div class="grid grid-cols-2 gap-4">
             <div>
