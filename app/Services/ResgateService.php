@@ -138,7 +138,7 @@ class ResgateService
         return $resgate->fresh();
     }
 
-    public function entregar(Resgate $resgate): Resgate
+    public function entregar(Resgate $resgate, ?User $entregador = null): Resgate
     {
         if (!in_array($resgate->status, ['aprovado', 'pendente'])) {
             throw new \DomainException('Resgate não pode ser entregue.');
@@ -147,6 +147,7 @@ class ResgateService
         $resgate->update([
             'status' => 'entregue',
             'entregue_em' => now(),
+            'entregue_por' => $entregador?->id,
         ]);
 
         return $resgate->fresh();

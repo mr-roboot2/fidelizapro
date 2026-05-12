@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Resgate;
 use App\Services\ResgateService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 
 class ResgateController extends Controller
@@ -53,7 +54,7 @@ class ResgateController extends Controller
     {
         $this->autorizar($resgate);
         try {
-            $service->entregar($resgate);
+            $service->entregar($resgate, Auth::user());
             return back()->with('success', 'Resgate marcado como entregue!');
         } catch (\Throwable $e) {
             return back()->with('error', $e->getMessage());
@@ -69,6 +70,46 @@ class ResgateController extends Controller
         } catch (\Throwable $e) {
             return back()->with('error', $e->getMessage());
         }
+    }
+
+    /**
+     * Relatório imprimível com auditoria — cliente, recompensa, pontos,
+     * quem aprovou, quem entregou, datas, IP, observações. Filtra por
+     * período e status.
+     */
+    public function relatorio(Request $request)
+    {
+        $empresaId = Auth::user()->empresa_id;
+        $empresa = Auth::user()->empresa;
+
+        $de = $request->filled('de')
+            ? Carbon::parse($request->input('de'))->startOfDay()
+            : now()->subDays(30)->startOfDay();
+        $ate = $request->filled('ate')
+            ? Carbon::parse($request->input('ate'))->endOfDay()
+            : now()->endOfDay();
+        if ($ate->lt($de)) [$de, $ate] = [$ate, $de];
+
+        $query = Resgate::with(['cliente', 'recompensa', 'aprovador', 'entregador'])
+            ->where('empresa_id', $empresaId)
+            ->whereBetween('created_at', [$de, $ate]);
+
+        if ($status = $request->input('status')) {
+            $query->where('status', $status);
+        }
+
+        $resgates = $query->orderBy('created_at', 'desc')->get();
+
+        $stats = [
+            'total'        => $resgates->count(),
+            'entregues'    => $resgates->where('status', 'entregue')->count(),
+            'pendentes'    => $resgates->where('status', 'pendente')->count(),
+            'aprovados'    => $resgates->where('status', 'aprovado')->count(),
+            'cancelados'   => $resgates->where('status', 'cancelado')->count(),
+            'pontos_total' => (float) $resgates->sum('pontos_usados'),
+        ];
+
+        return view('admin.resgates.relatorio', compact('resgates', 'stats', 'de', 'ate', 'empresa', 'request'));
     }
 
     protected function autorizar(Resgate $resgate): void

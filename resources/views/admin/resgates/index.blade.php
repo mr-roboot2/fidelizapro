@@ -1,6 +1,14 @@
 @extends('layouts.admin')
 @section('title', 'Resgates')
 @section('content')
+
+<div class="mb-3 flex justify-end">
+    <a href="{{ route('admin.resgates.relatorio') }}" target="_blank"
+       class="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-sm font-medium">
+        <i class="ri-file-list-3-line"></i> Relatório de auditoria
+    </a>
+</div>
+
 <div class="bg-white rounded-xl shadow-sm">
     <div class="p-4 border-b border-slate-200 space-y-3">
         <form method="GET" class="flex flex-wrap gap-2 items-center">

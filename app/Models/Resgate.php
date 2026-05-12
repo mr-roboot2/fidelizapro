@@ -15,7 +15,7 @@ class Resgate extends Model
     protected $fillable = [
         'empresa_id', 'cliente_id', 'recompensa_id', 'codigo', 'pontos_usados',
         'status', 'observacao', 'aprovado_por', 'aprovado_em', 'expira_em',
-        'entregue_em', 'cancelado_em', 'ip',
+        'entregue_em', 'entregue_por', 'cancelado_em', 'ip',
     ];
 
     protected $casts = [
@@ -59,5 +59,10 @@ class Resgate extends Model
     public function aprovador(): BelongsTo
     {
         return $this->belongsTo(User::class, 'aprovado_por');
+    }
+
+    public function entregador(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'entregue_por');
     }
 }

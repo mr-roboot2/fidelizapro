@@ -218,12 +218,27 @@ class AIGrowthController extends Controller
         $recorrentes   = Cliente::where('empresa_id', $empresaId)->where('total_compras', '>=', 2)->count();
         $retencao = $totalClientes > 0 ? round($recorrentes / $totalClientes * 100, 1) : 0;
 
+        // Vendas detalhadas do período (pra impressão/PDF)
+        $vendasDetalhadas = Compra::where('empresa_id', $empresaId)
+            ->whereBetween('created_at', [$iniRange, $fimRange])
+            ->with(['cliente:id,nome,telefone', 'user:id,name'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Resgates do período (com auditoria: aprovador + entregador)
+        $resgatesDetalhados = Resgate::where('empresa_id', $empresaId)
+            ->whereBetween('created_at', [$iniRange, $fimRange])
+            ->with(['cliente:id,nome,telefone', 'recompensa:id,nome', 'aprovador:id,name', 'entregador:id,name'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         return compact(
             'de', 'ate', 'kpi', 'delta', 'nps', 'serie',
             'topDias', 'bottomDias', 'vendasPorDow',
             'topClientesPeriodo', 'topClientesAll',
             'novosMensal', 'distIdade',
-            'totalClientes', 'recorrentes', 'retencao'
+            'totalClientes', 'recorrentes', 'retencao',
+            'vendasDetalhadas', 'resgatesDetalhados'
         );
     }
 

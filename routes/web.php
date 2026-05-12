@@ -101,6 +101,7 @@ Route::middleware(['admin.auth', 'empresa.scope', 'verifica.pagamento'])->prefix
     Route::delete('avaliacoes/{avaliacao}', [AvaliacaoController::class, 'destroy'])->name('avaliacoes.destroy');
 
     Route::get('resgates', [ResgateController::class, 'index'])->name('resgates.index');
+    Route::get('resgates/relatorio', [ResgateController::class, 'relatorio'])->name('resgates.relatorio');
     Route::get('resgates/{resgate}', [ResgateController::class, 'show'])->name('resgates.show');
     Route::post('resgates/{resgate}/aprovar', [ResgateController::class, 'aprovar'])->name('resgates.aprovar');
     Route::post('resgates/{resgate}/entregar', [ResgateController::class, 'entregar'])->name('resgates.entregar');

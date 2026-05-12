@@ -1,0 +1,22 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('resgates', function (Blueprint $table) {
+            $table->foreignId('entregue_por')->nullable()->after('entregue_em')->constrained('users')->nullOnDelete();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('resgates', function (Blueprint $table) {
+            $table->dropConstrainedForeignId('entregue_por');
+        });
+    }
+};
