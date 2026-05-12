@@ -24,6 +24,7 @@ use App\Http\Controllers\Admin\BeneficioController;
 use App\Http\Controllers\Admin\RoletaController;
 use App\Http\Controllers\Admin\SorteioController;
 use App\Http\Controllers\Admin\AIGrowthController;
+use App\Http\Controllers\Admin\SetupController;
 use App\Http\Controllers\ParceiroPublicoController;
 use App\Http\Controllers\PwaController;
 use App\Http\Controllers\SuperAdmin\DashboardController as SuperDashboardController;
@@ -129,6 +130,13 @@ Route::middleware(['admin.auth', 'empresa.scope', 'verifica.pagamento'])->prefix
     Route::get('atividade-suspeita', [AtividadeSuspeitaController::class, 'index'])->name('atividade.suspeita');
     Route::get('meu-plano', [MeuPlanoController::class, 'index'])->name('meu-plano.index');
     Route::post('meu-plano/upgrade/{plano}', [MeuPlanoController::class, 'upgrade'])->name('meu-plano.upgrade');
+
+    Route::prefix('setup')->name('setup.')->group(function () {
+        Route::get('/', [SetupController::class, 'index'])->name('index');
+        Route::get('/pwa', [SetupController::class, 'pwa'])->name('pwa');
+        Route::post('/pular', [SetupController::class, 'pular'])->name('pular');
+        Route::post('/reabrir', [SetupController::class, 'reabrir'])->name('reabrir');
+    });
 
     Route::get('parceiros/relatorio', [ParceiroController::class, 'relatorio'])->name('parceiros.relatorio');
     Route::resource('parceiros', ParceiroController::class);

@@ -56,12 +56,15 @@
                 ['admin.ai-growth.index', 'ri-magic-line', 'AI Growth', 'ai_growth'],
                 ['admin.atividade.suspeita', 'ri-shield-keyhole-line', 'Antifraude', 'antifraude'],
                 ['admin.meu-plano.index', 'ri-vip-crown-line', 'Meu plano', null],
+                ['admin.setup.index', 'ri-rocket-2-line', 'Setup inicial', '__setup__'],
                 ['admin.importacao.index', 'ri-plug-line', 'Importação / PDV', null],
                 ['admin.configuracoes.edit', 'ri-settings-3-line', 'Configurações', null],
             ];
         @endphp
         @foreach ($itens as [$rota, $icone, $rotulo, $modulo])
-            @if ($modulo && isset($empresaAtiva) && !$empresaAtiva->temModulo($modulo)) @continue @endif
+            @if ($modulo === '__setup__')
+                @if (!isset($empresaAtiva) || $empresaAtiva->setup_concluido) @continue @endif
+            @elseif ($modulo && isset($empresaAtiva) && !$empresaAtiva->temModulo($modulo)) @continue @endif
             @php $ativo = request()->routeIs(str_replace('.index','.*',$rota)) || request()->routeIs($rota); @endphp
             <a href="{{ route($rota) }}"
                class="flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg transition
@@ -90,6 +93,19 @@
 
 <main class="flex-1 flex flex-col overflow-y-auto h-screen">
     @include('admin._partials.banner_inadimplencia')
+    @if (isset($empresaAtiva) && !$empresaAtiva->setup_concluido && !request()->routeIs('admin.setup.*'))
+        <a href="{{ route('admin.setup.index') }}"
+           class="bg-gradient-to-r from-indigo-600 via-purple-600 to-rose-500 hover:brightness-110 text-white px-4 py-2 text-sm flex items-center justify-between transition">
+            <span class="flex items-center gap-2">
+                <i class="ri-rocket-2-line text-base"></i>
+                <strong>Sua loja ainda não está 100% configurada</strong>
+                <span class="hidden sm:inline opacity-80">— siga o setup inicial pra começar a atender clientes.</span>
+            </span>
+            <span class="flex items-center gap-1 bg-white/20 px-2 py-0.5 rounded text-xs font-medium">
+                Configurar agora <i class="ri-arrow-right-line"></i>
+            </span>
+        </a>
+    @endif
     @if (session('impersonate_origem_id'))
         <div class="bg-amber-500 text-white px-4 py-2 text-sm flex items-center justify-between">
             <span><i class="ri-spy-line"></i> Você está acessando como <strong>{{ $userAtivo->name ?? '' }}</strong> ({{ $empresaAtiva->nome ?? '' }})</span>

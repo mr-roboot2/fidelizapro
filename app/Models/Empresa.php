@@ -19,7 +19,7 @@ class Empresa extends Model
         'logo_bg_color', 'logo_scale',
         'cor_primaria', 'cor_secundaria', 'pontos_por_real',
         'cashback_percentual', 'modo_fidelidade',
-        'dias_liberar_cashback', 'validade_pontos_dias', 'ativo',
+        'dias_liberar_cashback', 'validade_pontos_dias', 'ativo', 'setup_concluido',
         'pdv_secret', 'plano_id',
         'whatsapp_provider', 'whatsapp_api_url', 'whatsapp_api_token',
         'whatsapp_instance', 'whatsapp_phone_id', 'whatsapp_ativo',

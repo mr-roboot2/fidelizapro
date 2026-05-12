@@ -40,9 +40,15 @@ class LoginController extends Controller
 
     protected function destinoPosLogin()
     {
-        return Auth::user()->isSuperAdmin()
-            ? redirect()->route('super.dashboard')
-            : redirect()->intended(route('admin.dashboard'));
+        $user = Auth::user();
+        if ($user->isSuperAdmin()) {
+            return redirect()->route('super.dashboard');
+        }
+        $empresa = $user->empresa;
+        if ($empresa && !$empresa->setup_concluido) {
+            return redirect()->route('admin.setup.index');
+        }
+        return redirect()->intended(route('admin.dashboard'));
     }
 
     public function logout(Request $request)
