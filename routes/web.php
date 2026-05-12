@@ -88,6 +88,7 @@ Route::middleware(['admin.auth', 'empresa.scope', 'verifica.pagamento'])->prefix
     Route::get('caixa/buscar', [CaixaController::class, 'buscar'])->name('caixa.buscar');
     Route::post('caixa/lancar', [CaixaController::class, 'lancar'])->name('caixa.lancar');
     Route::post('caixa/criar', [CaixaController::class, 'criar'])->name('caixa.criar');
+    Route::get('caixa/cupom/{compra}', [CaixaController::class, 'cupom'])->name('caixa.cupom');
 
     Route::resource('clientes', ClienteController::class);
     Route::post('clientes/{cliente}/pontos', [ClienteController::class, 'ajustarPontos'])->name('clientes.pontos');

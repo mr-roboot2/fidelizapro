@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Cliente;
+use App\Models\Compra;
 use App\Rules\CpfValido;
 use App\Rules\TelefoneBr;
 use App\Services\CashbackService;
@@ -21,6 +22,18 @@ class CaixaController extends Controller
     public function index()
     {
         return view('admin.caixa.index');
+    }
+
+    /**
+     * Comprovante térmico (80mm) em 2 vias — Loja + Cliente. Cada via tem
+     * o resumo da compra, pontos/cashback gerados e saldo atual. Layout
+     * vertical pra impressora rolar e cortar entre as vias.
+     */
+    public function cupom(Compra $compra)
+    {
+        abort_if($compra->empresa_id !== Auth::user()->empresa_id, 403);
+        $compra->load('cliente', 'empresa', 'user');
+        return view('admin.caixa.cupom', compact('compra'));
     }
 
     /**

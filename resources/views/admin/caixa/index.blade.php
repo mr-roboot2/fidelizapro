@@ -188,6 +188,16 @@
                     <p class="font-bold text-emerald-600" x-text="fmtBRL(ultimaCompra?.cashback_gerado)"></p>
                 </div>
             </div>
+            <div class="flex gap-2 mt-3">
+                <a :href="`{{ url('admin/caixa/cupom') }}/${ultimaCompra?.id}?auto=1`" target="_blank"
+                   class="flex-1 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium rounded-lg text-center">
+                    <i class="ri-printer-line"></i> Imprimir cupom (2 vias)
+                </a>
+                <a :href="`{{ url('admin/caixa/cupom') }}/${ultimaCompra?.id}`" target="_blank"
+                   class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg" title="Visualizar antes de imprimir">
+                    <i class="ri-eye-line"></i>
+                </a>
+            </div>
         </div>
     </div>
 </div>
