@@ -10,7 +10,6 @@ use App\Http\Controllers\Admin\RecompensaController;
 use App\Http\Controllers\Admin\ResgateController;
 use App\Http\Controllers\Admin\TransacaoController;
 use App\Http\Controllers\Admin\CashbackController;
-use App\Http\Controllers\Admin\RelatorioController;
 use App\Http\Controllers\Admin\ConfiguracaoController;
 use App\Http\Controllers\Admin\CaixaController;
 use App\Http\Controllers\Admin\ImportacaoController;
@@ -24,6 +23,7 @@ use App\Http\Controllers\Admin\ParceiroController;
 use App\Http\Controllers\Admin\BeneficioController;
 use App\Http\Controllers\Admin\RoletaController;
 use App\Http\Controllers\Admin\SorteioController;
+use App\Http\Controllers\Admin\AIGrowthController;
 use App\Http\Controllers\ParceiroPublicoController;
 use App\Http\Controllers\PwaController;
 use App\Http\Controllers\SuperAdmin\DashboardController as SuperDashboardController;
@@ -111,13 +111,20 @@ Route::middleware(['admin.auth', 'empresa.scope', 'verifica.pagamento'])->prefix
 
     // Campanhas e Automações foram movidas pro super admin — config global
 
-    Route::get('relatorios', [RelatorioController::class, 'index'])->name('relatorios.index');
+    // Relatórios foi unificado com AI Growth — mantém a rota antiga só pra redirect
+    Route::get('relatorios', fn () => redirect()->route('admin.ai-growth.index'))->name('relatorios.index');
 
     Route::get('configuracoes', [ConfiguracaoController::class, 'edit'])->name('configuracoes.edit');
     Route::put('configuracoes', [ConfiguracaoController::class, 'update'])->name('configuracoes.update');
 
     Route::get('importacao', [ImportacaoController::class, 'index'])->name('importacao.index');
     Route::post('importacao', [ImportacaoController::class, 'processar'])->name('importacao.processar');
+
+    Route::middleware('modulo:ai_growth')->prefix('ai-growth')->name('ai-growth.')->group(function () {
+        Route::get('/', [AIGrowthController::class, 'index'])->name('index');
+        Route::get('/exportar-pdf', [AIGrowthController::class, 'exportPdf'])->name('export.pdf');
+        Route::get('/exportar-csv', [AIGrowthController::class, 'exportCsv'])->name('export.csv');
+    });
 
     Route::get('atividade-suspeita', [AtividadeSuspeitaController::class, 'index'])->name('atividade.suspeita');
     Route::get('meu-plano', [MeuPlanoController::class, 'index'])->name('meu-plano.index');

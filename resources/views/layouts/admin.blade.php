@@ -45,7 +45,7 @@
                 ['admin.cashback.index', 'ri-money-dollar-circle-line', 'Cashback', null],
                 ['admin.avaliacoes.index', 'ri-star-line', 'Avaliações', null],
                 ['admin.parceiros.index', 'ri-handshake-line', 'Parceiros', 'parceiros'],
-                ['admin.relatorios.index', 'ri-bar-chart-line', 'Relatórios', 'metricas'],
+                ['admin.ai-growth.index', 'ri-magic-line', 'AI Growth', 'ai_growth'],
                 ['admin.atividade.suspeita', 'ri-shield-keyhole-line', 'Antifraude', 'antifraude'],
                 ['admin.meu-plano.index', 'ri-vip-crown-line', 'Meu plano', null],
                 ['admin.importacao.index', 'ri-plug-line', 'Importação / PDV', null],

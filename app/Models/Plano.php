@@ -43,7 +43,7 @@ class Plano extends Model
      */
     public const MODULOS_AVANCADOS = [
         'roleta', 'sorteio', 'whatsapp', 'automacoes', 'parceiros',
-        'campanhas', 'antifraude',
+        'campanhas', 'antifraude', 'ai_growth',
     ];
 
     public const MODULOS_DISPONIVEIS = [
@@ -56,6 +56,7 @@ class Plano extends Model
         'metricas'    => 'Métricas e dashboards',
         'indicacoes'  => 'Indicações entre clientes',
         'antifraude'  => 'Painel antifraude',
+        'ai_growth'   => 'AI Growth (análise avançada de vendas e clientes)',
         'white_label' => 'White label completo (sem marca FidelizaPro)',
     ];
 
