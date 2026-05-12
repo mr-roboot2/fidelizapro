@@ -2648,9 +2648,16 @@ async function telaRoleta() {
                     }
                 }
 
-                const idxAnimar = (resp.premio_index !== null && resp.premio_index !== undefined)
-                    ? resp.premio_index
-                    : 0;
+                // Fallback se servidor não soube qual fatia animar (roleta
+                // sem fatia 'nada' configurada e caiu em consolação). Tenta
+                // achar uma fatia 'nada' aqui mesmo; senão usa o índice 0.
+                let idxAnimar;
+                if (resp.premio_index !== null && resp.premio_index !== undefined) {
+                    idxAnimar = resp.premio_index;
+                } else {
+                    const i = premios.findIndex(p => p && p.tipo === 'nada');
+                    idxAnimar = i >= 0 ? i : 0;
+                }
                 const dur = status.tempo_min_ms + Math.random() * (status.tempo_max_ms - status.tempo_min_ms);
                 await roletaAnimar(canvas, premios, idxAnimar, dur);
 

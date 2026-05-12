@@ -106,8 +106,23 @@ class RoletaService
             // Mandamos o índice direto: elimina findIndex no cliente e protege
             // contra cache stale (admin editou prêmios durante a sessão).
             $premiosVisiveis = $roleta->premios->values();
-            $premioIndex = $premio
-                ? $premiosVisiveis->search(fn (RoletaPremio $p) => $p->id === $premio->id)
+
+            // Caso o resultado seja consolação mas a fatia sorteada não fosse
+            // do tipo 'nada' (ex: sorteio_bilhete sem sorteio ativo, ou
+            // nenhum prêmio elegível pro cliente), procuramos uma fatia 'nada'
+            // visível pra animação parar nela e bater com a mensagem
+            // "Quase lá!". Se não houver, mantemos o índice original — pior
+            // caso é o admin não ter configurado fatia 'nada' na roleta.
+            $premioVisualFinal = $premio;
+            if ($resultado['tipo_resultado'] === 'consolacao' && (!$premio || $premio->tipo !== 'nada')) {
+                $fatiaNada = $premiosVisiveis->first(fn (RoletaPremio $p) => $p->tipo === 'nada');
+                if ($fatiaNada) {
+                    $premioVisualFinal = $fatiaNada;
+                }
+            }
+
+            $premioIndex = $premioVisualFinal
+                ? $premiosVisiveis->search(fn (RoletaPremio $p) => $p->id === $premioVisualFinal->id)
                 : null;
 
             return [
