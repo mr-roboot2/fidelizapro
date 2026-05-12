@@ -133,10 +133,11 @@ Route::middleware(['admin.auth', 'empresa.scope', 'verifica.pagamento'])->prefix
 
     Route::prefix('setup')->name('setup.')->group(function () {
         Route::get('/', [SetupController::class, 'index'])->name('index');
-        Route::get('/pwa', [SetupController::class, 'pwa'])->name('pwa');
         Route::post('/pular', [SetupController::class, 'pular'])->name('pular');
         Route::post('/reabrir', [SetupController::class, 'reabrir'])->name('reabrir');
     });
+
+    Route::get('pwa/compartilhar', [\App\Http\Controllers\Admin\PwaShareController::class, 'index'])->name('pwa.share');
 
     Route::get('parceiros/relatorio', [ParceiroController::class, 'relatorio'])->name('parceiros.relatorio');
     Route::resource('parceiros', ParceiroController::class);

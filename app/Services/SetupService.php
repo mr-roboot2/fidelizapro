@@ -72,7 +72,7 @@ class SetupService
             'icone' => 'ri-smartphone-line',
             'titulo' => 'Compartilhar PWA com os clientes',
             'descricao' => 'Veja o link e o QR code do app pra colar na loja física.',
-            'rota_acao' => 'admin.setup.pwa',
+            'rota_acao' => 'admin.pwa.share',
             'label_acao' => 'Ver QR Code',
             'obrigatorio' => false,
             'concluido' => false, // marca via session quando o cliente visualiza

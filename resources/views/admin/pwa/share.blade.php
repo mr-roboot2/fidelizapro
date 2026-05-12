@@ -4,9 +4,12 @@
 
 <div class="max-w-3xl mx-auto space-y-6">
 
-    <a href="{{ route('admin.setup.index') }}" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700">
-        <i class="ri-arrow-left-line"></i> Voltar ao setup
-    </a>
+    @php $vemDoSetup = url()->previous() && str_contains(url()->previous(), '/admin/setup'); @endphp
+    @if ($vemDoSetup)
+        <a href="{{ route('admin.setup.index') }}" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700">
+            <i class="ri-arrow-left-line"></i> Voltar ao setup
+        </a>
+    @endif
 
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div class="p-6 border-b border-slate-100 bg-gradient-to-br from-indigo-50 to-purple-50">

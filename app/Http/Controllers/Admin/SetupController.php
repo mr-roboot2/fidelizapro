@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Services\SetupService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use SimpleSoftwareIO\QrCode\Generator as QrGenerator;
 
 class SetupController extends Controller
 {
@@ -15,18 +14,6 @@ class SetupController extends Controller
         $empresa = Auth::user()->empresa;
         $resumo = $service->resumo($empresa);
         return view('admin.setup.index', compact('empresa', 'resumo'));
-    }
-
-    /**
-     * Tela com QR code e link do PWA pra colar na loja. Marca o passo
-     * "pwa" como visualizado.
-     */
-    public function pwa()
-    {
-        $empresa = Auth::user()->empresa;
-        $url = url('/app/'.$empresa->slug.'/');
-        $qrSvg = (new QrGenerator())->format('svg')->size(360)->margin(2)->generate($url);
-        return view('admin.setup.pwa', compact('empresa', 'url', 'qrSvg'));
     }
 
     /**

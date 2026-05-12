@@ -53,6 +53,7 @@
                 ['admin.cashback.index', 'ri-money-dollar-circle-line', 'Cashback', null],
                 ['admin.avaliacoes.index', 'ri-star-line', 'Avaliações', null],
                 ['admin.parceiros.index', 'ri-shake-hands-line', 'Parceiros', 'parceiros'],
+                ['admin.pwa.share', 'ri-qr-code-line', 'Compartilhar app', null],
                 ['admin.ai-growth.index', 'ri-magic-line', 'AI Growth', 'ai_growth'],
                 ['admin.atividade.suspeita', 'ri-shield-keyhole-line', 'Antifraude', 'antifraude'],
                 ['admin.meu-plano.index', 'ri-vip-crown-line', 'Meu plano', null],
@@ -120,6 +121,9 @@
     <header class="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between">
         <h1 class="text-xl font-semibold text-slate-700">@yield('title', 'Painel')</h1>
         <div class="flex items-center gap-4">
+            <a href="{{ route('admin.pwa.share') }}" class="text-sm text-purple-600 hover:underline" title="QR code e link do app pra clientes">
+                <i class="ri-qr-code-line"></i> Compartilhar app
+            </a>
             <a href="{{ url('/loja/') }}" target="_blank" class="text-sm text-emerald-600 hover:underline">
                 <i class="ri-qr-scan-2-line"></i> PWA da Loja
             </a>
