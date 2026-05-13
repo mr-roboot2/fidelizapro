@@ -1,14 +1,18 @@
 @extends('layouts.admin')
 @section('title', 'Caixa rápido')
 @section('content')
-<div x-data="caixa(@js($clientePre ? [
+@php
+    $clientePreJs = $clientePre ? [
         'id' => $clientePre->id,
         'nome' => $clientePre->nome,
         'telefone' => $clientePre->telefone,
         'pontos' => (float) $clientePre->pontos_atual,
         'cashback' => (float) $clientePre->cashback_atual,
         'cashback_pendente' => (float) $clientePre->cashback_pendente,
-    ] : null)" x-init="init()" class="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-5xl">
+    ] : null;
+@endphp
+<script>window.__clientePre = @json($clientePreJs);</script>
+<div x-data="caixa(window.__clientePre)" x-init="init()" class="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-5xl">
 
     <!-- COLUNA ESQUERDA: busca/cadastro de cliente -->
     <div class="bg-white rounded-xl shadow-sm p-6">
