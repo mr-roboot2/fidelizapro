@@ -44,6 +44,8 @@ use App\Http\Controllers\SuperAdmin\WhatsappTemplateController as SuperWhatsappT
 use App\Http\Controllers\SuperAdmin\AutomacaoController as SuperAutomacaoController;
 use App\Http\Controllers\SuperAdmin\CampanhaController as SuperCampanhaController;
 use App\Http\Controllers\SuperAdmin\WhatsappLogController as SuperWhatsappLogController;
+use App\Http\Controllers\SuperAdmin\TutorialController as SuperTutorialController;
+use App\Http\Controllers\Admin\AjudaController;
 
 // Instalador web (auto-trava após concluir via storage/installed.lock)
 Route::middleware('install.gate')->prefix('install')->group(function () {
@@ -128,6 +130,8 @@ Route::middleware(['admin.auth', 'empresa.scope', 'verifica.pagamento'])->prefix
         Route::get('/exportar-pdf', [AIGrowthController::class, 'exportPdf'])->name('export.pdf');
         Route::get('/exportar-csv', [AIGrowthController::class, 'exportCsv'])->name('export.csv');
     });
+
+    Route::get('ajuda', [AjudaController::class, 'index'])->name('ajuda.index');
 
     Route::get('atividade-suspeita', [AtividadeSuspeitaController::class, 'index'])->name('atividade.suspeita');
     Route::get('meu-plano', [MeuPlanoController::class, 'index'])->name('meu-plano.index');
@@ -228,6 +232,15 @@ Route::middleware(['super.auth'])->prefix('super')->name('super.')->group(functi
     Route::post('campanhas/{campanha}/disparar', [SuperCampanhaController::class, 'disparar'])->name('campanhas.disparar');
 
     Route::get('whatsapp-logs', [SuperWhatsappLogController::class, 'index'])->name('whatsapp-logs.index');
+
+    Route::post('tutoriais/reordenar', [SuperTutorialController::class, 'reordenar'])->name('tutoriais.reordenar');
+    Route::post('tutoriais/{tutorial}/toggle', [SuperTutorialController::class, 'toggle'])->name('tutoriais.toggle');
+    // parameters() forçado pq o pluralizador do Laravel transforma "tutoriais"
+    // em "{tutoriai}" e o route binding implícito falha com Tutorial $tutorial
+    // no controller. Mesmo problema das "automacoes".
+    Route::resource('tutoriais', SuperTutorialController::class)
+        ->except(['show'])
+        ->parameters(['tutoriais' => 'tutorial']);
 
     Route::get('documentos', [SuperDocumentoLegalController::class, 'index'])->name('documentos.index');
     Route::get('documentos/criar', [SuperDocumentoLegalController::class, 'create'])->name('documentos.create');

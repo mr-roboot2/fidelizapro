@@ -59,6 +59,7 @@
                 ['admin.meu-plano.index', 'ri-vip-crown-line', 'Meu plano', null],
                 ['admin.setup.index', 'ri-rocket-2-line', 'Setup inicial', '__setup__'],
                 ['admin.importacao.index', 'ri-plug-line', 'Importação / PDV', null],
+                ['admin.ajuda.index', 'ri-question-answer-line', 'Central de ajuda', null],
                 ['admin.configuracoes.edit', 'ri-settings-3-line', 'Configurações', null],
             ];
         @endphp

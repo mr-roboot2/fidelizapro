@@ -43,6 +43,7 @@
                 ['super.planos.index', 'ri-stack-line', 'Planos'],
                 ['super.auditoria.index', 'ri-history-line', 'Auditoria'],
                 ['super.documentos.index', 'ri-file-text-line', 'Documentos legais'],
+                ['super.tutoriais.index', 'ri-video-line', 'Tutoriais em vídeo'],
                 ['super.whatsapp.edit', 'ri-whatsapp-fill', 'WhatsApp'],
                 ['super.whatsapp-templates.index', 'ri-message-3-line', 'Templates WhatsApp'],
                 ['super.automacoes.index', 'ri-magic-line', 'Automações'],
