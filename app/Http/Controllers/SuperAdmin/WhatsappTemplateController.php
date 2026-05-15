@@ -73,7 +73,9 @@ class WhatsappTemplateController extends Controller
                 ]);
 
             if (!$templates->successful()) {
-                return back()->with('error', 'Falha ao listar templates: '.($templates->json('error.message') ?? $templates->body()));
+                // Scrub PII/tokens do body antes de exibir no flash do super admin.
+                $erro = $templates->json('error.message') ?? \App\Support\LogScrubber::scrub($templates->body());
+                return back()->with('error', 'Falha ao listar templates: '.$erro);
             }
 
             return view('super.whatsapp-templates.meta', [

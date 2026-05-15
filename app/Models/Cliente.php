@@ -35,6 +35,10 @@ class Cliente extends Authenticatable
         'codigo_indicacao',
         'indicado_por_id',
         'senha_temporaria',
+        // Coluna pre-computed mantida pelo ClienteObserver. Sem proteção aqui,
+        // atacante mass-assignable setava telefone_digits=X (≠ do telefone real)
+        // e burlava o whereTelefone scope.
+        'telefone_digits',
         'created_at',
         'updated_at',
     ];

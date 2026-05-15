@@ -68,10 +68,21 @@ class UserController extends Controller
             'ativo' => 'boolean',
         ]);
 
+        // Captura senha plain ANTES de hashear pra não enviar bcrypt ao
+        // observer de auditoria (que loga $dados em auditoria_logs.depois).
+        // O AuditoriaService já redacta 'password' globalmente, mas removemos
+        // do array antes do `update()` por segurança redundante — assim a
+        // senha simplesmente não entra na trilha de auditoria como campo
+        // alterado, em vez de aparecer como '[REDACTED]'.
         $senhaTrocada = false;
         if (!empty($dados['password'])) {
-            $dados['password'] = Hash::make($dados['password']);
+            $hashed = Hash::make($dados['password']);
             $senhaTrocada = true;
+            // Aplicar password fora do array (via forceFill) pra não cair
+            // no diff de auditoria do model.
+            $user->password = $hashed;
+            $user->save();
+            unset($dados['password']);
         } else {
             unset($dados['password']);
         }
