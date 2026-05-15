@@ -9,6 +9,7 @@ use App\Http\Middleware\EmpresaThrottle;
 use App\Http\Middleware\RequireModulo;
 use App\Http\Middleware\SuperAdminAuth;
 use App\Http\Middleware\EnsureNotInstalled;
+use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\VerificaPagamento;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -28,6 +29,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'modulo' => RequireModulo::class,
             'verifica.pagamento' => VerificaPagamento::class,
         ]);
+
+        // Headers de segurança globais (X-Frame-Options, X-Content-Type-Options,
+        // Referrer-Policy, Permissions-Policy e CSP em rotas admin).
+        $middleware->append(SecurityHeaders::class);
 
         // API consumida via Bearer token (sem cookies/CSRF). Não usar statefulApi(),
         // que marcaria requests do mesmo domínio como SPA e exigiria X-XSRF-TOKEN.

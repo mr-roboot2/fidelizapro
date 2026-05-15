@@ -62,9 +62,9 @@ Route::get('/install/complete', [InstallController::class, 'complete']);
 
 Route::get('/', fn() => redirect()->route('admin.login'));
 
-// Autenticação admin
+// Autenticação admin — throttle por IP+email evita brute-force
 Route::get('/admin/login', [LoginController::class, 'showLogin'])->name('admin.login');
-Route::post('/admin/login', [LoginController::class, 'login']);
+Route::post('/admin/login', [LoginController::class, 'login'])->middleware('throttle:5,1');
 Route::post('/admin/logout', [LoginController::class, 'logout'])->name('admin.logout');
 
 // PWA cliente — modo genérico (seleção de empresa, branding via super admin)
@@ -271,9 +271,12 @@ Route::post('/webhook/pix/{token}', [\App\Http\Controllers\PixWebhookController:
 Route::get('/webhook/whatsapp/meta',  [WhatsappWebhookController::class, 'verificar'])->name('webhook.whatsapp.verificar');
 Route::post('/webhook/whatsapp/meta', [WhatsappWebhookController::class, 'receber'])->name('webhook.whatsapp.receber');
 
-// Mock de pagamento (dev)
-Route::get('/pagamento-mock/{cobranca}', [WebhookPagamentoController::class, 'pagamentoMock'])->name('pagamento.mock');
-Route::post('/pagamento-mock/{cobranca}/confirmar', [WebhookPagamentoController::class, 'confirmarPagamentoMock'])->name('pagamento.mock.confirmar');
+// Mock de pagamento (apenas ambiente local — bloqueado em produção via
+// abort_unless dentro do controller também).
+if (app()->environment('local')) {
+    Route::get('/pagamento-mock/{cobranca}', [WebhookPagamentoController::class, 'pagamentoMock'])->name('pagamento.mock');
+    Route::post('/pagamento-mock/{cobranca}/confirmar', [WebhookPagamentoController::class, 'confirmarPagamentoMock'])->name('pagamento.mock.confirmar');
+}
 
 // Páginas legais/institucionais (slug livre, editáveis pelo super admin).
 // Tem que ser a ÚLTIMA rota — só captura segmentos que não bateram em nada antes.

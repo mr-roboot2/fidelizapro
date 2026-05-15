@@ -70,7 +70,8 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
     Route::get('parceiros/meus-cupons', [BeneficioController::class, 'meusCupons']);
 
     Route::get('cliente/roleta/status', [RoletaController::class, 'status']);
-    Route::post('cliente/roleta/girar', [RoletaController::class, 'girar']);
+    // Limita 30 giros/min por usuário — evita farm automatizado de prêmios
+    Route::post('cliente/roleta/girar', [RoletaController::class, 'girar'])->middleware('throttle:30,1');
 
     Route::get('cliente/sorteios', [SorteioController::class, 'index']);
     Route::get('cliente/sorteios/historico', [SorteioController::class, 'historico']);
