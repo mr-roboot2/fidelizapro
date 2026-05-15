@@ -89,15 +89,22 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        // Força resposta JSON pra qualquer request em /api/*, mesmo que o
-        // cliente não tenha mandado `Accept: application/json`. Sem isso:
-        //  - AuthenticationException tentava redirect()->route('login')
-        //    que não existe (rota é 'admin.login') → 500 RouteNotFoundException
-        //  - ValidationException retornava 302 redirect em vez de 422 JSON
-        // Usar `shouldRenderJsonWhen` é mais cedo no pipeline que
-        // `render(AuthenticationException)` e cobre TODAS as exceptions
-        // que respeitam `expectsJson`.
+        // Força resposta JSON em /api/*, mesmo sem Accept: application/json.
+        // Cobre ValidationException, NotFoundHttpException, ModelNotFoundException
+        // e a maioria dos casos.
         $exceptions->shouldRenderJsonWhen(function ($request) {
             return $request->is('api/*') || $request->expectsJson();
+        });
+
+        // AuthenticationException é caso especial — o handler default chama
+        // `unauthenticated()` que checa $request->expectsJson() DIRETO, sem
+        // respeitar shouldRenderJsonWhen. Pra request /api/* sem Accept:json,
+        // o flow tentava redirect()->route('login') que não existe (rota
+        // nomeada é 'admin.login') → RouteNotFoundException → 500.
+        // Captura aqui ANTES do default e retorna 401 JSON.
+        $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json(['message' => $e->getMessage() ?: 'Unauthenticated.'], 401);
+            }
         });
     })->create();
