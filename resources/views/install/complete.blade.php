@@ -35,11 +35,36 @@
             </a>
         </div>
 
+        @php $cronLinha = '* * * * * cd '.base_path().' && php artisan schedule:run >> /dev/null 2>&1'; @endphp
+
+        <div class="bg-rose-50 border-2 border-rose-300 text-rose-900 px-4 py-3 rounded-lg text-sm text-left mb-3"
+             x-data="{ copiado: false }">
+            <p class="font-semibold mb-2"><i class="ri-alarm-warning-line"></i> Importante: configure o cron do scheduler</p>
+            <p class="text-rose-800 text-xs mb-2">
+                Sem essa linha de cron, <strong>nenhuma tarefa agendada roda</strong>:
+                geração de cobranças, notificações WhatsApp, liberação de cashback, etc.
+                Se você rodou o <code>install.sh</code> pelo SSH, provavelmente já foi adicionado.
+                Caso contrário, cole a linha abaixo via <strong>Sites → Cron Jobs</strong> no painel:
+            </p>
+            <div class="flex items-stretch gap-2">
+                <code class="flex-1 bg-white border border-rose-200 rounded px-2 py-1.5 text-xs font-mono break-all"
+                      x-ref="cron">{{ $cronLinha }}</code>
+                <button type="button"
+                        @click="navigator.clipboard.writeText($refs.cron.innerText); copiado=true; setTimeout(()=>copiado=false,2000)"
+                        class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded text-xs font-semibold whitespace-nowrap">
+                    <i class="ri-file-copy-line"></i>
+                    <span x-text="copiado ? 'Copiado!' : 'Copiar'"></span>
+                </button>
+            </div>
+            <p class="text-rose-700 text-xs mt-2">
+                Pra validar depois: <code>crontab -l | grep schedule:run</code>
+            </p>
+        </div>
+
         <div class="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg text-sm text-left">
-            <p class="font-semibold mb-1"><i class="ri-shield-check-line"></i> Próximos passos de segurança</p>
+            <p class="font-semibold mb-1"><i class="ri-shield-check-line"></i> Outros próximos passos</p>
             <ul class="list-disc list-inside space-y-1 text-amber-700">
                 <li>Configure SSL Let's Encrypt no painel do CloudPanel (necessário para o PWA instalável)</li>
-                <li>Adicione o cron <code>* * * * * php artisan schedule:run</code> em <strong>Sites &rarr; Cron Jobs</strong></li>
                 <li>O instalador foi <strong>travado</strong> — para reabrir, delete <code>storage/installed.lock</code> via SSH</li>
             </ul>
         </div>

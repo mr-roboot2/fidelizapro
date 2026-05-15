@@ -48,6 +48,26 @@ else
     echo "  - APP_KEY já definida"
 fi
 
+# 5. Cron do scheduler (idempotente — só adiciona se ainda não existe)
+PROJECT_DIR="$(pwd)"
+CRON_LINE="* * * * * cd ${PROJECT_DIR} && php artisan schedule:run >> /dev/null 2>&1"
+
+if command -v crontab >/dev/null 2>&1; then
+    if crontab -l 2>/dev/null | grep -Fq "${PROJECT_DIR} && php artisan schedule:run"; then
+        echo "  - cron do schedule:run já existe (mantido)"
+    else
+        echo "  - adicionando cron do schedule:run ao crontab"
+        ( crontab -l 2>/dev/null; echo "${CRON_LINE}" ) | crontab - && \
+            echo "    OK — scheduler vai rodar a cada minuto" || \
+            echo "    AVISO: falha ao escrever crontab — adicione manualmente:"
+        echo "    ${CRON_LINE}"
+    fi
+else
+    echo "  - AVISO: crontab não disponível neste sistema"
+    echo "    Adicione manualmente via painel (CloudPanel/CyberPanel → Cron Jobs):"
+    echo "    ${CRON_LINE}"
+fi
+
 echo ""
 echo "==> Pronto!"
 echo ""
