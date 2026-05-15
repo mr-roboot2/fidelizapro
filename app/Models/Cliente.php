@@ -110,14 +110,15 @@ class Cliente extends Authenticatable
     /**
      * Compara telefone ignorando formatação — funciona com "(11) 98569-0114",
      * "11985690114", "11 98569-0114" ou qualquer combinação.
+     *
+     * Usa coluna pré-computada `telefone_digits` (preenchida pelo Observer)
+     * com índice composto `(empresa_id, telefone_digits)`. Antes era um
+     * REPLACE×4 em whereRaw que forçava full table scan em base grande.
      */
     public function scopeWhereTelefone($query, string $telefone)
     {
         $digits = preg_replace('/\D/', '', $telefone);
-        return $query->whereRaw(
-            "REPLACE(REPLACE(REPLACE(REPLACE(telefone, ' ', ''), '(', ''), ')', ''), '-', '') = ?",
-            [$digits]
-        );
+        return $query->where('telefone_digits', $digits);
     }
 
     public function isAniversariante(): bool

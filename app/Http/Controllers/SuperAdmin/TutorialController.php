@@ -115,8 +115,13 @@ class TutorialController extends Controller
 
     protected function validar(Request $request, ?Tutorial $tutorial = null): array
     {
-        // Combina mimes (extensão) + mimetypes (header) — atacante teria que forjar os dois
-        $regrasArquivo = ['nullable', 'file', 'mimes:mp4,webm,ogg,mov', 'mimetypes:video/mp4,video/webm,video/ogg,video/quicktime', 'max:204800']; // 200MB
+        // Combina mimes (extensão) + mimetypes (header) — atacante teria que forjar os dois.
+        // max:40960 (40MB) alinha com upload_max_filesize/post_max_size default do php.ini.
+        // Antes era 200MB e qualquer upload entre 40-200MB caía com erro genérico do PHP
+        // (parcial truncado no servidor). Pra suportar arquivos maiores, configure no
+        // php.ini do servidor: upload_max_filesize, post_max_size, e em Nginx:
+        // client_max_body_size.
+        $regrasArquivo = ['nullable', 'file', 'mimes:mp4,webm,ogg,mov', 'mimetypes:video/mp4,video/webm,video/ogg,video/quicktime', 'max:40960'];
 
         // Se for criar com tipo=upload, exige o arquivo
         if ($request->input('tipo_video') === 'upload' && !$tutorial) {

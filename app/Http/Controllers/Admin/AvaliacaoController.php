@@ -27,7 +27,8 @@ class AvaliacaoController extends Controller
             }
         }
 
-        if ($busca = $request->input('busca')) {
+        $busca = trim((string) $request->input('busca', ''));
+        if (mb_strlen($busca) >= 2) {
             $query->whereHas('cliente', function ($q) use ($busca) {
                 $q->where('nome', 'like', "%{$busca}%")
                   ->orWhere('telefone', 'like', "%{$busca}%");

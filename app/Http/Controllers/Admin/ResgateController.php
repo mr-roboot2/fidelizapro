@@ -18,7 +18,8 @@ class ResgateController extends Controller
 
         if ($status = $request->input('status')) $query->where('status', $status);
 
-        if ($q = trim((string) $request->input('q'))) {
+        $q = trim((string) $request->input('q'));
+        if (mb_strlen($q) >= 2) {
             $query->where(function ($w) use ($q) {
                 $w->where('codigo', 'like', "%{$q}%")
                   ->orWhereHas('cliente', fn($c) => $c->where('nome', 'like', "%{$q}%")

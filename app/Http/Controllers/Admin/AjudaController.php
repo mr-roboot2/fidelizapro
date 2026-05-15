@@ -13,7 +13,7 @@ class AjudaController extends Controller
         $busca = trim((string) $request->input('busca', ''));
 
         $query = Tutorial::publicados()->ordenados();
-        if ($busca !== '') {
+        if (mb_strlen($busca) >= 2) {
             $query->where(function ($q) use ($busca) {
                 $q->where('titulo', 'like', "%{$busca}%")
                   ->orWhere('descricao', 'like', "%{$busca}%");

@@ -14,6 +14,13 @@ use Illuminate\Support\Facades\Auth;
 
 class AIGrowthController extends Controller
 {
+    /**
+     * Cap de período pra exports. 90 dias é folga pra qualquer relatório
+     * legítimo (trimestre fechado) e impede admin malicioso/comprometido
+     * de pedir 5 anos e carregar 100k compras na memória.
+     */
+    protected const MAX_DIAS_EXPORT = 90;
+
     public function index(Request $request)
     {
         $empresaId = Auth::user()->empresa_id;
@@ -25,7 +32,7 @@ class AIGrowthController extends Controller
     public function exportPdf(Request $request)
     {
         $empresaId = Auth::user()->empresa_id;
-        [$de, $ate] = $this->parsePeriodo($request);
+        [$de, $ate] = $this->parsePeriodoLimitado($request);
         $dados = $this->dados($empresaId, $de, $ate);
         $dados['empresaNome'] = Auth::user()->empresa->nome;
 
@@ -36,7 +43,7 @@ class AIGrowthController extends Controller
     public function exportCsv(Request $request)
     {
         $empresaId = Auth::user()->empresa_id;
-        [$de, $ate] = $this->parsePeriodo($request);
+        [$de, $ate] = $this->parsePeriodoLimitado($request);
 
         $compras = Compra::where('empresa_id', $empresaId)
             ->whereBetween('created_at', [$de->copy()->startOfDay(), $ate->copy()->endOfDay()])
@@ -81,6 +88,23 @@ class AIGrowthController extends Controller
             $de = now()->startOfMonth();
             $ate = now()->startOfDay();
         }
+        return [$de, $ate];
+    }
+
+    /**
+     * Igual a parsePeriodo, mas trunca o período a MAX_DIAS_EXPORT. Usado
+     * em exportPdf/exportCsv pra impedir DoS por relatório de 5 anos.
+     * Index() não tem cap (carrega só agregados, não dump completo).
+     */
+    private function parsePeriodoLimitado(Request $request): array
+    {
+        [$de, $ate] = $this->parsePeriodo($request);
+
+        if ($de->diffInDays($ate) > self::MAX_DIAS_EXPORT) {
+            // Trunca o início — operador quer o período mais recente.
+            $de = $ate->copy()->subDays(self::MAX_DIAS_EXPORT)->startOfDay();
+        }
+
         return [$de, $ate];
     }
 

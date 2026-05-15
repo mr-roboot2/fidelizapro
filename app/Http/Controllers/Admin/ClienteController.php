@@ -18,7 +18,11 @@ class ClienteController extends Controller
         $empresaId = Auth::user()->empresa_id;
         $query = Cliente::where('empresa_id', $empresaId);
 
-        if ($busca = $request->input('busca')) {
+        // Busca exige min 2 chars: LIKE '%X%' (1 char) força full table scan
+        // em base grande sem usar índice. Caracter único também não tem valor
+        // discriminativo prático.
+        $busca = trim((string) $request->input('busca', ''));
+        if (mb_strlen($busca) >= 2) {
             $query->where(function ($q) use ($busca) {
                 $q->where('nome', 'like', "%{$busca}%")
                   ->orWhere('telefone', 'like', "%{$busca}%")

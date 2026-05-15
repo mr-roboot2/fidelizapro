@@ -12,6 +12,14 @@ use Illuminate\Support\Facades\Hash;
 
 class ImportacaoController extends Controller
 {
+    /**
+     * Processa em chunks de N linhas com uma transaction por chunk.
+     * Em CSVs grandes (10k+ linhas) uma transaction única abria lock
+     * estendido em `clientes`/`compras` e bloqueava operação normal do
+     * caixa. Chunks pequenos liberam lock entre lotes.
+     */
+    protected const CHUNK_SIZE = 200;
+
     public function index()
     {
         return view('admin.importacao.index');
@@ -54,12 +62,51 @@ class ImportacaoController extends Controller
         $criados = 0;
         $erros = [];
         $linha = 1;
+        $chunk = [];
 
-        DB::transaction(function () use ($handle, $cabecalho, $empresaId, $criarClientes, $compraService, &$sucesso, &$criados, &$erros, &$linha) {
-            while (($row = fgetcsv($handle, 0, ',')) !== false) {
-                $linha++;
-                if (count($row) < count($cabecalho)) continue;
-                $linhaDados = array_combine($cabecalho, array_slice($row, 0, count($cabecalho)));
+        // Lê todas as linhas e processa em lotes de CHUNK_SIZE com uma
+        // transaction por lote. Falha em uma linha não derruba o lote inteiro
+        // (cada linha é try/catch independente dentro do processar).
+        while (($row = fgetcsv($handle, 0, ',')) !== false) {
+            $linha++;
+            if (count($row) < count($cabecalho)) continue;
+            $chunk[] = ['linha' => $linha, 'dados' => array_combine($cabecalho, array_slice($row, 0, count($cabecalho)))];
+
+            if (count($chunk) >= self::CHUNK_SIZE) {
+                $this->processarChunk($chunk, $empresaId, $criarClientes, $compraService, $sucesso, $criados, $erros);
+                $chunk = [];
+            }
+        }
+
+        if (!empty($chunk)) {
+            $this->processarChunk($chunk, $empresaId, $criarClientes, $compraService, $sucesso, $criados, $erros);
+        }
+
+        fclose($handle);
+
+        $msg = "Importação concluída: {$sucesso} compra(s) lançada(s)";
+        if ($criados > 0) $msg .= ", {$criados} cliente(s) criado(s)";
+        if (count($erros) > 0) $msg .= ', '.count($erros).' erro(s).';
+
+        return back()->with('success', $msg)->with('importacao_erros', $erros);
+    }
+
+    /**
+     * Processa um lote de linhas dentro de uma única transaction.
+     */
+    protected function processarChunk(
+        array $chunk,
+        int $empresaId,
+        bool $criarClientes,
+        CompraService $compraService,
+        int &$sucesso,
+        int &$criados,
+        array &$erros
+    ): void {
+        DB::transaction(function () use ($chunk, $empresaId, $criarClientes, $compraService, &$sucesso, &$criados, &$erros) {
+            foreach ($chunk as $item) {
+                $linha = $item['linha'];
+                $linhaDados = $item['dados'];
 
                 $telefone = trim($linhaDados['telefone'] ?? '');
                 $valor = (float) str_replace(',', '.', trim($linhaDados['valor'] ?? '0'));
@@ -78,6 +125,13 @@ class ImportacaoController extends Controller
                     $nome = trim($linhaDados['nome'] ?? '');
                     if (!$nome) {
                         $erros[] = "Linha {$linha}: cliente novo precisa de nome.";
+                        continue;
+                    }
+                    // Anti-XSS: mesma regex dos outros endpoints. Sem isso o
+                    // CSV injetaria `<img onerror=...>` no nome, que cai cru
+                    // em telas do PWA via innerHTML.
+                    if (!preg_match("/^[\p{L}\p{N}\s\.\-\']+$/u", $nome)) {
+                        $erros[] = "Linha {$linha}: nome contém caracteres inválidos.";
                         continue;
                     }
                     // Senha inicial = últimos 6 dígitos do telefone (UX simples
@@ -108,13 +162,5 @@ class ImportacaoController extends Controller
                 }
             }
         });
-
-        fclose($handle);
-
-        $msg = "Importação concluída: {$sucesso} compra(s) lançada(s)";
-        if ($criados > 0) $msg .= ", {$criados} cliente(s) criado(s)";
-        if (count($erros) > 0) $msg .= ', '.count($erros).' erro(s).';
-
-        return back()->with('success', $msg)->with('importacao_erros', $erros);
     }
 }

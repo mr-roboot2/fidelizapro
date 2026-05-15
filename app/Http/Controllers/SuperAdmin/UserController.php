@@ -68,8 +68,10 @@ class UserController extends Controller
             'ativo' => 'boolean',
         ]);
 
+        $senhaTrocada = false;
         if (!empty($dados['password'])) {
             $dados['password'] = Hash::make($dados['password']);
+            $senhaTrocada = true;
         } else {
             unset($dados['password']);
         }
@@ -77,6 +79,15 @@ class UserController extends Controller
         if ($dados['role'] === 'super_admin') $dados['empresa_id'] = null;
 
         $user->update($dados);
+
+        // Quando senha é trocada via painel super, normalmente é porque o
+        // operador perdeu acesso OU foi comprometido. Em ambos os casos,
+        // tokens Sanctum dele continuariam válidos até 30d se não revogados.
+        // Mata todos os tokens do operador pra forçar re-login.
+        if ($senhaTrocada) {
+            $user->tokens()->delete();
+        }
+
         return redirect()->route('super.users.index')->with('success', 'Usuário atualizado!');
     }
 

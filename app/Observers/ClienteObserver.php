@@ -11,6 +11,30 @@ class ClienteObserver
 {
     public function __construct(private ProcessarGatilhosRoletaService $gatilhos) {}
 
+    /**
+     * Mantém `telefone_digits` sincronizado com `telefone`. Roda em
+     * `creating` e `updating` antes do save, pra que a coluna esteja
+     * preenchida quando o INSERT/UPDATE atingir o banco.
+     */
+    public function creating(Cliente $cliente): void
+    {
+        $this->sincronizarTelefoneDigits($cliente);
+    }
+
+    public function updating(Cliente $cliente): void
+    {
+        if ($cliente->isDirty('telefone')) {
+            $this->sincronizarTelefoneDigits($cliente);
+        }
+    }
+
+    protected function sincronizarTelefoneDigits(Cliente $cliente): void
+    {
+        $cliente->telefone_digits = $cliente->telefone
+            ? preg_replace('/\D/', '', $cliente->telefone)
+            : null;
+    }
+
     public function created(Cliente $cliente): void
     {
         try {
