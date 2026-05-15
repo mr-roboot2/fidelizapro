@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ConfiguracaoSistema;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use PDO;
 use Throwable;
 
@@ -66,6 +69,20 @@ class InstallController extends Controller
             'db_username' => 'required|string',
             'db_password' => 'nullable|string',
         ]);
+
+        // Defesa: usuário 'root' + senha vazia é a configuração default do
+        // XAMPP. Operador puxando o instalador num VPS de produção pode
+        // copiar isso sem perceber. Bloqueamos a combinação fatal. Permitir
+        // root só com senha não-trivial; pra produção a recomendação é
+        // criar um usuário dedicado com privilégios mínimos.
+        $usuarioRoot = in_array(strtolower($data['db_username']), ['root', 'admin'], true);
+        $senhaVazia = empty($data['db_password']);
+
+        if ($usuarioRoot && $senhaVazia && !app()->environment('local')) {
+            return back()->withInput()->withErrors([
+                'db_username' => 'Em produção, NÃO use root sem senha. Crie um usuário dedicado pra esta base com privilégios mínimos (CREATE, ALTER, SELECT, INSERT, UPDATE, DELETE).',
+            ]);
+        }
 
         try {
             $dsn = "mysql:host={$data['db_host']};port={$data['db_port']};dbname={$data['db_database']};charset=utf8mb4";
@@ -194,10 +211,7 @@ class InstallController extends Controller
             Artisan::call('view:cache');
         } catch (Throwable $e) {}
 
-        @file_put_contents(
-            storage_path('installed.lock'),
-            'Instalado em '.date('Y-m-d H:i:s')
-        );
+        $this->marcarInstalado();
 
         return redirect('/install/complete')->with('admin_email', $data['email']);
     }
@@ -219,10 +233,7 @@ class InstallController extends Controller
             Artisan::call('view:cache');
         } catch (Throwable $e) {}
 
-        @file_put_contents(
-            storage_path('installed.lock'),
-            'Instalado em '.date('Y-m-d H:i:s')
-        );
+        $this->marcarInstalado();
 
         return redirect('/install/complete')->with('admin_email', $existing->email);
     }
@@ -281,5 +292,29 @@ class InstallController extends Controller
             return '"'.str_replace('"', '\\"', $value).'"';
         }
         return $value;
+    }
+
+    /**
+     * Marca instalação concluída em DOIS lugares (defesa em profundidade):
+     * - storage/installed.lock (canônico)
+     * - configuracoes_sistema.instalado_em (sobrevive ao apagar o lock)
+     */
+    protected function marcarInstalado(): void
+    {
+        @file_put_contents(
+            storage_path('installed.lock'),
+            'Instalado em '.date('Y-m-d H:i:s')
+        );
+
+        try {
+            if (Schema::hasTable('configuracoes_sistema')) {
+                $config = ConfiguracaoSistema::instancia();
+                if (!$config->instalado_em) {
+                    $config->update(['instalado_em' => now()]);
+                }
+            }
+        } catch (Throwable $e) {
+            // Não é fatal — o .lock já bloqueia.
+        }
     }
 }

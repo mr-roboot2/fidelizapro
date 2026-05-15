@@ -5,11 +5,14 @@ namespace App\Http\Controllers\SuperAdmin;
 use App\Http\Controllers\Controller;
 use App\Models\Empresa;
 use App\Models\User;
+use App\Services\AuditoriaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class ImpersonateController extends Controller
 {
+    public function __construct(protected AuditoriaService $auditoria) {}
+
     /**
      * Loga como o admin de uma empresa, salvando o ID original em sessão.
      */
@@ -23,6 +26,19 @@ class ImpersonateController extends Controller
         if (!$admin) {
             return back()->with('error', 'Esta empresa não tem admin ativo. Crie um primeiro.');
         }
+
+        $origem = Auth::user();
+
+        // Auditoria: super admin entrando como admin de empresa. Registra
+        // ANTES da troca de Auth pra capturar quem realmente clicou.
+        $this->auditoria->registrar(
+            'impersonate.entrar',
+            $admin,
+            null,
+            null,
+            "Super admin '{$origem?->name}' (id={$origem?->id}) entrou como '{$admin->name}' em '{$empresa->nome}' (empresa_id={$empresa->id})",
+            $empresa->id
+        );
 
         $request->session()->put('impersonate_origem_id', Auth::id());
         Auth::loginUsingId($admin->id);
@@ -42,8 +58,34 @@ class ImpersonateController extends Controller
         if (!$origemId) {
             return redirect()->route('super.dashboard');
         }
-        Auth::loginUsingId($origemId);
+
+        // Defesa em profundidade: o $origemId vem da sessão, que normalmente
+        // foi setada por entrar() — onde o user JÁ era super_admin. Mas se
+        // a sessão for forjada/comprometida com um id arbitrário, validar
+        // antes do loginUsingId impede privilege escalation pra qualquer
+        // conta da base.
+        $origem = User::find($origemId);
+        if (!$origem || !$origem->isSuperAdmin() || !$origem->ativo) {
+            // Limpa qualquer estado residual e devolve pro login.
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            return redirect()->route('admin.login')
+                ->with('error', 'Sessão de impersonação inválida. Faça login novamente.');
+        }
+
+        $impersonado = Auth::user();
+        Auth::loginUsingId($origem->id);
         $request->session()->regenerate();
+
+        $this->auditoria->registrar(
+            'impersonate.sair',
+            $origem,
+            null,
+            null,
+            "Super admin '{$origem->name}' (id={$origem->id}) saiu da impersonação de '{$impersonado?->name}' (id={$impersonado?->id})"
+        );
+
         return redirect()->route('super.dashboard')->with('success', 'Voltou ao super admin.');
     }
 }

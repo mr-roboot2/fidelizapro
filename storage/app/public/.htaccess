@@ -1,10 +1,25 @@
 # Bloqueia execução de qualquer arquivo dinâmico/script no diretório de uploads.
 # Defesa em profundidade contra polyglot (PNG+PHP) e SVG com JS inline.
-<FilesMatch "\.(php|phtml|phar|html?|htaccess|svg|xml|js|cgi|pl|py|asp|aspx|sh)$">
+# Lista de extensões alinha com docs/nginx-storage.conf — mantenha em sincronia.
+<FilesMatch "\.(php|phtml|phar|phps|php5|php7|pht|html?|htaccess|svg|xml|js|cgi|pl|py|asp|aspx|sh|exe|inc|shtml)$">
     Require all denied
 </FilesMatch>
 
-# Desabilita listagem do diretório
+# Mesmo se uma extensão escape do FilesMatch (request mal-formado, etc.),
+# desativa o handler PHP no diretório inteiro pra impedir execução.
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+    php_flag engine off
+</IfModule>
+RemoveHandler .php .phtml .phar .phps .php5 .php7 .pht
+RemoveType .php .phtml .phar .phps .php5 .php7 .pht
+
+# Desabilita listagem do diretório e CGI
 Options -Indexes -ExecCGI
 
 # Força Content-Type explícito quando possível

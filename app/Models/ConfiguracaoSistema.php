@@ -18,7 +18,7 @@ class ConfiguracaoSistema extends Model
         'whatsapp_provider', 'whatsapp_api_url', 'whatsapp_api_token',
         'whatsapp_client_token',
         'whatsapp_instance', 'whatsapp_phone_id', 'whatsapp_waba_id',
-        'whatsapp_webhook_verify_token', 'whatsapp_ativo',
+        'whatsapp_webhook_verify_token', 'whatsapp_app_secret', 'whatsapp_ativo',
         'horario_automacoes', 'horario_cashback',
         'rate_limit_auth', 'rate_limit_pdv',
         'otp_max_por_telefone', 'otp_max_tentativas', 'max_resgates_24h',
@@ -62,11 +62,13 @@ class ConfiguracaoSistema extends Model
         'whatsapp_api_token' => 'encrypted',
         'whatsapp_client_token' => 'encrypted',
         'whatsapp_webhook_verify_token' => 'encrypted',
+        'whatsapp_app_secret' => 'encrypted',
         'rate_limit_auth' => 'integer',
         'rate_limit_pdv' => 'integer',
         'otp_max_por_telefone' => 'integer',
         'otp_max_tentativas' => 'integer',
         'max_resgates_24h' => 'integer',
+        'instalado_em' => 'datetime',
     ];
 
     /**

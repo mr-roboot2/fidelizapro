@@ -49,6 +49,15 @@ class Empresa extends Model
         'whatsapp_ativo' => 'boolean',
         'setup_concluido' => 'boolean',
         'setup_passos_vistos' => 'array',
+        // pdv_secret é credencial de PDV externo (header X-Pdv-Secret). Em
+        // plain text no DB, SQL injection ou backup leak expõe creds de PDV
+        // de TODAS empresas. Cast 'encrypted' guarda cifrado com APP_KEY —
+        // backup do banco isolado não é mais útil pro atacante. Admin/super
+        // continuam vendo o valor cru na UI (descriptografado em runtime).
+        'pdv_secret' => 'encrypted',
+        // whatsapp_api_token também é credencial sensível (auth com gateway).
+        'whatsapp_api_token' => 'encrypted',
+        'whatsapp_webhook_verify_token' => 'encrypted',
     ];
 
     public function passoVisto(string $chave): bool
