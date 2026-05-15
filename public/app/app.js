@@ -1759,6 +1759,15 @@ window.logout = async () => {
     try { await api('/auth/logout', { method: 'POST' }); } catch {}
     STATE.token = null; STATE.cliente = null;
     persistir();
+    // Purga Cache Storage do Service Worker — sem isso, restos de respostas
+    // de /api/* (mesmo após o SW ter sido corrigido pra network-only)
+    // sobreviveriam pra próximos usuários do mesmo browser.
+    if ('caches' in window) {
+        try {
+            const keys = await caches.keys();
+            await Promise.all(keys.map(k => caches.delete(k)));
+        } catch {}
+    }
     showScreen('escolherEmpresa');
 };
 

@@ -673,6 +673,14 @@ async function logout() {
     STATE.token = null;
     STATE.user = null;
     persistir();
+    // Purga Cache Storage — sem isso, restos de respostas /api/loja/*
+    // do operador anterior sobreviveriam pro próximo no mesmo browser.
+    if ('caches' in window) {
+        try {
+            const keys = await caches.keys();
+            await Promise.all(keys.map(k => caches.delete(k)));
+        } catch {}
+    }
     showScreen('login');
 }
 
