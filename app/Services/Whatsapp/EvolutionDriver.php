@@ -32,7 +32,10 @@ class EvolutionDriver implements WhatsappDriverInterface
             );
 
             if (!$response->successful()) {
-                Log::warning("[Evolution] Falha enviando para {$telefone}: ".$response->body());
+                Log::warning('[Evolution] Falha enviando mensagem', [
+                    'tel'  => \App\Support\LogScrubber::scrub($telefone),
+                    'body' => \App\Support\LogScrubber::scrub($response->body()),
+                ]);
                 return false;
             }
             return true;

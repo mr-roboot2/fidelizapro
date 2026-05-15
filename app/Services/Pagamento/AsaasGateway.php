@@ -58,7 +58,7 @@ class AsaasGateway implements GatewayInterface
         ]);
 
         if (!$r->successful()) {
-            throw new RuntimeException('Asaas: falha ao criar customer: '.$r->body());
+            throw new RuntimeException('Asaas: falha ao criar customer: '.\App\Support\LogScrubber::scrub($r->body()));
         }
 
         return $r->json('id');
@@ -77,7 +77,7 @@ class AsaasGateway implements GatewayInterface
         ]);
 
         if (!$r->successful()) {
-            throw new RuntimeException('Asaas: falha ao criar assinatura: '.$r->body());
+            throw new RuntimeException('Asaas: falha ao criar assinatura: '.\App\Support\LogScrubber::scrub($r->body()));
         }
 
         return $r->json('id');
@@ -95,7 +95,7 @@ class AsaasGateway implements GatewayInterface
         ]);
 
         if (!$r->successful()) {
-            throw new RuntimeException('Asaas: falha ao gerar cobrança: '.$r->body());
+            throw new RuntimeException('Asaas: falha ao gerar cobrança: '.\App\Support\LogScrubber::scrub($r->body()));
         }
 
         $cobranca->update([
@@ -126,7 +126,7 @@ class AsaasGateway implements GatewayInterface
             Log::warning('Asaas: falha ao cancelar cobrança', [
                 'cobranca_id' => $cobranca->id,
                 'gateway_id'  => $cobranca->gateway_charge_id,
-                'body'        => $r->body(),
+                'body'        => \App\Support\LogScrubber::scrub($r->body()),
             ]);
             return false;
         }

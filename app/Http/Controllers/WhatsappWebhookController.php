@@ -36,6 +36,31 @@ class WhatsappWebhookController extends Controller
 
     public function receber(Request $request)
     {
+        $config = ConfiguracaoSistema::instancia();
+        $appSecret = (string) ($config->whatsapp_app_secret ?? '');
+
+        // Validação obrigatória da assinatura HMAC SHA256 do Meta. Sem isso
+        // qualquer um forja POST e o handler aceita. O endpoint só loga hoje,
+        // mas estamos fechando a porta antes de adicionar processamento.
+        //
+        // Em ambientes ainda não configurados (app_secret vazio), aceitamos
+        // o request mas anotamos um warning bem visível pro operador notar.
+        if ($appSecret !== '') {
+            $assinatura = (string) $request->header('X-Hub-Signature-256', '');
+            $payload = $request->getContent();
+            $esperado = 'sha256='.hash_hmac('sha256', $payload, $appSecret);
+
+            if (!hash_equals($esperado, $assinatura)) {
+                Log::warning('[Meta Webhook] Assinatura inválida', [
+                    'ip' => $request->ip(),
+                    'tem_header' => $assinatura !== '',
+                ]);
+                return response()->json(['error' => 'invalid_signature'], 401);
+            }
+        } else {
+            Log::warning('[Meta Webhook] App secret NÃO configurado — webhook aceito sem validação. Configure configuracoes_sistema.whatsapp_app_secret pra ativar verificação HMAC.');
+        }
+
         // Logamos apenas metadados — payloads de WhatsApp contêm PII (telefone, texto)
         Log::info('[Meta Webhook] Evento recebido', [
             'object'  => $request->input('object'),

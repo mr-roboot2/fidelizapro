@@ -4,6 +4,7 @@ namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ConfiguracaoSistema;
+use App\Rules\UrlExterna;
 use App\Services\WhatsappService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -27,7 +28,11 @@ class WhatsappController extends Controller
     {
         $dados = $request->validate([
             'whatsapp_provider' => 'required|in:mock,evolution,zapi,meta_cloud',
-            'whatsapp_api_url'  => 'nullable|url|max:255',
+            // Anti-SSRF: bloqueia URL apontando pra metadata cloud (169.254.x),
+            // loopback, IPs privados e hostnames .local/.internal. Sem isso,
+            // super admin (ou conta dele comprometida) usa o sistema como
+            // proxy SSRF pra exfiltrar creds da nuvem ou serviços internos.
+            'whatsapp_api_url'  => ['nullable', 'url', 'max:255', new UrlExterna()],
             'whatsapp_api_token'=> 'nullable|string|max:2000',
             'whatsapp_client_token' => 'nullable|string|max:255',
             'whatsapp_instance' => 'nullable|string|max:255',

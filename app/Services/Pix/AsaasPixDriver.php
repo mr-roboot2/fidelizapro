@@ -49,7 +49,7 @@ class AsaasPixDriver implements PixDriverInterface
             'externalReference' => (string) $cobranca->id,
         ]);
         if (!$r->successful()) {
-            throw new RuntimeException('Falha ao criar cobrança Asaas: '.$r->body());
+            throw new RuntimeException('Falha ao criar cobrança Asaas: '.\App\Support\LogScrubber::scrub($r->body()));
         }
         $payment = $r->json();
 
@@ -63,7 +63,7 @@ class AsaasPixDriver implements PixDriverInterface
         } else {
             Log::warning('[Asaas] Falha ao gerar QR PIX — payment criado, link salvo', [
                 'payment_id' => $payment['id'],
-                'body'       => $qr->body(),
+                'body'       => \App\Support\LogScrubber::scrub($qr->body()),
             ]);
         }
 
@@ -95,7 +95,7 @@ class AsaasPixDriver implements PixDriverInterface
             'externalReference' => 'empresa-'.$empresa->id,
         ]);
         if (!$r->successful()) {
-            throw new RuntimeException('Falha ao criar customer Asaas: '.$r->body());
+            throw new RuntimeException('Falha ao criar customer Asaas: '.\App\Support\LogScrubber::scrub($r->body()));
         }
         $id = $r->json('id');
         if ($a) $a->update(['gateway_customer_id' => $id]);

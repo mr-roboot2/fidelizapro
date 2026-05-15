@@ -36,7 +36,10 @@ class ZapiDriver implements WhatsappDriverInterface
             );
 
             if (!$response->successful()) {
-                Log::warning("[Z-API] Falha enviando para {$telefone}: ".$response->body());
+                Log::warning('[Z-API] Falha enviando mensagem', [
+                    'tel'  => \App\Support\LogScrubber::scrub($telefone),
+                    'body' => \App\Support\LogScrubber::scrub($response->body()),
+                ]);
                 return false;
             }
             return true;
@@ -102,7 +105,10 @@ class ZapiDriver implements WhatsappDriverInterface
             );
 
             if (!$response->successful()) {
-                Log::warning("[Z-API] Falha enviando botões para {$telefone}: ".$response->body());
+                Log::warning('[Z-API] Falha enviando botões', [
+                    'tel'  => \App\Support\LogScrubber::scrub($telefone),
+                    'body' => \App\Support\LogScrubber::scrub($response->body()),
+                ]);
                 // Fallback: texto puro com os valores dos botões anexados
                 return $this->enviar($config, $telefone, $this->fallbackTexto($mensagem, $botoes));
             }

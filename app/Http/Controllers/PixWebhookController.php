@@ -10,14 +10,20 @@ use Illuminate\Support\Facades\Log;
 class PixWebhookController extends Controller
 {
     /**
-     * POST /webhook/pix/{token}
-     * Token único gerado em pix_webhook_token (ConfiguracaoSistema). Configura
-     * essa URL completa no painel do gateway.
+     * POST /webhook/pix              (header X-Pix-Webhook-Token: <token>)
+     * POST /webhook/pix/{token}      (legacy, mantido pra gateway que só
+     *                                 suporta token na URL)
+     *
+     * Preferência: header. Token no path vaza pra access.log do Nginx/Apache
+     * e logs de proxy upstream — header não. Usa hash_equals em ambos.
      */
-    public function receber(string $token, Request $request, PixService $pix)
+    public function receber(Request $request, PixService $pix, ?string $token = null)
     {
         $esperado = ConfiguracaoSistema::instancia()->pix_webhook_token;
-        if (!$esperado || !hash_equals($esperado, $token)) {
+        $recebido = $token ?? (string) $request->header('X-Pix-Webhook-Token', '');
+
+        if (!$esperado || !hash_equals((string) $esperado, (string) $recebido)) {
+            Log::warning('[PIX webhook] Token inválido', ['ip' => $request->ip()]);
             return response()->json(['error' => 'invalid token'], 403);
         }
 
@@ -36,8 +42,10 @@ class PixWebhookController extends Controller
             $pix->confirmarPagamento($cobranca);
             return response()->json(['ok' => true, 'cobranca_id' => $cobranca->id]);
         } catch (\Throwable $e) {
-            Log::error('[PIX webhook] Erro: '.$e->getMessage());
-            return response()->json(['error' => $e->getMessage()], 500);
+            Log::error('[PIX webhook] Erro: '.$e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json(['error' => 'internal_error'], 500);
         }
     }
 }

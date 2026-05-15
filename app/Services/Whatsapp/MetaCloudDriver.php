@@ -33,12 +33,15 @@ class MetaCloudDriver implements WhatsappDriverInterface
                 ]);
 
             if (!$response->successful()) {
-                Log::warning("[Meta Cloud] Falha enviando para {$telefone}: ".$response->body());
+                Log::warning('[Meta Cloud] Falha enviando mensagem', [
+                    'tel'  => \App\Support\LogScrubber::scrub($telefone),
+                    'body' => \App\Support\LogScrubber::scrub($response->body()),
+                ]);
                 return false;
             }
             return true;
         } catch (\Throwable $e) {
-            Log::error("[Meta Cloud] Exceção: ".$e->getMessage());
+            Log::error('[Meta Cloud] Exceção: '.$e->getMessage());
             return false;
         }
     }
@@ -71,9 +74,9 @@ class MetaCloudDriver implements WhatsappDriverInterface
                 ];
             }
 
-            $erro = $response->json('error.message') ?? $response->body();
+            $erro = $response->json('error.message') ?? \App\Support\LogScrubber::scrub($response->body());
             $codigo = $response->json('error.code');
-            Log::warning("[Meta Cloud] Falha no teste", ['erro' => $erro]);
+            Log::warning('[Meta Cloud] Falha no teste', ['erro' => \App\Support\LogScrubber::scrub((string) $erro)]);
 
             $dica = match ((int) $codigo) {
                 131030 => 'Número de destino não está na lista de testers no Meta Console.',
@@ -127,12 +130,16 @@ class MetaCloudDriver implements WhatsappDriverInterface
                 ]);
 
             if (!$response->successful()) {
-                Log::warning("[Meta Cloud] Falha enviando template {$nomeTemplate} para {$telefone}: ".$response->body());
+                Log::warning('[Meta Cloud] Falha enviando template', [
+                    'template' => $nomeTemplate,
+                    'tel'      => \App\Support\LogScrubber::scrub($telefone),
+                    'body'     => \App\Support\LogScrubber::scrub($response->body()),
+                ]);
                 return false;
             }
             return true;
         } catch (\Throwable $e) {
-            Log::error("[Meta Cloud] Exceção template: ".$e->getMessage());
+            Log::error('[Meta Cloud] Exceção template: '.$e->getMessage());
             return false;
         }
     }

@@ -60,8 +60,13 @@ class WebhookPagamentoController extends Controller
 
             return response()->json(['ok' => true, 'evento' => $resultado['evento'] ?? 'ignored']);
         } catch (\Throwable $e) {
-            Log::error("[Webhook {$gateway}] Erro: ".$e->getMessage());
-            return response()->json(['error' => $e->getMessage()], 500);
+            // Não devolver $e->getMessage() ao chamador: traces internos podem
+            // vazar nome de coluna/tabela, path, env var. Mensagem genérica
+            // (e Asaas re-tenta webhook 500 igual).
+            Log::error("[Webhook {$gateway}] Erro: ".$e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json(['error' => 'internal_error'], 500);
         }
     }
 

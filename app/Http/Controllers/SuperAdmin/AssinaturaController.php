@@ -120,7 +120,7 @@ class AssinaturaController extends Controller
         return back()->with('success', 'Assinatura cancelada.');
     }
 
-    public function cancelarCobranca(Cobranca $cobranca)
+    public function cancelarCobranca(Request $request, Cobranca $cobranca)
     {
         if ($cobranca->status === 'pago') {
             return back()->with('error', 'Não dá pra cancelar uma cobrança já paga.');
@@ -129,13 +129,32 @@ class AssinaturaController extends Controller
             return back()->with('error', 'Cobrança já está cancelada.');
         }
 
+        // Tenta cancelar primeiro no Asaas. Se falhar e o admin NÃO marcou
+        // "forçar cancelamento local", aborta — assim o estado local segue
+        // consistente com o gateway. Antes, falha no Asaas marcava local
+        // como cancelado mesmo assim e gerava cobrança fantasma (cliente
+        // podia pagar no Asaas e o webhook era ignorado por status!=pendente).
         $cancelouNoGateway = true;
         if ($cobranca->gateway_charge_id) {
             try {
                 $cancelouNoGateway = (new \App\Services\Pagamento\AsaasGateway())->cancelarCobranca($cobranca);
             } catch (\Throwable $e) {
                 $cancelouNoGateway = false;
+                \Log::warning('Asaas: exception ao cancelar cobrança', [
+                    'cobranca_id' => $cobranca->id,
+                    'erro' => $e->getMessage(),
+                ]);
             }
+        }
+
+        $forcar = $request->boolean('forcar_local');
+
+        if (!$cancelouNoGateway && !$forcar) {
+            return back()->with('error',
+                'Falha ao cancelar no Asaas. A cobrança continua ativa lá e localmente. '
+                .'Para cancelar SÓ localmente (deixando viva no gateway, sob seu risco), '
+                .'reenvie marcando "forçar cancelamento local".'
+            );
         }
 
         $cobranca->update(['status' => 'cancelado']);
@@ -145,8 +164,8 @@ class AssinaturaController extends Controller
 
         $msg = $cancelouNoGateway
             ? 'Cobrança cancelada (inclusive no gateway).'.$msgRev
-            : 'Cobrança cancelada localmente, mas falhou no gateway — verifique manualmente no painel Asaas.'.$msgRev;
-        return back()->with($cancelouNoGateway ? 'success' : 'error', $msg);
+            : '⚠️ Cobrança cancelada localmente, mas ainda ATIVA no Asaas — cancele manualmente no painel deles ou o cliente pode pagar e o crédito não cair aqui.'.$msgRev;
+        return back()->with($cancelouNoGateway ? 'success' : 'warning', $msg);
     }
 
     public function excluirCobranca(Cobranca $cobranca)

@@ -77,27 +77,35 @@ class AssinaturaService
     /**
      * Confirma pagamento (chamado pelo webhook ou pelo super-admin no botão
      * 'Marcar paga'). Se a cobrança for de upgrade de plano, efetiva.
+     *
+     * Race fix: dois webhooks chegando em paralelo (Asaas faz retry agressivo)
+     * podiam aplicar `AplicarUpgradePlano` duas vezes, porque ambos leem
+     * `status='pendente'` antes de qualquer um atualizar. Tudo agora roda
+     * dentro de DB::transaction com lockForUpdate, garantindo que o segundo
+     * caia no early-return `status === 'pago'`.
      */
     public function marcarPaga(Cobranca $cobranca, ?string $gatewayChargeId = null): void
     {
-        // Idempotência: webhooks podem chegar duplicados; não re-aplica upgrade
-        if ($cobranca->status === 'pago') {
-            return;
-        }
+        DB::transaction(function () use ($cobranca, $gatewayChargeId) {
+            $lockada = Cobranca::lockForUpdate()->find($cobranca->id);
+            if (!$lockada || $lockada->status === 'pago') {
+                return;
+            }
 
-        $cobranca->update([
-            'status' => 'pago',
-            'pago_em' => now(),
-            'gateway_charge_id' => $gatewayChargeId ?? $cobranca->gateway_charge_id,
-        ]);
+            $lockada->update([
+                'status' => 'pago',
+                'pago_em' => now(),
+                'gateway_charge_id' => $gatewayChargeId ?? $lockada->gateway_charge_id,
+            ]);
 
-        (new AplicarUpgradePlano())->executar($cobranca->fresh());
+            (new AplicarUpgradePlano())->executar($lockada->fresh());
 
-        $assinatura = $cobranca->fresh()->assinatura;
-        $assinatura->update([
-            'status' => 'ativa',
-            'proximo_vencimento' => $cobranca->vencimento->addMonth(),
-        ]);
+            $assinatura = $lockada->fresh()->assinatura;
+            $assinatura->update([
+                'status' => 'ativa',
+                'proximo_vencimento' => $lockada->vencimento->addMonth(),
+            ]);
+        });
     }
 
     public function cancelar(Assinatura $assinatura): void
