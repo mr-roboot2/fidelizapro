@@ -4,6 +4,7 @@ namespace App\Services\Pagamento;
 
 use App\Models\Assinatura;
 use App\Models\Cobranca;
+use App\Models\ConfiguracaoSistema;
 use App\Models\Empresa;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -13,23 +14,33 @@ use RuntimeException;
  * Asaas (asaas.com) — gateway brasileiro popular para SaaS.
  * Docs: https://docs.asaas.com/
  *
- * .env:
- *   ASAAS_API_KEY=...
- *   ASAAS_ENV=sandbox  // ou production
+ * Configuração: super-admin → Configurações → Integrações → PIX
+ *   - Provider: asaas
+ *   - Ambiente: sandbox / producao
+ *   - API key
+ * Fallback: .env (ASAAS_API_KEY, ASAAS_ENV) — só usado se a config
+ * do banco estiver vazia (útil pra ambientes sem painel ainda).
  */
 class AsaasGateway implements GatewayInterface
 {
     protected function baseUrl(): string
     {
-        return env('ASAAS_ENV') === 'production'
+        $cfg = ConfiguracaoSistema::instancia();
+        $ambiente = $cfg->pix_ambiente ?: env('ASAAS_ENV', 'sandbox');
+        return $ambiente === 'producao'
             ? 'https://api.asaas.com/v3'
             : 'https://sandbox.asaas.com/api/v3';
     }
 
     protected function http()
     {
-        $key = env('ASAAS_API_KEY');
-        if (!$key) throw new RuntimeException('ASAAS_API_KEY não configurada no .env');
+        $cfg = ConfiguracaoSistema::instancia();
+        $key = $cfg->pix_api_key ?: env('ASAAS_API_KEY');
+        if (!$key) {
+            throw new RuntimeException(
+                'Chave Asaas não configurada. Vá em Configurações → Integrações → PIX e cadastre a API key.'
+            );
+        }
         return Http::withHeaders([
             'access_token' => $key,
             'Content-Type' => 'application/json',
