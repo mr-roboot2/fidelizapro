@@ -111,7 +111,7 @@ class PwaController extends Controller
         $appBase = parse_url(url('/app'), PHP_URL_PATH);
 
         $js = <<<JS
-const CACHE = 'fidelizapro-{$slug}-v5';
+const CACHE = 'fidelizapro-{$slug}-v6';
 const ASSETS = [
     '{$base}/',
     '{$appBase}/style.css',
@@ -140,12 +140,9 @@ self.addEventListener('fetch', (e) => {
     if (e.request.method !== 'GET') return;
     const url = new URL(e.request.url);
 
+    // API: SEMPRE rede, NUNCA cache (vazava dados entre usuários do mesmo browser).
     if (url.pathname.includes('/api/')) {
-        e.respondWith(fetch(e.request).then((r) => {
-            const c = r.clone();
-            caches.open(CACHE).then((cc) => cc.put(e.request, c));
-            return r;
-        }).catch(() => caches.match(e.request)));
+        e.respondWith(fetch(e.request));
         return;
     }
 

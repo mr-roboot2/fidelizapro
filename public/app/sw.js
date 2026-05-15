@@ -1,4 +1,4 @@
-const CACHE = 'fidelizapro-v7';
+const CACHE = 'fidelizapro-v8';
 
 // Caminhos relativos ao escopo do SW (a própria pasta /app/).
 // O index e o manifest são servidos dinamicamente pelo Laravel — não pré-cachear
@@ -34,17 +34,12 @@ self.addEventListener('fetch', (e) => {
     if (e.request.method !== 'GET') return;
     const url = new URL(e.request.url);
 
-    // API: rede primeiro, fallback cache
+    // API: SEMPRE rede, NUNCA cache. Cache de /api/* autenticadas vazava
+    // dados entre usuários do mesmo browser (cliente A logava, SW cacheava
+    // dashboard de A, cliente A saía, cliente B logava — se a rede travasse
+    // 1s, SW servia dados do A pro B). Não há fallback offline aqui.
     if (url.pathname.includes('/api/')) {
-        e.respondWith(
-            fetch(e.request)
-                .then((res) => {
-                    const copy = res.clone();
-                    caches.open(CACHE).then((c) => c.put(e.request, copy));
-                    return res;
-                })
-                .catch(() => caches.match(e.request))
-        );
+        e.respondWith(fetch(e.request));
         return;
     }
 
