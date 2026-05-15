@@ -13,11 +13,17 @@ use SimpleSoftwareIO\QrCode\Generator as QrGenerator;
 class ClienteController extends Controller
 {
     /**
-     * SVG do QR de um cliente (público — codigo_qr é visualmente público).
+     * SVG do QR de um cliente.
+     *
+     * Endpoint público — `codigo_qr` é visualmente público (cliente mostra
+     * no celular). Antes fazíamos `abort_unless($exists, 404)`, o que
+     * permitia enumerar códigos válidos via tempo/resposta. Agora geramos
+     * o SVG SEM checar existência: códigos inexistentes simplesmente
+     * "não funcionam" quando alguém tenta lê-los no caixa (lookup é
+     * server-side noutro endpoint). Sem 404 ≠ sem informação.
      */
     public function qr(string $codigo)
     {
-        abort_unless(Cliente::where('codigo_qr', $codigo)->exists(), 404);
         $svg = (new QrGenerator())->format('svg')->size(240)->margin(1)->generate($codigo);
         return response($svg, 200, [
             'Content-Type' => 'image/svg+xml',
@@ -118,7 +124,9 @@ class ClienteController extends Controller
     public function uploadFoto(Request $request)
     {
         $request->validate([
-            'foto' => 'required|image|mimes:jpg,jpeg,png,webp|max:4096',
+            // mimetypes: alinha com os outros uploads e fecha bypass via
+            // extensão duplicada (`foto.php.jpg` com magic bytes JPEG).
+            'foto' => 'required|image|mimes:jpg,jpeg,png,webp|mimetypes:image/jpeg,image/png,image/webp|max:4096',
         ]);
 
         $cliente = $request->user();

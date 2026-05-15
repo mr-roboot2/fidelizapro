@@ -4,10 +4,20 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Indicacao;
+use App\Rules\TelefoneBr;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class IndicacaoController extends Controller
 {
+    /**
+     * Antifraude: limite diário de indicações por cliente. Sem isso, o
+     * mesmo cliente conseguia criar milhares de registros (poluindo o
+     * sistema e, se a regra `indicacao` der pontos via batch externo,
+     * inflando saldo). Default 10; troca via ConfiguracaoSistema se quiser.
+     */
+    protected const MAX_INDICACOES_DIA = 10;
+
     public function index(Request $request)
     {
         $cliente = $request->user();
@@ -35,11 +45,41 @@ class IndicacaoController extends Controller
     public function indicar(Request $request)
     {
         $dados = $request->validate([
-            'nome_indicado' => 'required|string|max:255',
-            'telefone_indicado' => 'required|string|max:20',
+            'nome_indicado'     => ['required','string','max:120','regex:/^[\p{L}\p{N}\s\.\-\']+$/u'],
+            'telefone_indicado' => ['required','string','max:20', new TelefoneBr()],
         ]);
 
         $cliente = $request->user();
+        $telefoneDigits = preg_replace('/\D/', '', $dados['telefone_indicado']);
+        $telefoneProprio = preg_replace('/\D/', '', $cliente->telefone);
+
+        // Antifraude #1: não indicar a si mesmo (fechava loop de cashback/pontos).
+        if ($telefoneDigits === $telefoneProprio) {
+            throw ValidationException::withMessages([
+                'telefone_indicado' => 'Você não pode indicar seu próprio número.',
+            ]);
+        }
+
+        // Antifraude #2: dedup por (indicador, telefone) — sem isso o cliente
+        // criava 100x a mesma indicação pra inflar relatórios.
+        $jaIndicou = Indicacao::where('cliente_indicador_id', $cliente->id)
+            ->whereRaw("REPLACE(REPLACE(REPLACE(REPLACE(telefone_indicado,' ',''),'(',''),')',''),'-','') = ?", [$telefoneDigits])
+            ->exists();
+        if ($jaIndicou) {
+            throw ValidationException::withMessages([
+                'telefone_indicado' => 'Você já indicou esse telefone antes.',
+            ]);
+        }
+
+        // Antifraude #3: cap diário por cliente
+        $indicacoesHoje = Indicacao::where('cliente_indicador_id', $cliente->id)
+            ->where('created_at', '>=', now()->startOfDay())
+            ->count();
+        if ($indicacoesHoje >= self::MAX_INDICACOES_DIA) {
+            throw ValidationException::withMessages([
+                'telefone_indicado' => 'Limite de '.self::MAX_INDICACOES_DIA.' indicações por dia atingido. Tente amanhã.',
+            ]);
+        }
 
         $indicacao = Indicacao::create([
             'empresa_id' => $cliente->empresa_id,

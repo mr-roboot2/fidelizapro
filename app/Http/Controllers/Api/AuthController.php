@@ -35,11 +35,23 @@ class AuthController extends Controller
 
         $cliente = $query->first();
 
-        if (!$cliente || !Hash::check($dados['password'], $cliente->password)) {
+        // Anti-timing: Hash::check é caro (~200ms bcrypt). Se rodávamos só
+        // quando cliente existe, atacante mede tempo de resposta e enumera
+        // telefones cadastrados (cadastrado=200ms vs não-cadastrado=0ms).
+        // Roda hash dummy quando cliente=null pra normalizar a janela.
+        $hashAlvo = $cliente?->password
+            ?? '$2y$12$invalidinvalidinvalidinvalidinvalidinvalidinvalidinvali';
+        $senhaConfere = Hash::check($dados['password'], $hashAlvo);
+
+        if (!$cliente || !$senhaConfere) {
             throw ValidationException::withMessages(['telefone' => 'Telefone ou senha inválidos.']);
         }
 
         $cliente->update(['ultimo_acesso' => now(), 'ultimo_ip' => $request->ip()]);
+        // Revoga tokens antigos do mesmo dispositivo (mesmo name). Sem isso,
+        // cada login criava um novo token sem invalidar os anteriores, e um
+        // token vazado vivia 30 dias mesmo após o usuário "deslogar".
+        $cliente->tokens()->where('name', 'pwa-cliente')->delete();
         $token = $cliente->createToken('pwa-cliente')->plainTextToken;
 
         return response()->json([
@@ -66,12 +78,20 @@ class AuthController extends Controller
 
         $cpfNorm = preg_replace('/\D/', '', $dados['cpf']);
 
-        if (Cliente::where('empresa_id', $empresa->id)->whereTelefone($dados['telefone'])->exists()) {
-            throw ValidationException::withMessages(['telefone' => 'Telefone já cadastrado.']);
-        }
+        // Anti-enumeração: mensagem genérica que NÃO revela qual campo bateu
+        // (atacante varria telefones e CPFs separadamente). Cliente legítimo
+        // que já tem conta segue o link "fazer login" no formulário.
+        $jaCadastrado = Cliente::where('empresa_id', $empresa->id)
+            ->where(function ($q) use ($dados, $cpfNorm) {
+                $q->whereTelefone($dados['telefone'])
+                  ->orWhere('cpf', $cpfNorm);
+            })
+            ->exists();
 
-        if (Cliente::where('empresa_id', $empresa->id)->where('cpf', $cpfNorm)->exists()) {
-            throw ValidationException::withMessages(['cpf' => 'CPF já cadastrado.']);
+        if ($jaCadastrado) {
+            throw ValidationException::withMessages([
+                'telefone' => 'Não foi possível concluir o cadastro. Se você já tem conta nesta empresa, faça login.',
+            ]);
         }
 
         $indicador = null;

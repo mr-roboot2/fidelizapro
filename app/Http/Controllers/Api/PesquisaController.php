@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Pesquisa;
 use App\Models\RegraPontuacao;
+use App\Models\TransacaoPonto;
 use App\Services\PontuacaoService;
 use Illuminate\Http\Request;
 
@@ -27,14 +28,22 @@ class PesquisaController extends Controller
 
     public function responder(Request $request, PontuacaoService $pontuacaoService)
     {
+        $cliente = $request->user();
+
+        // Escopa exists: à empresa do cliente. Sem isso, o cliente podia
+        // passar compra_id de QUALQUER empresa (cross-tenant) e poluir o
+        // histórico de avaliações com referência a compras alheias.
         $dados = $request->validate([
-            'compra_id'  => 'nullable|exists:compras,id',
+            'compra_id'  => [
+                'nullable',
+                \Illuminate\Validation\Rule::exists('compras', 'id')
+                    ->where('empresa_id', $cliente->empresa_id)
+                    ->where('cliente_id', $cliente->id),
+            ],
             'nota'       => 'required|integer|min:1|max:5',
             'comentario' => 'nullable|string|max:1000',
             'respostas'  => 'nullable|array',
         ]);
-
-        $cliente = $request->user();
 
         // 1 avaliação por compra (quando compra_id é enviado)
         if (!empty($dados['compra_id'])) {
@@ -64,22 +73,32 @@ class PesquisaController extends Controller
             'respostas'  => $dados['respostas'] ?? null,
         ]);
 
-        // Crédito de pontos só na primeira avaliação (se houver regra ativa)
+        // Crédito de pontos só na primeira avaliação (se houver regra ativa).
+        // Anti-farm: o cliente conseguia excluir a pesquisa e responder de
+        // novo em loop pra ganhar pontos infinitos. Checa via TransacaoPonto
+        // (que persiste mesmo se a Pesquisa for excluída).
         $pontosCreditados = 0;
-        $regra = RegraPontuacao::where('empresa_id', $cliente->empresa_id)
-            ->where('tipo', 'avaliacao')
-            ->where('ativo', true)
-            ->first();
+        $jaCreditouAvaliacao = TransacaoPonto::where('cliente_id', $cliente->id)
+            ->where('referencia_type', Pesquisa::class)
+            ->where('tipo', 'credito')
+            ->exists();
 
-        if ($regra && $regra->vigente() && $regra->pontos_fixos > 0) {
-            $pontosCreditados = $regra->pontos_fixos;
-            $pontuacaoService->creditar(
-                $cliente,
-                $pontosCreditados,
-                'manual',
-                $pesquisa,
-                "Pontos por avaliação (nota {$dados['nota']})"
-            );
+        if (!$jaCreditouAvaliacao) {
+            $regra = RegraPontuacao::where('empresa_id', $cliente->empresa_id)
+                ->where('tipo', 'avaliacao')
+                ->where('ativo', true)
+                ->first();
+
+            if ($regra && $regra->vigente() && $regra->pontos_fixos > 0) {
+                $pontosCreditados = $regra->pontos_fixos;
+                $pontuacaoService->creditar(
+                    $cliente,
+                    $pontosCreditados,
+                    'manual',
+                    $pesquisa,
+                    "Pontos por avaliação (nota {$dados['nota']})"
+                );
+            }
         }
 
         return response()->json([

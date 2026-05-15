@@ -34,6 +34,8 @@ class LojaController extends Controller
             throw ValidationException::withMessages(['email' => 'Esta conta não tem loja associada.']);
         }
 
+        // Revoga tokens antigos do mesmo dispositivo (mesmo name).
+        $user->tokens()->where('name', 'pwa-loja')->delete();
         $token = $user->createToken('pwa-loja')->plainTextToken;
 
         return response()->json([

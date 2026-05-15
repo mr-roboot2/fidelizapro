@@ -44,11 +44,17 @@ class PdvController extends Controller
             return response()->json(['message' => 'Informe telefone, cpf ou codigo_qr para identificar o cliente.'], 422);
         }
 
-        // Localiza cliente
+        // Localiza cliente — IDOR fix: agrupa OR dentro de closure pra
+        // garantir que `empresa_id` filtra TUDO. Sem os parênteses, o SQL
+        // gerado vira `empresa_id=X AND telefone=Y OR cpf=Z OR codigo_qr=W`,
+        // e por precedência `AND` liga só com `telefone`, deixando cpf/qr
+        // escapar do escopo da empresa.
         $cliente = Cliente::where('empresa_id', $empresa->id)
-            ->when(!empty($dados['telefone']), fn($q) => $q->where('telefone', $dados['telefone']))
-            ->when(!empty($dados['cpf']), fn($q) => $q->orWhere('cpf', $dados['cpf']))
-            ->when(!empty($dados['codigo_qr']), fn($q) => $q->orWhere('codigo_qr', $dados['codigo_qr']))
+            ->where(function ($q) use ($dados) {
+                $q->when(!empty($dados['telefone']), fn($qq) => $qq->orWhere('telefone', $dados['telefone']));
+                $q->when(!empty($dados['cpf']), fn($qq) => $qq->orWhere('cpf', $dados['cpf']));
+                $q->when(!empty($dados['codigo_qr']), fn($qq) => $qq->orWhere('codigo_qr', $dados['codigo_qr']));
+            })
             ->first();
 
         $clienteCriado = false;

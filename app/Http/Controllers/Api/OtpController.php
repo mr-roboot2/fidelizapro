@@ -125,13 +125,17 @@ class OtpController extends Controller
             throw ValidationException::withMessages(['codigo' => 'Código expirado. Solicite um novo.']);
         }
 
+        // Anti-DOS: incrementa tentativas SOMENTE quando o código está errado.
+        // Antes incrementávamos cego e o limite estourava com 3 chamadas
+        // erradas vindas de um atacante que só queria invalidar o OTP de uma
+        // vítima legítima (a vítima nunca conseguia recuperar a senha).
         $maxTentativas = (int) (\App\Models\ConfiguracaoSistema::instancia()->otp_max_tentativas ?: 3);
-        $otp->increment('tentativas');
-        if ($otp->tentativas > $maxTentativas) {
-            $otp->update(['usado' => true]);
-            throw ValidationException::withMessages(['codigo' => 'Muitas tentativas. Solicite um novo código.']);
-        }
         if (!hash_equals($otp->codigo, $dados['codigo'])) {
+            $otp->increment('tentativas');
+            if ($otp->tentativas >= $maxTentativas) {
+                $otp->update(['usado' => true]);
+                throw ValidationException::withMessages(['codigo' => 'Muitas tentativas. Solicite um novo código.']);
+            }
             throw ValidationException::withMessages(['codigo' => 'Código incorreto.']);
         }
 
@@ -214,14 +218,15 @@ class OtpController extends Controller
             throw ValidationException::withMessages(['codigo' => 'Código expirado. Solicite um novo.']);
         }
 
+        // Anti-DOS: ver comentário equivalente em recuperarSenha. Incrementa
+        // só no caminho de código errado.
         $maxTentativas = (int) (\App\Models\ConfiguracaoSistema::instancia()->otp_max_tentativas ?: 3);
-        $otp->increment('tentativas');
-        if ($otp->tentativas > $maxTentativas) {
-            $otp->update(['usado' => true]);
-            throw ValidationException::withMessages(['codigo' => 'Muitas tentativas. Solicite um novo código.']);
-        }
-
         if (!hash_equals($otp->codigo, $dados['codigo'])) {
+            $otp->increment('tentativas');
+            if ($otp->tentativas >= $maxTentativas) {
+                $otp->update(['usado' => true]);
+                throw ValidationException::withMessages(['codigo' => 'Muitas tentativas. Solicite um novo código.']);
+            }
             throw ValidationException::withMessages(['codigo' => 'Código incorreto.']);
         }
 
