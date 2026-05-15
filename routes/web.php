@@ -62,9 +62,11 @@ Route::get('/install/complete', [InstallController::class, 'complete']);
 
 Route::get('/', fn() => redirect()->route('admin.login'));
 
-// Autenticação admin — throttle por IP+email evita brute-force
+// Autenticação admin — throttle por email+IP (5/min/par + 20/15min/email)
+// + captcha (opcional via env). Definido em AppServiceProvider::boot.
 Route::get('/admin/login', [LoginController::class, 'showLogin'])->name('admin.login');
-Route::post('/admin/login', [LoginController::class, 'login'])->middleware('throttle:5,1');
+Route::post('/admin/login', [LoginController::class, 'login'])
+    ->middleware(['throttle:admin-login', 'captcha']);
 Route::post('/admin/logout', [LoginController::class, 'logout'])->name('admin.logout');
 
 // PWA cliente — modo genérico (seleção de empresa, branding via super admin)
@@ -83,6 +85,14 @@ Route::get('/loja/', [\App\Http\Controllers\LojaPwaController::class, 'app']);
 Route::get('/loja/manifest.json', [\App\Http\Controllers\LojaPwaController::class, 'manifest']);
 
 // Painel admin
+// RBAC:
+//   - atendente: pode entrar e operar caixa, ver clientes/compras/cashback,
+//                ajustar pontos manualmente, ver/aprovar resgates, ver
+//                pesquisas, dashboard e ajuda.
+//   - admin/gerente: tudo acima + configurações, regras, recompensas,
+//                exclusão de cliente, importação CSV, parceiros, roleta,
+//                sorteio, AI Growth, setup, meu-plano, atividade suspeita.
+// Rotas restritas usam `admin.role:admin,gerente`. super_admin passa em tudo.
 Route::middleware(['admin.auth', 'empresa.scope', 'verifica.pagamento'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
@@ -92,88 +102,116 @@ Route::middleware(['admin.auth', 'empresa.scope', 'verifica.pagamento'])->prefix
     Route::post('caixa/criar', [CaixaController::class, 'criar'])->name('caixa.criar');
     Route::get('caixa/cupom/{compra}', [CaixaController::class, 'cupom'])->name('caixa.cupom');
 
-    Route::resource('clientes', ClienteController::class);
+    // Listagem/visualização de cliente: liberado pra atendente. Edição/exclusão
+    // e ajustes financeiros administrativos: só admin/gerente. Rota `create`
+    // declarada ANTES de `{cliente}` pra que `/clientes/create` não bata na
+    // rota show com {cliente}=create.
+    Route::middleware('admin.role:admin,gerente')->group(function () {
+        Route::get('clientes/create', [ClienteController::class, 'create'])->name('clientes.create');
+        Route::post('clientes',       [ClienteController::class, 'store'])->name('clientes.store');
+    });
+    Route::get('clientes', [ClienteController::class, 'index'])->name('clientes.index');
+    Route::get('clientes/{cliente}', [ClienteController::class, 'show'])->name('clientes.show');
     Route::post('clientes/{cliente}/pontos', [ClienteController::class, 'ajustarPontos'])->name('clientes.pontos');
-    Route::post('clientes/{cliente}/cashback', [ClienteController::class, 'ajustarCashback'])->name('clientes.cashback');
+    Route::middleware('admin.role:admin,gerente')->group(function () {
+        Route::get('clientes/{cliente}/edit', [ClienteController::class, 'edit'])->name('clientes.edit');
+        Route::match(['put','patch'], 'clientes/{cliente}', [ClienteController::class, 'update'])->name('clientes.update');
+        Route::delete('clientes/{cliente}', [ClienteController::class, 'destroy'])->name('clientes.destroy');
+        Route::post('clientes/{cliente}/cashback', [ClienteController::class, 'ajustarCashback'])->name('clientes.cashback');
+    });
+
     Route::resource('compras', CompraController::class)->only(['index', 'create', 'store', 'show']);
-    Route::resource('regras', RegraPontuacaoController::class)->except(['show']);
-    Route::resource('recompensas', RecompensaController::class)->except(['show']);
+
+    // Regras de pontuação e recompensas mudam a economia do programa — só admin/gerente
+    Route::middleware('admin.role:admin,gerente')->group(function () {
+        Route::resource('regras', RegraPontuacaoController::class)->except(['show']);
+        Route::resource('recompensas', RecompensaController::class)->except(['show']);
+    });
 
     Route::get('avaliacoes', [AvaliacaoController::class, 'index'])->name('avaliacoes.index');
-    Route::delete('avaliacoes/{avaliacao}', [AvaliacaoController::class, 'destroy'])->name('avaliacoes.destroy');
+    Route::middleware('admin.role:admin,gerente')->delete('avaliacoes/{avaliacao}', [AvaliacaoController::class, 'destroy'])->name('avaliacoes.destroy');
 
     Route::get('resgates', [ResgateController::class, 'index'])->name('resgates.index');
     Route::get('resgates/relatorio', [ResgateController::class, 'relatorio'])->name('resgates.relatorio');
     Route::get('resgates/{resgate}', [ResgateController::class, 'show'])->name('resgates.show');
     Route::post('resgates/{resgate}/aprovar', [ResgateController::class, 'aprovar'])->name('resgates.aprovar');
     Route::post('resgates/{resgate}/entregar', [ResgateController::class, 'entregar'])->name('resgates.entregar');
-    Route::post('resgates/{resgate}/cancelar', [ResgateController::class, 'cancelar'])->name('resgates.cancelar');
+    Route::middleware('admin.role:admin,gerente')->post('resgates/{resgate}/cancelar', [ResgateController::class, 'cancelar'])->name('resgates.cancelar');
 
     Route::get('transacoes', [TransacaoController::class, 'index'])->name('transacoes.index');
 
     Route::get('cashback', [CashbackController::class, 'index'])->name('cashback.index');
-    Route::post('cashback/ajustar', [CashbackController::class, 'ajustar'])->name('cashback.ajustar');
+    Route::middleware('admin.role:admin,gerente')->post('cashback/ajustar', [CashbackController::class, 'ajustar'])->name('cashback.ajustar');
 
     // Campanhas e Automações foram movidas pro super admin — config global
 
     // Relatórios foi unificado com AI Growth — mantém a rota antiga só pra redirect
     Route::get('relatorios', fn () => redirect()->route('admin.ai-growth.index'))->name('relatorios.index');
 
-    Route::get('configuracoes', [ConfiguracaoController::class, 'edit'])->name('configuracoes.edit');
-    Route::put('configuracoes', [ConfiguracaoController::class, 'update'])->name('configuracoes.update');
+    // Tudo aqui mexe em config / economia / dados sensíveis — só admin/gerente
+    Route::middleware('admin.role:admin,gerente')->group(function () {
+        Route::get('configuracoes', [ConfiguracaoController::class, 'edit'])->name('configuracoes.edit');
+        Route::put('configuracoes', [ConfiguracaoController::class, 'update'])->name('configuracoes.update');
 
-    Route::get('importacao', [ImportacaoController::class, 'index'])->name('importacao.index');
-    Route::post('importacao', [ImportacaoController::class, 'processar'])->name('importacao.processar');
+        Route::get('importacao', [ImportacaoController::class, 'index'])->name('importacao.index');
+        Route::post('importacao', [ImportacaoController::class, 'processar'])->name('importacao.processar');
+    });
 
-    Route::middleware('modulo:ai_growth')->prefix('ai-growth')->name('ai-growth.')->group(function () {
+    // AI Growth: relatórios/insights (config + visualização sensível) — só admin/gerente.
+    // Exports carregam compras em memória → throttle dedicado pra impedir DoS.
+    Route::middleware(['modulo:ai_growth', 'admin.role:admin,gerente'])->prefix('ai-growth')->name('ai-growth.')->group(function () {
         Route::get('/', [AIGrowthController::class, 'index'])->name('index');
-        Route::get('/exportar-pdf', [AIGrowthController::class, 'exportPdf'])->name('export.pdf');
-        Route::get('/exportar-csv', [AIGrowthController::class, 'exportCsv'])->name('export.csv');
+        Route::middleware('throttle:export-relatorio')->group(function () {
+            Route::get('/exportar-pdf', [AIGrowthController::class, 'exportPdf'])->name('export.pdf');
+            Route::get('/exportar-csv', [AIGrowthController::class, 'exportCsv'])->name('export.csv');
+        });
     });
 
     Route::get('ajuda', [AjudaController::class, 'index'])->name('ajuda.index');
 
-    Route::get('atividade-suspeita', [AtividadeSuspeitaController::class, 'index'])->name('atividade.suspeita');
-    Route::get('meu-plano', [MeuPlanoController::class, 'index'])->name('meu-plano.index');
-    Route::post('meu-plano/upgrade/{plano}', [MeuPlanoController::class, 'upgrade'])->name('meu-plano.upgrade');
-    Route::post('meu-plano/cobrancas/{cobranca}/cancelar', [MeuPlanoController::class, 'cancelarCobranca'])->name('meu-plano.cobrancas.cancelar');
+    Route::middleware('admin.role:admin,gerente')->group(function () {
+        Route::get('atividade-suspeita', [AtividadeSuspeitaController::class, 'index'])->name('atividade.suspeita');
+        Route::get('meu-plano', [MeuPlanoController::class, 'index'])->name('meu-plano.index');
+        Route::post('meu-plano/upgrade/{plano}', [MeuPlanoController::class, 'upgrade'])->name('meu-plano.upgrade');
+        Route::post('meu-plano/cobrancas/{cobranca}/cancelar', [MeuPlanoController::class, 'cancelarCobranca'])->name('meu-plano.cobrancas.cancelar');
 
-    Route::prefix('setup')->name('setup.')->group(function () {
-        Route::get('/', [SetupController::class, 'index'])->name('index');
-        Route::post('/pular', [SetupController::class, 'pular'])->name('pular');
-        Route::post('/reabrir', [SetupController::class, 'reabrir'])->name('reabrir');
-    });
+        Route::prefix('setup')->name('setup.')->group(function () {
+            Route::get('/', [SetupController::class, 'index'])->name('index');
+            Route::post('/pular', [SetupController::class, 'pular'])->name('pular');
+            Route::post('/reabrir', [SetupController::class, 'reabrir'])->name('reabrir');
+        });
 
-    Route::get('pwa/compartilhar', [\App\Http\Controllers\Admin\PwaShareController::class, 'index'])->name('pwa.share');
-    Route::get('pwa/cartaz', [\App\Http\Controllers\Admin\PwaShareController::class, 'cartaz'])->name('pwa.cartaz');
+        Route::get('pwa/compartilhar', [\App\Http\Controllers\Admin\PwaShareController::class, 'index'])->name('pwa.share');
+        Route::get('pwa/cartaz', [\App\Http\Controllers\Admin\PwaShareController::class, 'cartaz'])->name('pwa.cartaz');
 
-    Route::get('parceiros/relatorio', [ParceiroController::class, 'relatorio'])->name('parceiros.relatorio');
-    Route::resource('parceiros', ParceiroController::class);
-    Route::get('parceiros/{parceiro}/beneficios/novo', [BeneficioController::class, 'create'])->name('beneficios.create');
-    Route::post('parceiros/{parceiro}/beneficios', [BeneficioController::class, 'store'])->name('beneficios.store');
-    Route::get('beneficios/{beneficio}/editar', [BeneficioController::class, 'edit'])->name('beneficios.edit');
-    Route::put('beneficios/{beneficio}', [BeneficioController::class, 'update'])->name('beneficios.update');
-    Route::delete('beneficios/{beneficio}', [BeneficioController::class, 'destroy'])->name('beneficios.destroy');
+        Route::get('parceiros/relatorio', [ParceiroController::class, 'relatorio'])->name('parceiros.relatorio');
+        Route::resource('parceiros', ParceiroController::class);
+        Route::get('parceiros/{parceiro}/beneficios/novo', [BeneficioController::class, 'create'])->name('beneficios.create');
+        Route::post('parceiros/{parceiro}/beneficios', [BeneficioController::class, 'store'])->name('beneficios.store');
+        Route::get('beneficios/{beneficio}/editar', [BeneficioController::class, 'edit'])->name('beneficios.edit');
+        Route::put('beneficios/{beneficio}', [BeneficioController::class, 'update'])->name('beneficios.update');
+        Route::delete('beneficios/{beneficio}', [BeneficioController::class, 'destroy'])->name('beneficios.destroy');
 
-    Route::middleware('modulo:roleta')->group(function () {
-        Route::get('roleta', [RoletaController::class, 'index'])->name('roleta.index');
-        Route::get('roleta/metricas', [RoletaController::class, 'metricas'])->name('roleta.metricas');
-        Route::put('roleta/{roleta}', [RoletaController::class, 'update'])->name('roleta.update');
-        Route::post('roleta/{roleta}/premios', [RoletaController::class, 'premioStore'])->name('roleta.premios.store');
-        Route::put('roleta/{roleta}/premios/{premio}', [RoletaController::class, 'premioUpdate'])->name('roleta.premios.update');
-        Route::delete('roleta/{roleta}/premios/{premio}', [RoletaController::class, 'premioDestroy'])->name('roleta.premios.destroy');
-        Route::post('roleta/{roleta}/creditar', [RoletaController::class, 'creditar'])->name('roleta.creditar');
-        Route::post('roleta/{roleta}/gatilhos', [RoletaController::class, 'gatilhoSalvar'])->name('roleta.gatilhos.salvar');
-    });
+        Route::middleware('modulo:roleta')->group(function () {
+            Route::get('roleta', [RoletaController::class, 'index'])->name('roleta.index');
+            Route::get('roleta/metricas', [RoletaController::class, 'metricas'])->name('roleta.metricas');
+            Route::put('roleta/{roleta}', [RoletaController::class, 'update'])->name('roleta.update');
+            Route::post('roleta/{roleta}/premios', [RoletaController::class, 'premioStore'])->name('roleta.premios.store');
+            Route::put('roleta/{roleta}/premios/{premio}', [RoletaController::class, 'premioUpdate'])->name('roleta.premios.update');
+            Route::delete('roleta/{roleta}/premios/{premio}', [RoletaController::class, 'premioDestroy'])->name('roleta.premios.destroy');
+            Route::post('roleta/{roleta}/creditar', [RoletaController::class, 'creditar'])->name('roleta.creditar');
+            Route::post('roleta/{roleta}/gatilhos', [RoletaController::class, 'gatilhoSalvar'])->name('roleta.gatilhos.salvar');
+        });
 
-    Route::middleware('modulo:sorteio')->group(function () {
-        Route::get('sorteios/metricas', [SorteioController::class, 'metricas'])->name('sorteios.metricas');
-        Route::resource('sorteios', SorteioController::class);
-        Route::post('sorteios/{sorteio}/ativar', [SorteioController::class, 'ativar'])->name('sorteios.ativar');
-        Route::post('sorteios/{sorteio}/cancelar', [SorteioController::class, 'cancelar'])->name('sorteios.cancelar');
-        Route::post('sorteios/{sorteio}/finalizar', [SorteioController::class, 'finalizar'])->name('sorteios.finalizar');
-        Route::post('sorteios/{sorteio}/sortear', [SorteioController::class, 'sortear'])->name('sorteios.sortear');
-        Route::post('sorteios/{sorteio}/bilhetes', [SorteioController::class, 'creditarBilhete'])->name('sorteios.bilhetes');
+        Route::middleware('modulo:sorteio')->group(function () {
+            Route::get('sorteios/metricas', [SorteioController::class, 'metricas'])->name('sorteios.metricas');
+            Route::resource('sorteios', SorteioController::class);
+            Route::post('sorteios/{sorteio}/ativar', [SorteioController::class, 'ativar'])->name('sorteios.ativar');
+            Route::post('sorteios/{sorteio}/cancelar', [SorteioController::class, 'cancelar'])->name('sorteios.cancelar');
+            Route::post('sorteios/{sorteio}/finalizar', [SorteioController::class, 'finalizar'])->name('sorteios.finalizar');
+            Route::post('sorteios/{sorteio}/sortear', [SorteioController::class, 'sortear'])->name('sorteios.sortear');
+            Route::post('sorteios/{sorteio}/bilhetes', [SorteioController::class, 'creditarBilhete'])->name('sorteios.bilhetes');
+        });
     });
 });
 
@@ -264,8 +302,17 @@ Route::middleware(['super.auth'])->prefix('super')->name('super.')->group(functi
 });
 
 // Webhooks de gateway de pagamento (públicos)
-Route::post('/webhook/pagamento/{gateway}', [WebhookPagamentoController::class, 'receber'])->name('webhook.pagamento');
-Route::post('/webhook/pix/{token}', [\App\Http\Controllers\PixWebhookController::class, 'receber'])->name('webhook.pix');
+// IMPORTANTE: o `{gateway}` é restrito ao set explícito de provedores ativos.
+// Sem o where(), qualquer slug != 'asaas' cai no MockGateway (default do
+// AssinaturaService::gateway) e marca cobrança como paga SEM autenticação.
+Route::post('/webhook/pagamento/{gateway}', [WebhookPagamentoController::class, 'receber'])
+    ->where('gateway', 'asaas')
+    ->name('webhook.pagamento');
+// Preferência: token via header X-Pix-Webhook-Token (não vaza em access.log).
+// Variante com token no path mantida pra retrocompat com gateways que só
+// aceitam URL — desencorajada na config do super admin.
+Route::post('/webhook/pix', [\App\Http\Controllers\PixWebhookController::class, 'receber'])->name('webhook.pix');
+Route::post('/webhook/pix/{token}', [\App\Http\Controllers\PixWebhookController::class, 'receber'])->name('webhook.pix.legacy');
 
 // Webhook WhatsApp Cloud API (Meta) — global (uma WABA pra todas empresas)
 Route::get('/webhook/whatsapp/meta',  [WhatsappWebhookController::class, 'verificar'])->name('webhook.whatsapp.verificar');

@@ -23,12 +23,19 @@ Route::prefix('v1')->group(function () {
     // Auth com throttle anti brute-force. Limite por empresa (campo
     // rate_limit_auth) — default 10/min/IP se a empresa não for resolvida.
     Route::middleware('empresa.throttle:auth')->group(function () {
-        Route::post('auth/login', [AuthController::class, 'login']);
-        Route::post('auth/registrar', [AuthController::class, 'registrar']);
-        Route::post('auth/otp/solicitar', [OtpController::class, 'solicitar']);
+        // Captcha aplicado em endpoints que disparam custo (OTP) ou que
+        // são alvo clássico de botnet (login, cadastro). No-op se
+        // CAPTCHA_PROVIDER=disabled (default).
+        Route::post('auth/login', [AuthController::class, 'login'])->middleware('captcha');
+        Route::post('auth/registrar', [AuthController::class, 'registrar'])->middleware('captcha');
+        // OTP solicitar carrega throttle extra (otp-solicitar) por custar $$
+        // em mensagens WhatsApp: 3/min/IP+telefone + 20/hora/IP fecha bomb.
+        Route::post('auth/otp/solicitar', [OtpController::class, 'solicitar'])
+            ->middleware(['throttle:otp-solicitar', 'captcha']);
         Route::post('auth/otp/validar', [OtpController::class, 'validar']);
-        Route::post('auth/recuperar-senha', [OtpController::class, 'recuperarSenha']);
-        Route::post('loja/login', [LojaController::class, 'login']);
+        Route::post('auth/recuperar-senha', [OtpController::class, 'recuperarSenha'])
+            ->middleware('captcha');
+        Route::post('loja/login', [LojaController::class, 'login'])->middleware('captcha');
     });
 
     // PDV externo (autenticado por X-Pdv-Secret). Limite configurável por
@@ -38,8 +45,10 @@ Route::prefix('v1')->group(function () {
     });
 });
 
-// Autenticadas (Sanctum)
-Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
+// Autenticadas (Sanctum) — throttle:api-cliente fecha DoS global. 120/min/user
+// é folgado pro PWA legítimo mas barra farm/scraping/bomb. Definido em
+// AppServiceProvider::boot.
+Route::middleware(['auth:sanctum', 'throttle:api-cliente'])->prefix('v1')->group(function () {
     // Whitelist do RequirePasswordChanged — rotas que SEMPRE funcionam mesmo
     // com senha_temporaria=true, porque são necessárias pra completar a troca.
     Route::get('auth/me', [AuthController::class, 'me']);
@@ -74,7 +83,10 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
         Route::post('resgates', [ResgateController::class, 'solicitar']);
 
         Route::get('indicacoes', [IndicacaoController::class, 'index']);
-        Route::post('indicacoes', [IndicacaoController::class, 'indicar']);
+        // Rate limit dedicado pra spam (10/min/usuario). Antifraude adicional
+        // (dedupe, anti-self, cap diário) está no controller.
+        Route::post('indicacoes', [IndicacaoController::class, 'indicar'])
+            ->middleware('throttle:indicacao');
 
         Route::get('pesquisas/minha-geral', [PesquisaController::class, 'minhaGeral']);
         Route::post('pesquisas', [PesquisaController::class, 'responder']);

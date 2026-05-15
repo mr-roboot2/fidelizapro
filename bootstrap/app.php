@@ -4,8 +4,10 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use App\Http\Middleware\AdminAuth;
+use App\Http\Middleware\AdminRole;
 use App\Http\Middleware\EmpresaScope;
 use App\Http\Middleware\EmpresaThrottle;
+use App\Http\Middleware\RequireCaptcha;
 use App\Http\Middleware\RequireModulo;
 use App\Http\Middleware\SuperAdminAuth;
 use App\Http\Middleware\EnsureNotInstalled;
@@ -23,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
             'admin.auth' => AdminAuth::class,
+            'admin.role' => AdminRole::class,
             'empresa.scope' => EmpresaScope::class,
             'super.auth' => SuperAdminAuth::class,
             'install.gate' => EnsureNotInstalled::class,
@@ -30,10 +33,20 @@ return Application::configure(basePath: dirname(__DIR__))
             'modulo' => RequireModulo::class,
             'verifica.pagamento' => VerificaPagamento::class,
             'senha.definitiva' => RequirePasswordChanged::class,
+            'captcha' => RequireCaptcha::class,
         ]);
 
+        // Confia em proxies (CloudPanel, Cloudflare, Nginx reverse-proxy).
+        // Sem isso o Request::ip() volta o IP do proxy interno e o throttle
+        // por IP/EmpresaThrottle vira contagem global (rate limit quebrado).
+        // 'private_ranges' aceita só ranges privados — seguro em qualquer
+        // setup. Se estiver atrás de IPs públicos específicos (Cloudflare),
+        // configure CLOUDFLARE_IPS / use 'at' com lista explícita.
+        $middleware->trustProxies(at: 'private_ranges');
+
         // Headers de segurança globais (X-Frame-Options, X-Content-Type-Options,
-        // Referrer-Policy, Permissions-Policy e CSP em rotas admin).
+        // Referrer-Policy, Permissions-Policy, HSTS em production+HTTPS e CSP
+        // em rotas admin).
         $middleware->append(SecurityHeaders::class);
 
         // API consumida via Bearer token (sem cookies/CSRF). Não usar statefulApi(),

@@ -40,4 +40,29 @@ class User extends Authenticatable
     {
         return $this->role === 'super_admin';
     }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isGerente(): bool
+    {
+        return $this->role === 'gerente';
+    }
+
+    public function isAtendente(): bool
+    {
+        return $this->role === 'atendente';
+    }
+
+    /**
+     * Checa se o user tem qualquer uma das roles. super_admin sempre passa
+     * (pode entrar em painel admin via impersonate).
+     */
+    public function hasRole(string ...$roles): bool
+    {
+        if ($this->isSuperAdmin()) return true;
+        return in_array($this->role, $roles, true);
+    }
 }
