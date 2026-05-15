@@ -58,6 +58,29 @@ class WebhookPagamentoController extends Controller
                 }
             }
 
+            // Eventos de estorno/chargeback — hoje não temos fluxo automático
+            // de revert (cliente já pode ter consumido o plano premium).
+            // Loga WARNING crítico pra alertar super admin via monitoring.
+            // Auto-revert é decisão de negócio (depende se aceita chargeback
+            // como modelo de risco). Pelo menos rastreia o evento.
+            $refundEvents = [
+                'PAYMENT_REFUNDED', 'PAYMENT_REFUND_IN_PROGRESS',
+                'PAYMENT_CHARGEBACK_REQUESTED', 'PAYMENT_CHARGEBACK_DISPUTE',
+                'PAYMENT_AWAITING_CHARGEBACK_REVERSAL', 'PAYMENT_DELETED',
+            ];
+            if (in_array($resultado['evento'], $refundEvents)) {
+                Log::warning("[Webhook {$gateway}] Evento de estorno/chargeback recebido — exige ação manual", [
+                    'evento' => $resultado['evento'],
+                    'gateway_charge_id' => $resultado['gateway_charge_id'] ?? null,
+                    'cobranca_id' => $resultado['cobranca_id'] ?? null,
+                ]);
+                return response()->json([
+                    'ok' => true,
+                    'evento' => $resultado['evento'],
+                    'note' => 'logged for manual review',
+                ]);
+            }
+
             return response()->json(['ok' => true, 'evento' => $resultado['evento'] ?? 'ignored']);
         } catch (\Throwable $e) {
             // Não devolver $e->getMessage() ao chamador: traces internos podem

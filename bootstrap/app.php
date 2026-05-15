@@ -15,6 +15,7 @@ use App\Http\Middleware\EnsureNotInstalled;
 use App\Http\Middleware\RequirePasswordChanged;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\VerificaPagamento;
+use App\Http\Middleware\VerificaPagamentoApi;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -22,6 +23,14 @@ return Application::configure(basePath: dirname(__DIR__))
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
+        // Carrega rotas de webhook com middleware `api` (stateless): sem
+        // sessions, sem CSRF, sem cookies. Antes ficavam em web.php
+        // herdando StartSession — atacante mandava POSTs forjados e
+        // criava session files em massa.
+        then: function () {
+            \Illuminate\Support\Facades\Route::middleware('api')
+                ->group(__DIR__.'/../routes/webhooks.php');
+        },
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
@@ -33,6 +42,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'empresa.throttle' => EmpresaThrottle::class,
             'modulo' => RequireModulo::class,
             'verifica.pagamento' => VerificaPagamento::class,
+            'verifica.pagamento.api' => VerificaPagamentoApi::class,
             'senha.definitiva' => RequirePasswordChanged::class,
             'captcha' => RequireCaptcha::class,
             'sanctum.user' => RequireUser::class,
@@ -67,11 +77,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // API consumida via Bearer token (sem cookies/CSRF). Não usar statefulApi(),
         // que marcaria requests do mesmo domínio como SPA e exigiria X-XSRF-TOKEN.
 
-        // Webhooks de gateways externos não têm CSRF token. Listamos `webhook/pix`
-        // (header-based, sem token na URL) E `webhook/pix/*` (legacy com token
-        // na URL) separadamente — `Str::is('webhook/pix/*', 'webhook/pix')`
-        // retorna false em Laravel, então a versão sem segmento adicional
-        // precisa estar listada explícita.
+        // Webhooks foram migrados pra routes/webhooks.php sob middleware
+        // `api` (stateless) — não precisam mais do CSRF except aqui, mas
+        // mantemos a lista pra defesa em profundidade caso alguém tente
+        // declarar webhook dentro do web group novamente.
         $middleware->validateCsrfTokens(except: [
             'webhook/pagamento/*',
             'webhook/pix',
