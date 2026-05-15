@@ -26,6 +26,7 @@ class ConfiguracaoSistema extends Model
         'asaas_webhook_token',
         'cobranca_avisos_antes', 'cobranca_avisos_depois',
         'trial_dias_padrao', 'plano_padrao_id',
+        'captcha_provider', 'captcha_site_key', 'captcha_secret_key',
     ];
 
     /**
@@ -69,6 +70,10 @@ class ConfiguracaoSistema extends Model
         'otp_max_tentativas' => 'integer',
         'max_resgates_24h' => 'integer',
         'instalado_em' => 'datetime',
+        // captcha_site_key fica plain (é exposta no frontend mesmo).
+        // captcha_secret_key é cifrada — só sai do banco quando o
+        // CaptchaService precisa pra validar.
+        'captcha_secret_key' => 'encrypted',
     ];
 
     /**

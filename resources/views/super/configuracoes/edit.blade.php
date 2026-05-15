@@ -330,6 +330,62 @@
     </div>
 
     <div class="bg-white rounded-xl shadow-sm p-6">
+        <h2 class="font-semibold text-slate-800 mb-1">Captcha (anti-robô)</h2>
+        <p class="text-xs text-slate-500 mb-5">
+            Adiciona verificação anti-robô no login admin, no cadastro/login do cliente (PWA),
+            na solicitação de OTP e na recuperação de senha. Recomendado pra fechar brute force
+            distribuído com botnet — o throttle por IP sozinho não pega.
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Provider</label>
+                <select name="captcha_provider"
+                        class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+                    <option value="disabled" @selected(old('captcha_provider', $config->captcha_provider ?? 'disabled') === 'disabled')>Desligado</option>
+                    <option value="turnstile" @selected(old('captcha_provider', $config->captcha_provider ?? 'disabled') === 'turnstile')>Cloudflare Turnstile</option>
+                </select>
+                <p class="text-[11px] text-slate-500 mt-1">Turnstile é gratuito e sem fricção visual.</p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Site Key</label>
+                <input type="text" name="captcha_site_key" autocomplete="off"
+                       value="{{ old('captcha_site_key', $config->captcha_site_key ?? '') }}"
+                       placeholder="0x4AAAAAAA..."
+                       class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono">
+                <p class="text-[11px] text-slate-500 mt-1">Chave pública (vai no frontend).</p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Secret Key</label>
+                <input type="password" name="captcha_secret_key" autocomplete="off"
+                       placeholder="{{ $config->captcha_secret_key ? '••••••••• (salva — só sobrescreve se preencher)' : '0x4AAAAAAA...' }}"
+                       class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono">
+                <p class="text-[11px] text-slate-500 mt-1">Cifrada no banco. Use a do mesmo widget.</p>
+            </div>
+        </div>
+
+        <div class="mt-4 p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600 leading-relaxed">
+            <p class="font-semibold text-slate-700 mb-1.5">
+                <i class="ri-information-line"></i> Como obter as chaves:
+            </p>
+            <ol class="list-decimal list-inside space-y-1 ml-1">
+                <li>Acesse <a href="https://dash.cloudflare.com/?to=/:account/turnstile" target="_blank" class="text-rose-600 hover:underline">dash.cloudflare.com → Turnstile → Add site</a></li>
+                <li>Domínio: seu domínio de produção (ex: <code>satisfy.com.br</code>)</li>
+                <li>Widget Mode: <strong>Managed</strong> (recomendado, sem fricção pro usuário legítimo)</li>
+                <li>Copie <strong>Site Key</strong> e <strong>Secret Key</strong> nos campos acima</li>
+                <li>Salve. Backend valida via <em>fail-closed</em> — se a Cloudflare estiver fora, o request é rejeitado.</li>
+            </ol>
+            <p class="mt-2">
+                Quando ligado, o widget aparece automaticamente no <code>/admin/login</code>.
+                Para as APIs (cliente PWA), o frontend precisa enviar o token via campo
+                <code>cf-turnstile-response</code> ou header <code>X-Captcha-Token</code>.
+            </p>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm p-6">
         <h2 class="font-semibold text-slate-800 mb-1">Tarefas agendadas (cron)</h2>
         <p class="text-xs text-slate-500 mb-5">Horários em que o sistema roda tarefas automáticas. Os horários abaixo só são respeitados se o cron <code class="bg-slate-100 px-1 rounded">php artisan schedule:run</code> estiver rodando a cada minuto no servidor.</p>
 

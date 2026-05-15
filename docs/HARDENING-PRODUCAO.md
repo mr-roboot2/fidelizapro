@@ -173,16 +173,23 @@ $middleware->trustProxies(at: [
 Default `disabled`. Pra ligar (recomendado se o sistema for público):
 
 1. Criar widget em <https://dash.cloudflare.com> → Turnstile → Add site.
+   Widget Mode = **Managed** (sem fricção pro usuário legítimo).
 2. Copiar **Site Key** e **Secret Key**.
-3. No `.env` do servidor:
+3. Acessar `/super/configuracoes` → seção **Captcha (anti-robô)**.
+   Selecionar provider = `Cloudflare Turnstile`, colar as duas chaves,
+   salvar.
 
-   ```env
-   CAPTCHA_PROVIDER=turnstile
-   TURNSTILE_SITE_KEY=0x4AAAAAAA...
-   TURNSTILE_SECRET_KEY=0x4AAAAAAA...
-   ```
+Alternativa via env (útil em CI/staging onde quer fixar comportamento):
 
-4. `php artisan config:clear`
+```env
+CAPTCHA_PROVIDER=turnstile
+TURNSTILE_SITE_KEY=0x4AAAAAAA...
+TURNSTILE_SECRET_KEY=0x4AAAAAAA...
+```
+
+DB tem preferência sobre env — o super admin pode ligar/desligar
+sem precisar mexer no servidor. `secret_key` fica cifrada
+(cast `encrypted`).
 
 Aplica-se em: `/admin/login`, `/api/v1/auth/{login,registrar,recuperar-senha,otp/solicitar}`, `/api/v1/loja/login`.
 

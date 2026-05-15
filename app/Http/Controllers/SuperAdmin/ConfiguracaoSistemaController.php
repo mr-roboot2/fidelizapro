@@ -62,11 +62,15 @@ class ConfiguracaoSistemaController extends Controller
             'cobranca_avisos_depois' => 'nullable|string|max:60|regex:/^[0-9,\s]*$/',
             'trial_dias_padrao'      => 'required|integer|min:0|max:90',
             'plano_padrao_id'        => 'nullable|exists:planos,id',
+            'captcha_provider'       => 'required|in:disabled,turnstile',
+            'captcha_site_key'       => 'nullable|string|max:200',
+            'captcha_secret_key'     => 'nullable|string|max:200',
         ]);
         $dados['pix_ativo'] = $request->boolean('pix_ativo');
         // Campos cifrados: se vazio no form, mantém o valor atual no banco.
         if (empty($dados['pix_api_key'])) unset($dados['pix_api_key']);
         if (empty($dados['asaas_webhook_token'])) unset($dados['asaas_webhook_token']);
+        if (empty($dados['captcha_secret_key'])) unset($dados['captcha_secret_key']);
 
         // rodape_html é renderizado com {!! !!} na página pública de documento
         // legal — sem sanitize, super admin com conta comprometida injeta
