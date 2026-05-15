@@ -4,7 +4,6 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use RuntimeException;
 
 /**
  * Criptografa em-place credenciais sensíveis da tabela `empresas`:
@@ -39,10 +38,12 @@ return new class extends Migration
 
         // 1) Diagnóstico — registra no log o tipo atual de cada coluna pra
         //    facilitar postmortem em caso de falha.
+        //    SHOW COLUMNS LIKE não suporta placeholder em MariaDB/MySQL —
+        //    interpola o nome direto (vem de array literal, sem input externo).
         $tiposAntes = [];
         foreach ($colunas as $col) {
             if (!Schema::hasColumn('empresas', $col)) continue;
-            $info = DB::selectOne("SHOW COLUMNS FROM `empresas` LIKE ?", [$col]);
+            $info = DB::selectOne("SHOW COLUMNS FROM `empresas` LIKE '".addslashes($col)."'");
             $tiposAntes[$col] = $info?->Type ?? 'desconhecido';
         }
         logger()->info('[migration encrypt empresas] tipos antes do ALTER', $tiposAntes);
@@ -61,12 +62,12 @@ return new class extends Migration
         //    no "Data too long" críptico do UPDATE.
         foreach ($colunas as $col) {
             if (!Schema::hasColumn('empresas', $col)) continue;
-            $info = DB::selectOne("SHOW COLUMNS FROM `empresas` LIKE ?", [$col]);
+            $info = DB::selectOne("SHOW COLUMNS FROM `empresas` LIKE '".addslashes($col)."'");
             $tipo = strtolower($info?->Type ?? '');
             $aceita = str_contains($tipo, 'text') || str_contains($tipo, 'mediumtext') || str_contains($tipo, 'longtext')
                 || (preg_match('/varchar\((\d+)\)/', $tipo, $m) && (int) $m[1] >= 500);
             if (!$aceita) {
-                throw new RuntimeException(
+                throw new \RuntimeException(
                     "ALTER de empresas.{$col} para TEXT não aplicou. "
                     ."Tipo atual: '{$tipo}'. Antes: '".($tiposAntes[$col] ?? '?')."'. "
                     ."Cheque manualmente: SHOW CREATE TABLE empresas; e veja se há FK/INDEX bloqueando."
