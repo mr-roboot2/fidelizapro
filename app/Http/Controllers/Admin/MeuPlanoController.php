@@ -16,7 +16,7 @@ class MeuPlanoController extends Controller
 {
     public function index(PlanoLimiteService $planos)
     {
-        $empresa = Auth::user()->empresa->loadMissing(['plano', 'assinatura.plano']);
+        $empresa = Auth::user()->empresa->loadMissing(['plano', 'assinatura.plano', 'assinatura.planoPendente']);
         $consumo = $planos->consumo($empresa);
         $planosDisponiveis = Plano::where('ativo', true)
             ->orderBy('ordem')->orderBy('preco_mensal')->get();
@@ -63,25 +63,24 @@ class MeuPlanoController extends Controller
                 ['empresa_id' => $empresa->id],
             );
 
-            // Snapshot do estado anterior pra permitir reverter se a cobrança
-            // do upgrade for cancelada antes do pagamento.
-            $snapshotUpgrade = [
-                'assinatura_existia'           => $assinatura->exists,
-                'plano_anterior_id'            => $assinatura->plano_id ?? $empresa->plano_id,
-                'valor_mensal_anterior'        => $assinatura->valor_mensal,
-                'proximo_vencimento_anterior'  => $assinatura->proximo_vencimento?->toDateString(),
-                'empresa_plano_id_anterior'    => $empresa->plano_id,
-                'plano_alvo_id'                => $plano->id,
-            ];
-
-            $assinatura->fill([
-                'plano_id'           => $plano->id,
-                'status'             => $assinatura->exists ? $assinatura->status : 'ativa',
-                'gateway'            => \App\Models\ConfiguracaoSistema::instancia()->pix_provider ?: 'mock',
-                'valor_mensal'       => $plano->preco_mensal,
-                'inicio'             => $assinatura->exists ? $assinatura->inicio : now(),
-                'proximo_vencimento' => now()->addDays(7),
-            ])->save();
+            // Plano só efetiva quando o PIX for confirmado. Aqui apenas
+            // setamos plano_id_pendente e criamos a cobrança alvo. O
+            // plano_id atual (e empresa.plano_id) permanecem inalterados.
+            if ($assinatura->exists) {
+                $assinatura->update(['plano_id_pendente' => $plano->id]);
+            } else {
+                // Primeira assinatura: criamos sem plano ativo (lojista
+                // não ganha acesso até pagar a primeira cobrança).
+                $assinatura->fill([
+                    'plano_id'           => null,
+                    'plano_id_pendente'  => $plano->id,
+                    'status'             => 'inadimplente',
+                    'gateway'            => \App\Models\ConfiguracaoSistema::instancia()->pix_provider ?: 'mock',
+                    'valor_mensal'       => 0,
+                    'inicio'             => now(),
+                    'proximo_vencimento' => null,
+                ])->save();
+            }
 
             $cobranca = Cobranca::create([
                 'assinatura_id' => $assinatura->id,
@@ -89,10 +88,9 @@ class MeuPlanoController extends Controller
                 'valor'         => $plano->preco_mensal,
                 'vencimento'    => now()->addDays(7),
                 'status'        => 'pendente',
-                'meta'          => ['upgrade' => $snapshotUpgrade],
+                'meta'          => ['upgrade' => ['plano_alvo_id' => $plano->id]],
             ]);
 
-            $empresa->update(['plano_id' => $plano->id]);
             return $cobranca;
         });
 
@@ -100,7 +98,7 @@ class MeuPlanoController extends Controller
         $pix->gerarParaCobranca($cobranca, $empresa);
 
         return redirect()->route('admin.meu-plano.index')
-            ->with('success', "Plano {$plano->nome} ativado! Pague o PIX abaixo pra liberar.");
+            ->with('success', "Cobrança gerada! Após o pagamento, o plano {$plano->nome} será ativado automaticamente.");
     }
 
     /**

@@ -6,12 +6,16 @@ use App\Models\Cobranca;
 use App\Models\Empresa;
 
 /**
- * Se a cobrança foi criada por um upgrade de plano (tem meta.upgrade
- * com snapshot anterior), reverte Assinatura e Empresa pros valores
- * antigos. Usado quando o lojista cancela/exclui a cobrança antes
- * de pagar — evita que ele fique com plano novo sem ter pago.
+ * Reverte um upgrade pendente quando a cobrança é cancelada/excluída.
  *
- * Retorna true se reverteu, false se a cobrança não era de upgrade.
+ * Formato novo (a partir de 2026-05-14): meta.upgrade = { plano_alvo_id }
+ *   → o plano ainda não foi mudado; basta zerar plano_id_pendente.
+ *
+ * Formato antigo: meta.upgrade = { plano_anterior_id, valor_mensal_anterior,
+ * proximo_vencimento_anterior, empresa_plano_id_anterior }
+ *   → o plano foi mudado prematuramente; reverter Assinatura + Empresa.
+ *
+ * Retorna true se a cobrança era de upgrade (e reverteu), false caso contrário.
  */
 class ReverterUpgradePlano
 {
@@ -21,12 +25,20 @@ class ReverterUpgradePlano
         if (!$snap) return false;
 
         $assinatura = $cobranca->assinatura;
+
+        // Formato novo: só zera plano_id_pendente
+        if (isset($snap['plano_alvo_id']) && !isset($snap['plano_anterior_id'])) {
+            if ($assinatura) {
+                $assinatura->update(['plano_id_pendente' => null]);
+            }
+            return true;
+        }
+
+        // Formato antigo (compat): reverte snapshot completo
         if ($assinatura) {
-            // Se a assinatura foi criada nesse upgrade (não existia antes),
-            // não dá pra "reverter" — só zerar o plano alvo. Mantemos a
-            // assinatura, mas voltando pra null/snapshot.
             $assinatura->update([
                 'plano_id'           => $snap['plano_anterior_id'] ?? $assinatura->plano_id,
+                'plano_id_pendente'  => null,
                 'valor_mensal'       => $snap['valor_mensal_anterior'] ?? 0,
                 'proximo_vencimento' => $snap['proximo_vencimento_anterior'] ?? null,
             ]);

@@ -61,6 +61,7 @@ class PixService
     /**
      * Marca a cobrança como paga, atualiza a assinatura (próximo vencimento
      * +30 dias) e desliga inadimplência. Chamado pelo webhook do gateway.
+     * Se a cobrança for de upgrade de plano, efetiva o upgrade aqui.
      */
     public function confirmarPagamento(Cobranca $cobranca): void
     {
@@ -71,7 +72,11 @@ class PixService
             'pago_em' => now(),
         ]);
 
-        $assinatura = $cobranca->assinatura;
+        // Efetiva upgrade pendente antes de calcular próximo vencimento,
+        // pra que o update da assinatura (valor_mensal, etc.) pegue.
+        (new \App\Services\AplicarUpgradePlano())->executar($cobranca->fresh());
+
+        $assinatura = $cobranca->fresh()->assinatura;
         if ($assinatura) {
             $venc = $assinatura->proximo_vencimento && $assinatura->proximo_vencimento->isFuture()
                 ? $assinatura->proximo_vencimento->copy()->addMonth()

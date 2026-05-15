@@ -15,9 +15,26 @@
 
 @php
     $planoAtual = $assinatura?->plano ?? $empresa->plano;
+    $planoPendente = $assinatura?->planoPendente;
     $statusInad = $empresa->statusInadimplencia();
     $cobrancaPendente = $cobrancas->where('status', 'pendente')->first();
 @endphp
+
+@if ($planoPendente && $cobrancaPendente)
+    <div class="mb-6 p-4 bg-indigo-50 border-2 border-indigo-300 rounded-xl flex items-start gap-3">
+        <i class="ri-time-line text-2xl text-indigo-600 shrink-0"></i>
+        <div class="flex-1">
+            <p class="font-semibold text-indigo-900">Upgrade aguardando pagamento</p>
+            <p class="text-sm text-indigo-800 mt-0.5">
+                Você está mudando pro plano <strong>{{ $planoPendente->nome }}</strong>
+                (R$ {{ number_format($planoPendente->preco_mensal, 2, ',', '.') }}/mês).
+                Após o pagamento da cobrança abaixo, o plano será ativado automaticamente.
+                Até lá, você continua usando o
+                <strong>{{ $planoAtual?->nome ?? 'plano atual' }}</strong>.
+            </p>
+        </div>
+    </div>
+@endif
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl">
 
@@ -337,17 +354,23 @@
                 @forelse ($planosDisponiveis as $p)
                     @php
                         $atual = $planoAtual && $planoAtual->id === $p->id;
+                        $pendente = $planoPendente && $planoPendente->id === $p->id;
                         $superior = $planoAtual && $p->preco_mensal > $planoAtual->preco_mensal;
                     @endphp
                     <div @class([
                         'border-2 rounded-xl p-4 transition',
                         'border-indigo-500 bg-indigo-50' => $atual,
-                        'border-slate-200 hover:border-slate-300' => !$atual,
+                        'border-amber-400 bg-amber-50' => $pendente && !$atual,
+                        'border-slate-200 hover:border-slate-300' => !$atual && !$pendente,
                     ])>
-                        <div class="flex items-center justify-between">
+                        <div class="flex items-center justify-between gap-2">
                             <p class="font-semibold">{{ $p->nome }}</p>
                             @if ($atual)
                                 <span class="text-xs bg-indigo-600 text-white px-2 py-0.5 rounded-full">Atual</span>
+                            @elseif ($pendente)
+                                <span class="text-xs bg-amber-500 text-white px-2 py-0.5 rounded-full whitespace-nowrap">
+                                    <i class="ri-time-line"></i> Aguardando pgto
+                                </span>
                             @elseif ($superior)
                                 <span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Upgrade</span>
                             @endif
@@ -370,14 +393,18 @@
                             @endif
                         </ul>
 
-                        @if (!$atual)
+                        @if (!$atual && !$pendente)
                             <form action="{{ route('admin.meu-plano.upgrade', $p) }}" method="POST" class="mt-3"
-                                  onsubmit="return confirm('Mudar pra plano {{ $p->nome }}? Uma cobrança será gerada.')">
+                                  onsubmit="return confirm('Mudar pra plano {{ $p->nome }}? Uma cobrança será gerada e o plano só ativa após o pagamento.')">
                                 @csrf
                                 <button class="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-sm font-semibold">
                                     {{ $superior ? 'Fazer upgrade' : 'Mudar pra esse plano' }}
                                 </button>
                             </form>
+                        @elseif ($pendente)
+                            <p class="mt-3 text-xs text-amber-700 text-center font-medium">
+                                <i class="ri-information-line"></i> Pague a cobrança pendente pra ativar
+                            </p>
                         @endif
                     </div>
                 @empty

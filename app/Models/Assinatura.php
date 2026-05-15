@@ -12,7 +12,7 @@ class Assinatura extends Model
     use Auditavel;
 
     protected $fillable = [
-        'empresa_id', 'plano_id', 'status', 'gateway',
+        'empresa_id', 'plano_id', 'plano_id_pendente', 'status', 'gateway',
         'gateway_subscription_id', 'gateway_customer_id',
         'valor_mensal', 'inicio', 'proximo_vencimento',
         'cancelada_em', 'trial_ate', 'meta',
@@ -35,6 +35,11 @@ class Assinatura extends Model
     public function plano(): BelongsTo
     {
         return $this->belongsTo(Plano::class);
+    }
+
+    public function planoPendente(): BelongsTo
+    {
+        return $this->belongsTo(Plano::class, 'plano_id_pendente');
     }
 
     public function cobrancas(): HasMany

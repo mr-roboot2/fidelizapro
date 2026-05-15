@@ -75,7 +75,8 @@ class AssinaturaService
     }
 
     /**
-     * Confirma pagamento (chamado pelo webhook).
+     * Confirma pagamento (chamado pelo webhook ou pelo super-admin no botão
+     * 'Marcar paga'). Se a cobrança for de upgrade de plano, efetiva.
      */
     public function marcarPaga(Cobranca $cobranca, ?string $gatewayChargeId = null): void
     {
@@ -85,7 +86,9 @@ class AssinaturaService
             'gateway_charge_id' => $gatewayChargeId ?? $cobranca->gateway_charge_id,
         ]);
 
-        $assinatura = $cobranca->assinatura;
+        (new AplicarUpgradePlano())->executar($cobranca->fresh());
+
+        $assinatura = $cobranca->fresh()->assinatura;
         $assinatura->update([
             'status' => 'ativa',
             'proximo_vencimento' => $cobranca->vencimento->addMonth(),
