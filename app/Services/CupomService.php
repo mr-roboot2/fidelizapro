@@ -42,27 +42,34 @@ class CupomService
 
     /**
      * Parceiro valida o cupom (na tela pública).
+     *
+     * Race fix: parceiro com 2 abas abertas validava mesmo cupom 2x. Ambas
+     * liam status='ativo' e ambas marcavam como usado. Agora lockForUpdate
+     * dentro de transaction garante que a 2ª chamada veja status='usado'.
      */
     public function validar(string $secret, string $codigo, ?string $observacao = null): Cupom
     {
-        $cupom = Cupom::where('codigo', strtoupper($codigo))
-            ->whereHas('beneficio.parceiro', fn($q) => $q->where('validacao_secret', $secret))
-            ->firstOrFail();
+        return DB::transaction(function () use ($secret, $codigo, $observacao) {
+            $cupom = Cupom::where('codigo', strtoupper($codigo))
+                ->whereHas('beneficio.parceiro', fn($q) => $q->where('validacao_secret', $secret))
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        if ($cupom->status === 'usado') {
-            throw new \DomainException("Cupom já foi usado em ".$cupom->usado_em->format('d/m/Y H:i'));
-        }
-        if ($cupom->expirado()) {
-            $cupom->update(['status' => 'expirado']);
-            throw new \DomainException('Cupom expirado.');
-        }
+            if ($cupom->status === 'usado') {
+                throw new \DomainException("Cupom já foi usado em ".$cupom->usado_em->format('d/m/Y H:i'));
+            }
+            if ($cupom->expirado()) {
+                $cupom->update(['status' => 'expirado']);
+                throw new \DomainException('Cupom expirado.');
+            }
 
-        $cupom->update([
-            'status' => 'usado',
-            'usado_em' => now(),
-            'observacao_uso' => $observacao,
-        ]);
+            $cupom->update([
+                'status' => 'usado',
+                'usado_em' => now(),
+                'observacao_uso' => $observacao,
+            ]);
 
-        return $cupom;
+            return $cupom;
+        });
     }
 }

@@ -127,17 +127,12 @@ class AuthController extends Controller
             Log::warning('Falha ao creditar bônus de cadastro', ['cliente_id' => $cliente->id, 'erro' => $e->getMessage()]);
         }
 
-        try {
-            if ($indicador) {
-                $regraInd = $empresa->regrasPontuacao()->where('tipo', 'indicacao')->where('ativo', true)->first();
-                if ($regraInd && $regraInd->pontos_fixos > 0) {
-                    $pontuacaoService->creditar($indicador, $regraInd->pontos_fixos, 'indicacao', $cliente,
-                        "Indicação convertida: {$cliente->nome}");
-                }
-            }
-        } catch (Throwable $e) {
-            Log::warning('Falha ao creditar bônus de indicação', ['cliente_id' => $cliente->id, 'erro' => $e->getMessage()]);
-        }
+        // Crédito de indicação MOVIDO para CompraService::registrar — só
+        // credita quando o indicado faz a primeira compra. Sem isso, atacante
+        // criava 100 contas com `codigo_indicacao=X` (após captcha trivial)
+        // e ganhava `pontos_fixos × 100` no indicador sem nenhuma venda real.
+        // A `indicado_por_id` foi persistida acima; CompraService dispara o
+        // crédito na compra inicial (cliente.total_compras == 0 → 1).
 
         try {
             $automacaoService->disparar($empresa, 'boas_vindas', $cliente->fresh());

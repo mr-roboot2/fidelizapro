@@ -109,6 +109,11 @@ class CashbackService
     /**
      * Libera cashbacks pendentes que passaram do prazo.
      * Chamado pelo comando agendado `cashback:liberar`.
+     *
+     * Idempotência: lockForUpdate no MovimentoCashback + recheck `processado`
+     * dentro da transaction. Sem isso, dois crons paralelos liam o mesmo
+     * movimento pendente, ambos atualizavam o saldo do cliente → cashback
+     * duplicado.
      */
     public function liberarPendentes(): int
     {
@@ -116,15 +121,24 @@ class CashbackService
             ->where('processado', false)
             ->whereNotNull('liberado_em')
             ->where('liberado_em', '<=', now())
-            ->get();
+            ->pluck('id');
 
         $contador = 0;
         $clientesNotificar = [];
 
-        foreach ($movimentos as $mov) {
-            DB::transaction(function () use ($mov, &$contador, &$clientesNotificar) {
-                $cliente = $mov->cliente;
-                $cliente->refresh();
+        foreach ($movimentos as $movId) {
+            DB::transaction(function () use ($movId, &$contador, &$clientesNotificar) {
+                $mov = MovimentoCashback::lockForUpdate()->find($movId);
+
+                // Outra instância do cron pode ter processado entre o
+                // pluck() inicial e o lock — recheck dentro do lock.
+                if (!$mov || $mov->processado || $mov->tipo !== 'credito') {
+                    return;
+                }
+
+                $cliente = \App\Models\Cliente::lockForUpdate()->find($mov->cliente_id);
+                if (!$cliente) return;
+
                 $valor = round((float) $mov->valor, 2);
 
                 $cliente->cashback_pendente = round(max(0, (float) $cliente->cashback_pendente - $valor), 2);

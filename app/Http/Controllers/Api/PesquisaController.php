@@ -8,6 +8,7 @@ use App\Models\RegraPontuacao;
 use App\Models\TransacaoPonto;
 use App\Services\PontuacaoService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class PesquisaController extends Controller
 {
@@ -64,42 +65,51 @@ class PesquisaController extends Controller
             }
         }
 
-        $pesquisa = Pesquisa::create([
-            'empresa_id' => $cliente->empresa_id,
-            'cliente_id' => $cliente->id,
-            'compra_id'  => $dados['compra_id'] ?? null,
-            'nota'       => $dados['nota'],
-            'comentario' => $dados['comentario'] ?? null,
-            'respostas'  => $dados['respostas'] ?? null,
-        ]);
+        // Wrap em transaction + recheck DENTRO do lock pra fechar race:
+        // 2 requests paralelas liam jaCreditouAvaliacao=false simultaneamente
+        // (antes do primeiro UPDATE em transacoes_pontos commitar) e ambas
+        // creditavam pontos.
+        [$pesquisa, $pontosCreditados] = DB::transaction(function () use ($cliente, $dados, $pontuacaoService) {
+            $pesquisa = Pesquisa::create([
+                'empresa_id' => $cliente->empresa_id,
+                'cliente_id' => $cliente->id,
+                'compra_id'  => $dados['compra_id'] ?? null,
+                'nota'       => $dados['nota'],
+                'comentario' => $dados['comentario'] ?? null,
+                'respostas'  => $dados['respostas'] ?? null,
+            ]);
 
-        // Crédito de pontos só na primeira avaliação (se houver regra ativa).
-        // Anti-farm: o cliente conseguia excluir a pesquisa e responder de
-        // novo em loop pra ganhar pontos infinitos. Checa via TransacaoPonto
-        // (que persiste mesmo se a Pesquisa for excluída).
-        $pontosCreditados = 0;
-        $jaCreditouAvaliacao = TransacaoPonto::where('cliente_id', $cliente->id)
-            ->where('referencia_type', Pesquisa::class)
-            ->where('tipo', 'credito')
-            ->exists();
+            // Lock no Cliente serializa o crédito por avaliação. lockForUpdate
+            // re-busca o cliente do DB e impede que outra transação rode
+            // creditar() em paralelo até a nossa terminar.
+            \App\Models\Cliente::lockForUpdate()->findOrFail($cliente->id);
 
-        if (!$jaCreditouAvaliacao) {
-            $regra = RegraPontuacao::where('empresa_id', $cliente->empresa_id)
-                ->where('tipo', 'avaliacao')
-                ->where('ativo', true)
-                ->first();
+            $pontosCreditados = 0;
+            $jaCreditouAvaliacao = TransacaoPonto::where('cliente_id', $cliente->id)
+                ->where('referencia_type', Pesquisa::class)
+                ->where('tipo', 'credito')
+                ->exists();
 
-            if ($regra && $regra->vigente() && $regra->pontos_fixos > 0) {
-                $pontosCreditados = $regra->pontos_fixos;
-                $pontuacaoService->creditar(
-                    $cliente,
-                    $pontosCreditados,
-                    'manual',
-                    $pesquisa,
-                    "Pontos por avaliação (nota {$dados['nota']})"
-                );
+            if (!$jaCreditouAvaliacao) {
+                $regra = RegraPontuacao::where('empresa_id', $cliente->empresa_id)
+                    ->where('tipo', 'avaliacao')
+                    ->where('ativo', true)
+                    ->first();
+
+                if ($regra && $regra->vigente() && $regra->pontos_fixos > 0) {
+                    $pontosCreditados = $regra->pontos_fixos;
+                    $pontuacaoService->creditar(
+                        $cliente,
+                        $pontosCreditados,
+                        'manual',
+                        $pesquisa,
+                        "Pontos por avaliação (nota {$dados['nota']})"
+                    );
+                }
             }
-        }
+
+            return [$pesquisa, $pontosCreditados];
+        });
 
         return response()->json([
             'message' => $pontosCreditados > 0

@@ -5,6 +5,7 @@ namespace App\Services\Pix;
 use App\Models\Cobranca;
 use App\Models\ConfiguracaoSistema;
 use App\Models\Empresa;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -62,29 +63,39 @@ class PixService
      * Marca a cobrança como paga, atualiza a assinatura (próximo vencimento
      * +30 dias) e desliga inadimplência. Chamado pelo webhook do gateway.
      * Se a cobrança for de upgrade de plano, efetiva o upgrade aqui.
+     *
+     * Race fix: dois webhooks paralelos pro mesmo charge_id (Asaas faz retry
+     * agressivo) liam status='pendente' simultâneo e aplicavam upgrade 2x.
+     * Mesmo padrão do AssinaturaService::marcarPaga — lockForUpdate no
+     * Cobranca + early-return idempotente.
      */
     public function confirmarPagamento(Cobranca $cobranca): void
     {
-        if ($cobranca->status === 'pago') return;
+        DB::transaction(function () use ($cobranca) {
+            $lockada = Cobranca::lockForUpdate()->find($cobranca->id);
+            if (!$lockada || $lockada->status === 'pago') {
+                return;
+            }
 
-        $cobranca->update([
-            'status'  => 'pago',
-            'pago_em' => now(),
-        ]);
-
-        // Efetiva upgrade pendente antes de calcular próximo vencimento,
-        // pra que o update da assinatura (valor_mensal, etc.) pegue.
-        (new \App\Services\AplicarUpgradePlano())->executar($cobranca->fresh());
-
-        $assinatura = $cobranca->fresh()->assinatura;
-        if ($assinatura) {
-            $venc = $assinatura->proximo_vencimento && $assinatura->proximo_vencimento->isFuture()
-                ? $assinatura->proximo_vencimento->copy()->addMonth()
-                : now()->addMonth();
-            $assinatura->update([
-                'status'             => 'ativa',
-                'proximo_vencimento' => $venc,
+            $lockada->update([
+                'status'  => 'pago',
+                'pago_em' => now(),
             ]);
-        }
+
+            // Efetiva upgrade pendente antes de calcular próximo vencimento,
+            // pra que o update da assinatura (valor_mensal, etc.) pegue.
+            (new \App\Services\AplicarUpgradePlano())->executar($lockada->fresh());
+
+            $assinatura = $lockada->fresh()->assinatura;
+            if ($assinatura) {
+                $venc = $assinatura->proximo_vencimento && $assinatura->proximo_vencimento->isFuture()
+                    ? $assinatura->proximo_vencimento->copy()->addMonth()
+                    : now()->addMonth();
+                $assinatura->update([
+                    'status'             => 'ativa',
+                    'proximo_vencimento' => $venc,
+                ]);
+            }
+        });
     }
 }

@@ -70,14 +70,21 @@ class SorteioService
      */
     public function sortear(Sorteio $sorteio): Sorteio
     {
-        if ($sorteio->status === 'sorteado') {
-            return $sorteio;
-        }
-        if ($sorteio->status === 'cancelado') {
-            throw new DomainException('Sorteio cancelado não pode ser sorteado.');
-        }
-
         return DB::transaction(function () use ($sorteio) {
+            // Lock + recheck DENTRO da transaction. Admin clicando 2x rápido
+            // disparava 2 sorteios paralelos: ambos passavam o check de
+            // status fora da transaction, ambos pegavam bilhetes aleatórios
+            // diferentes, ambos faziam update do sorteio (último vencia) e
+            // ambos chamavam concederPremio → 2 Resgates criados.
+            $sorteio = Sorteio::lockForUpdate()->findOrFail($sorteio->id);
+
+            if ($sorteio->status === 'sorteado') {
+                return $sorteio;
+            }
+            if ($sorteio->status === 'cancelado') {
+                throw new DomainException('Sorteio cancelado não pode ser sorteado.');
+            }
+
             $bilhete = SorteioBilhete::where('sorteio_id', $sorteio->id)
                 ->inRandomOrder()
                 ->lockForUpdate()
