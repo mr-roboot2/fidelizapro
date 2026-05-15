@@ -37,6 +37,7 @@ class DocumentoLegalController extends Controller
     public function store(Request $request)
     {
         $dados = $this->validar($request);
+        $dados['conteudo'] = $this->sanitizarHtml($dados['conteudo']);
         $documento = DocumentoLegal::create($dados);
 
         return redirect()->route('super.documentos.index')
@@ -56,6 +57,7 @@ class DocumentoLegalController extends Controller
     {
         $documento = DocumentoLegal::where('slug', $slug)->firstOrFail();
         $dados = $this->validar($request, $documento->id);
+        $dados['conteudo'] = $this->sanitizarHtml($dados['conteudo']);
 
         $slugAnterior = $documento->slug;
         $documento->update($dados);
@@ -99,5 +101,41 @@ class DocumentoLegalController extends Controller
             'slug.regex' => 'Use apenas letras minúsculas, números e hífens. Comece com letra.',
             'slug.unique' => 'Já existe outra página com esse slug.',
         ]);
+    }
+
+    /**
+     * Limpa o HTML mantendo apenas tags estruturais inofensivas e neutraliza
+     * `javascript:` / `data:` em href. Documento legal é exibido em rota
+     * pública, então XSS aqui rouba sessão de qualquer visitante do site.
+     */
+    protected function sanitizarHtml(string $html): string
+    {
+        $tagsPermitidas = '<h1><h2><h3><h4><h5><h6>'
+            .'<p><br><hr><div><span>'
+            .'<strong><em><b><i><u><s><small><sub><sup>'
+            .'<ul><ol><li>'
+            .'<blockquote><pre><code>'
+            .'<a>'
+            .'<table><thead><tbody><tfoot><tr><th><td>';
+
+        $limpo = strip_tags($html, $tagsPermitidas);
+
+        // Bloqueia esquemas perigosos em href (javascript:, vbscript:, data:)
+        $limpo = preg_replace_callback(
+            '/href\s*=\s*("|\')([^"\']*)\1/i',
+            function ($m) {
+                $url = trim($m[2]);
+                if (preg_match('/^\s*(javascript|vbscript|data):/i', $url)) {
+                    return 'href="#"';
+                }
+                return $m[0];
+            },
+            $limpo
+        );
+
+        // Remove event handlers inline (onclick=, onerror=, etc.)
+        $limpo = preg_replace('/\son\w+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $limpo);
+
+        return $limpo;
     }
 }

