@@ -249,6 +249,32 @@
                     A chave fica criptografada no banco. Pegue em <a href="https://www.asaas.com/" target="_blank" class="text-rose-600 hover:underline">asaas.com</a> → Configurações → Integrações.
                 </p>
             </div>
+
+            <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-slate-700 mb-1">
+                    Token de autenticação do webhook
+                    <span class="text-rose-600">*</span>
+                </label>
+                <input type="password" name="asaas_webhook_token" autocomplete="off" minlength="16" maxlength="200"
+                       placeholder="{{ $config->asaas_webhook_token ? '••••••••• (salvo — só sobrescreve se preencher)' : 'Mínimo 16 caracteres' }}"
+                       class="w-full px-4 py-2.5 border border-slate-300 rounded-lg font-mono text-sm">
+                <p class="text-xs text-slate-500 mt-1">
+                    Segredo compartilhado com o Asaas: nosso webhook só aceita requisições que tragam esse valor no header
+                    <code class="bg-slate-100 px-1 rounded">asaas-access-token</code>. Sem ele configurado, todo webhook é rejeitado (401).
+                    Cadastre o mesmo valor no painel Asaas → Integrações → Webhooks → Token de autenticação.
+                </p>
+                @if ($config->asaas_webhook_token)
+                    <div class="mt-3 p-3 bg-rose-50 border border-rose-200 rounded-lg">
+                        <p class="text-xs font-semibold text-rose-700 uppercase tracking-wider mb-1.5">
+                            <i class="ri-link"></i> URL do webhook Asaas
+                        </p>
+                        <code class="block text-xs font-mono bg-white border border-rose-200 px-3 py-2 rounded break-all">{{ url('/webhook/pagamento/asaas') }}</code>
+                        <p class="text-[11px] text-rose-700 mt-2">
+                            Configure no Asaas como webhook dos eventos <code>PAYMENT_RECEIVED</code> e <code>PAYMENT_CONFIRMED</code> com o token acima.
+                        </p>
+                    </div>
+                @endif
+            </div>
             <div class="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Plano padrão pra novas empresas</label>

@@ -54,14 +54,18 @@ class ConfiguracaoSistemaController extends Controller
             'pix_ambiente'         => 'required|in:sandbox,producao',
             'pix_api_key'          => 'nullable|string|max:500',
             'pix_ativo'            => 'nullable|boolean',
+            // Token que o Asaas envia no header `asaas-access-token` ao chamar
+            // o webhook de pagamento. Mesmo valor cadastrado no painel deles.
+            'asaas_webhook_token'  => 'nullable|string|min:16|max:200',
             'cobranca_avisos_antes'  => 'nullable|string|max:60|regex:/^[0-9,\s]*$/',
             'cobranca_avisos_depois' => 'nullable|string|max:60|regex:/^[0-9,\s]*$/',
             'trial_dias_padrao'      => 'required|integer|min:0|max:90',
             'plano_padrao_id'        => 'nullable|exists:planos,id',
         ]);
         $dados['pix_ativo'] = $request->boolean('pix_ativo');
-        // Se não veio nova api_key, mantém a existente (campo encrypted)
+        // Campos cifrados: se vazio no form, mantém o valor atual no banco.
         if (empty($dados['pix_api_key'])) unset($dados['pix_api_key']);
+        if (empty($dados['asaas_webhook_token'])) unset($dados['asaas_webhook_token']);
 
         if ($request->boolean('remover_logo') && $config->logo) {
             Storage::disk('public')->delete($config->logo);
