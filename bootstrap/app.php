@@ -9,6 +9,7 @@ use App\Http\Middleware\EmpresaThrottle;
 use App\Http\Middleware\RequireModulo;
 use App\Http\Middleware\SuperAdminAuth;
 use App\Http\Middleware\EnsureNotInstalled;
+use App\Http\Middleware\RequirePasswordChanged;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\VerificaPagamento;
 
@@ -28,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'empresa.throttle' => EmpresaThrottle::class,
             'modulo' => RequireModulo::class,
             'verifica.pagamento' => VerificaPagamento::class,
+            'senha.definitiva' => RequirePasswordChanged::class,
         ]);
 
         // Headers de segurança globais (X-Frame-Options, X-Content-Type-Options,

@@ -40,47 +40,56 @@ Route::prefix('v1')->group(function () {
 
 // Autenticadas (Sanctum)
 Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
+    // Whitelist do RequirePasswordChanged — rotas que SEMPRE funcionam mesmo
+    // com senha_temporaria=true, porque são necessárias pra completar a troca.
     Route::get('auth/me', [AuthController::class, 'me']);
     Route::post('auth/logout', [AuthController::class, 'logout']);
-
-    Route::get('cliente/dashboard', [ClienteController::class, 'dashboard']);
-    Route::get('cliente/compras', [ClienteController::class, 'historicoCompras']);
-    Route::get('cliente/extrato', [ClienteController::class, 'extrato']);
-    Route::get('cliente/empresas', [ClienteController::class, 'minhasEmpresas']);
-    Route::put('cliente/perfil', [ClienteController::class, 'atualizarPerfil']);
-    Route::post('cliente/perfil/foto', [ClienteController::class, 'uploadFoto']);
-    Route::delete('cliente/perfil/foto', [ClienteController::class, 'removerFoto']);
     Route::put('cliente/senha', [ClienteController::class, 'alterarSenha']);
 
-    Route::get('recompensas', [RecompensaController::class, 'catalogo']);
-
-    Route::get('resgates', [ResgateController::class, 'index']);
-    Route::post('resgates', [ResgateController::class, 'solicitar']);
-
-    Route::get('indicacoes', [IndicacaoController::class, 'index']);
-    Route::post('indicacoes', [IndicacaoController::class, 'indicar']);
-
-    Route::get('pesquisas/minha-geral', [PesquisaController::class, 'minhaGeral']);
-    Route::post('pesquisas', [PesquisaController::class, 'responder']);
-    Route::put('pesquisas/{id}', [PesquisaController::class, 'atualizar']);
-    Route::delete('pesquisas/{id}', [PesquisaController::class, 'excluir']);
-
-    Route::get('parceiros', [BeneficioController::class, 'listar']);
-    Route::post('parceiros/cupons', [BeneficioController::class, 'gerarCupom']);
-    Route::get('parceiros/meus-cupons', [BeneficioController::class, 'meusCupons']);
-
-    Route::get('cliente/roleta/status', [RoletaController::class, 'status']);
-    // Limita 30 giros/min por usuário — evita farm automatizado de prêmios
-    Route::post('cliente/roleta/girar', [RoletaController::class, 'girar'])->middleware('throttle:30,1');
-
-    Route::get('cliente/sorteios', [SorteioController::class, 'index']);
-    Route::get('cliente/sorteios/historico', [SorteioController::class, 'historico']);
-
-    // PWA da loja — operadores autenticados via Sanctum (User com empresa_id)
+    // Rotas do operador da loja (User da empresa, não Cliente). O middleware
+    // ignora User — mas mantemos fora do grupo para deixar claro.
     Route::post('loja/logout', [LojaController::class, 'logout']);
     Route::get('loja/me', [LojaController::class, 'me']);
     Route::get('loja/clientes', [LojaController::class, 'buscarClientes']);
     Route::get('loja/clientes/qr/{codigo}', [LojaController::class, 'clientePorQr'])->where('codigo', '[A-Za-z0-9-]+');
     Route::post('loja/clientes', [LojaController::class, 'criarCliente']);
     Route::post('loja/compras', [LojaController::class, 'lancarCompra']);
+
+    // Demais rotas exigem senha definitiva. Cliente com senha_temporaria=true
+    // recebe 403 password_change_required — PWA já lê a flag em /auth/me e
+    // redireciona pra tela de troca, então em uso legítimo isso nunca dispara;
+    // o middleware fecha o caminho pra atacante que pula o redirect.
+    Route::middleware('senha.definitiva')->group(function () {
+        Route::get('cliente/dashboard', [ClienteController::class, 'dashboard']);
+        Route::get('cliente/compras', [ClienteController::class, 'historicoCompras']);
+        Route::get('cliente/extrato', [ClienteController::class, 'extrato']);
+        Route::get('cliente/empresas', [ClienteController::class, 'minhasEmpresas']);
+        Route::put('cliente/perfil', [ClienteController::class, 'atualizarPerfil']);
+        Route::post('cliente/perfil/foto', [ClienteController::class, 'uploadFoto']);
+        Route::delete('cliente/perfil/foto', [ClienteController::class, 'removerFoto']);
+
+        Route::get('recompensas', [RecompensaController::class, 'catalogo']);
+
+        Route::get('resgates', [ResgateController::class, 'index']);
+        Route::post('resgates', [ResgateController::class, 'solicitar']);
+
+        Route::get('indicacoes', [IndicacaoController::class, 'index']);
+        Route::post('indicacoes', [IndicacaoController::class, 'indicar']);
+
+        Route::get('pesquisas/minha-geral', [PesquisaController::class, 'minhaGeral']);
+        Route::post('pesquisas', [PesquisaController::class, 'responder']);
+        Route::put('pesquisas/{id}', [PesquisaController::class, 'atualizar']);
+        Route::delete('pesquisas/{id}', [PesquisaController::class, 'excluir']);
+
+        Route::get('parceiros', [BeneficioController::class, 'listar']);
+        Route::post('parceiros/cupons', [BeneficioController::class, 'gerarCupom']);
+        Route::get('parceiros/meus-cupons', [BeneficioController::class, 'meusCupons']);
+
+        Route::get('cliente/roleta/status', [RoletaController::class, 'status']);
+        // Limita 30 giros/min por usuário — evita farm automatizado de prêmios
+        Route::post('cliente/roleta/girar', [RoletaController::class, 'girar'])->middleware('throttle:30,1');
+
+        Route::get('cliente/sorteios', [SorteioController::class, 'index']);
+        Route::get('cliente/sorteios/historico', [SorteioController::class, 'historico']);
+    });
 });
