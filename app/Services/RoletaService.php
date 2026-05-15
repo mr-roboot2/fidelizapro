@@ -81,13 +81,16 @@ class RoletaService
                 throw new \DomainException('Você não tem giros disponíveis agora.');
             }
 
-            // Antifraude IP: bloqueia se IP já passou do limite hoje
-            if ($ip && $roleta->limite_giros_dia_por_ip) {
+            // Antifraude IP: sempre aplica um teto (default 10/dia) mesmo que
+            // o admin não tenha configurado limite_giros_dia_por_ip — evita
+            // farm de prêmios via múltiplas contas no mesmo dispositivo.
+            $limiteIp = (int) ($roleta->limite_giros_dia_por_ip ?: 10);
+            if ($ip && $limiteIp > 0) {
                 $doMesmoIp = RoletaGiro::where('roleta_id', $roleta->id)
                     ->where('ip', $ip)
                     ->whereDate('executado_em', now()->toDateString())
                     ->count();
-                if ($doMesmoIp >= $roleta->limite_giros_dia_por_ip) {
+                if ($doMesmoIp >= $limiteIp) {
                     report(new \RuntimeException("Giro bloqueado por antifraude IP={$ip} roleta={$roleta->id} cliente={$cliente->id}"));
                     throw new \DomainException('Limite diário atingido nesse dispositivo.');
                 }

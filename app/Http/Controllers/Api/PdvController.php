@@ -31,7 +31,7 @@ class PdvController extends Controller
             'telefone' => 'nullable|string|max:20',
             'cpf' => 'nullable|string|max:14',
             'codigo_qr' => 'nullable|string|max:64',
-            'nome' => 'nullable|string|max:255',
+            'nome' => ['nullable','string','max:120','regex:/^[\p{L}\p{N}\s\.\-\']+$/u'],
             'data_nascimento' => 'nullable|date',
             'valor' => 'required|numeric|min:0.01',
             'desconto' => 'nullable|numeric|min:0',
@@ -62,7 +62,8 @@ class PdvController extends Controller
                 'telefone' => $dados['telefone'],
                 'cpf' => $dados['cpf'] ?? null,
                 'data_nascimento' => $dados['data_nascimento'] ?? null,
-                'password' => Hash::make(substr(preg_replace('/\D/', '', $dados['telefone']), -6)),
+                'password' => Hash::make(\Illuminate\Support\Str::random(16)),
+                'senha_temporaria' => true,
                 'aceita_whatsapp' => true,
             ]);
             $clienteCriado = true;

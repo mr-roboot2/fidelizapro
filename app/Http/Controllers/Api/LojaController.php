@@ -96,20 +96,21 @@ class LojaController extends Controller
     {
         $empresaId = $request->user()->empresa_id;
         $dados = $request->validate([
-            'nome'            => 'required|string|max:255',
+            'nome'            => ['required','string','max:120','regex:/^[\p{L}\p{N}\s\.\-\']+$/u'],
             'telefone'        => "required|string|max:20|unique:clientes,telefone,NULL,id,empresa_id,{$empresaId}",
             'cpf'             => 'nullable|string|max:14',
             'data_nascimento' => 'nullable|date',
         ]);
 
         $cliente = Cliente::create([
-            'empresa_id'      => $empresaId,
-            'nome'            => $dados['nome'],
-            'telefone'        => $dados['telefone'],
-            'cpf'             => $dados['cpf'] ?? null,
-            'data_nascimento' => $dados['data_nascimento'] ?? null,
-            'password'        => Hash::make(substr(preg_replace('/\D/', '', $dados['telefone']), -6)),
-            'aceita_whatsapp' => true,
+            'empresa_id'       => $empresaId,
+            'nome'             => $dados['nome'],
+            'telefone'         => $dados['telefone'],
+            'cpf'              => $dados['cpf'] ?? null,
+            'data_nascimento'  => $dados['data_nascimento'] ?? null,
+            'password'         => Hash::make(\Illuminate\Support\Str::random(16)),
+            'senha_temporaria' => true,
+            'aceita_whatsapp'  => true,
         ]);
 
         return response()->json(['cliente' => $this->serializarCliente($cliente)], 201);

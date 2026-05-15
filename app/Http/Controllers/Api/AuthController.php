@@ -53,12 +53,12 @@ class AuthController extends Controller
     {
         $dados = $request->validate([
             'empresa_slug' => 'required|string',
-            'nome' => 'required|string|max:255',
+            'nome' => ['required','string','max:120','regex:/^[\p{L}\p{N}\s\.\-\']+$/u'],
             'telefone' => ['required', 'string', 'max:20', new TelefoneBr()],
             'cpf' => ['required', 'string', new CpfValido()],
             'email' => 'nullable|email',
             'data_nascimento' => 'nullable|date',
-            'password' => 'required|string|min:6',
+            'password' => 'required|string|min:8',
             'codigo_indicacao' => 'nullable|string',
         ]);
 

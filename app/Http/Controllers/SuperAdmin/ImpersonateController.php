@@ -26,6 +26,8 @@ class ImpersonateController extends Controller
 
         $request->session()->put('impersonate_origem_id', Auth::id());
         Auth::loginUsingId($admin->id);
+        // Regenera ID de sessão para evitar fixation antes da troca de identidade
+        $request->session()->regenerate();
 
         return redirect()->route('admin.dashboard')
             ->with('success', "Logado como {$admin->name} ({$empresa->nome}). Use 'Voltar ao super admin' para sair.");
@@ -41,6 +43,7 @@ class ImpersonateController extends Controller
             return redirect()->route('super.dashboard');
         }
         Auth::loginUsingId($origemId);
+        $request->session()->regenerate();
         return redirect()->route('super.dashboard')->with('success', 'Voltou ao super admin.');
     }
 }

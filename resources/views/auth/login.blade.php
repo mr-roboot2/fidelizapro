@@ -64,12 +64,14 @@
             Acesso de cliente? <a href="/app/" class="text-indigo-600 hover:underline font-medium">App do cliente</a>
         </div>
 
+        @if (app()->environment('local'))
         <div class="mt-6 p-3 bg-slate-50 rounded-lg text-xs text-slate-600">
-            <p class="font-semibold mb-1">Acessos de teste:</p>
+            <p class="font-semibold mb-1">Acessos de teste (apenas local):</p>
             <p>admin@pao-quente.com / password</p>
             <p>admin@beleza-cia.com / password</p>
             <p>admin@sabor-da-casa.com / password</p>
         </div>
+        @endif
     </div>
 </body>
 </html>

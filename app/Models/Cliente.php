@@ -15,12 +15,28 @@ class Cliente extends Authenticatable
 
     protected $table = 'clientes';
 
-    protected $fillable = [
-        'empresa_id', 'nome', 'telefone', 'email', 'foto', 'cpf', 'data_nascimento',
-        'password', 'codigo_qr', 'codigo_indicacao', 'indicado_por_id',
-        'pontos_atual', 'cashback_atual', 'cashback_pendente', 'total_gasto', 'total_compras',
-        'ultimo_acesso', 'ultimo_ip', 'ultima_compra', 'ativo', 'aceita_whatsapp',
+    /**
+     * Usamos $guarded em vez de $fillable para proteger saldos/contadores
+     * de mass-assignment via endpoints como `atualizarPerfil`. Campos
+     * sensíveis só podem ser alterados explicitamente via services.
+     */
+    protected $guarded = [
+        'id',
+        'empresa_id',
+        'pontos_atual',
+        'cashback_atual',
+        'cashback_pendente',
+        'total_gasto',
+        'total_compras',
+        'ultimo_ip',
+        'ultimo_acesso',
+        'ultima_compra',
+        'codigo_qr',
+        'codigo_indicacao',
+        'indicado_por_id',
         'senha_temporaria',
+        'created_at',
+        'updated_at',
     ];
 
     protected $hidden = [

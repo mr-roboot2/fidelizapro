@@ -133,7 +133,10 @@ class InstallController extends Controller
         Artisan::call('config:clear');
 
         try {
-            if ($request->input('seed') === '1') {
+            // Seed só roda em local. Em produção a opção é ignorada — evita
+            // criar usuários com senha "password" via wizard.
+            $rodarSeed = $request->input('seed') === '1' && app()->environment('local');
+            if ($rodarSeed) {
                 Artisan::call('migrate:fresh', ['--seed' => true, '--force' => true]);
             } else {
                 Artisan::call('migrate', ['--force' => true]);

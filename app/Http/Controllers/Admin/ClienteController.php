@@ -46,7 +46,7 @@ class ClienteController extends Controller
         }
 
         $dados = $request->validate([
-            'nome' => 'required|string|max:255',
+            'nome' => ['required','string','max:120','regex:/^[\p{L}\p{N}\s\.\-\']+$/u'],
             'telefone' => "required|string|max:20|unique:clientes,telefone,NULL,id,empresa_id,{$empresaId}",
             'email' => 'nullable|email|max:255',
             'cpf' => 'nullable|string|max:14',
@@ -55,7 +55,8 @@ class ClienteController extends Controller
         ]);
 
         $dados['empresa_id'] = $empresaId;
-        $dados['password'] = Hash::make(substr(preg_replace('/\D/', '', $dados['telefone']), -6));
+        $dados['password'] = Hash::make(\Illuminate\Support\Str::random(16));
+        $dados['senha_temporaria'] = true;
         $dados['aceita_whatsapp'] = $request->boolean('aceita_whatsapp', true);
 
         Cliente::create($dados);
@@ -86,15 +87,20 @@ class ClienteController extends Controller
         $empresaId = Auth::user()->empresa_id;
 
         $dados = $request->validate([
-            'nome' => 'required|string|max:255',
+            'nome' => ['required','string','max:120','regex:/^[\p{L}\p{N}\s\.\-\']+$/u'],
             'telefone' => "required|string|max:20|unique:clientes,telefone,{$cliente->id},id,empresa_id,{$empresaId}",
             'email' => 'nullable|email|max:255',
             'cpf' => 'nullable|string|max:14',
             'data_nascimento' => 'nullable|date',
             'aceita_whatsapp' => 'boolean',
             'ativo' => 'boolean',
-            'password' => 'nullable|string|min:6|confirmed',
+            'password' => 'nullable|string|min:8|confirmed',
         ]);
+
+        // CPF é imutável após cadastro inicial (fraude de duplicatas)
+        if ($cliente->cpf && isset($dados['cpf']) && $dados['cpf'] !== $cliente->cpf) {
+            unset($dados['cpf']);
+        }
 
         $dados['aceita_whatsapp'] = $request->boolean('aceita_whatsapp');
         $dados['ativo'] = $request->boolean('ativo');

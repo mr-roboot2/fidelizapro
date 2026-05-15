@@ -10,7 +10,9 @@ return [
     ))),
 
     'guard' => ['web'],
-    'expiration' => null,
+
+    // 30 dias em minutos. Sem expiração tokens vazados ficam válidos pra sempre.
+    'expiration' => env('SANCTUM_EXPIRATION', 60 * 24 * 30),
     'token_prefix' => env('SANCTUM_TOKEN_PREFIX', ''),
 
     'middleware' => [

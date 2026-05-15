@@ -94,14 +94,24 @@ class ClienteController extends Controller
     {
         $cliente = $request->user();
         $dados = $request->validate([
-            'nome' => 'sometimes|string|max:255',
+            'nome' => ['sometimes','string','max:120','regex:/^[\p{L}\p{N}\s\.\-\']+$/u'],
             'email' => 'nullable|email',
             'cpf' => 'nullable|string|max:14',
             'data_nascimento' => 'nullable|date',
             'aceita_whatsapp' => 'boolean',
         ]);
 
-        $cliente->update($dados);
+        // CPF é imutável após cadastro inicial — evita fraude de duplicatas
+        // / contorno de bloqueios. Cliente sem CPF pode definir uma vez.
+        if ($cliente->cpf && isset($dados['cpf']) && $dados['cpf'] !== $cliente->cpf) {
+            unset($dados['cpf']);
+        }
+
+        // Allowlist explícita — não confia em $guarded (defesa em profundidade)
+        $cliente->fill(array_intersect_key($dados, array_flip(
+            ['nome','email','cpf','data_nascimento','aceita_whatsapp']
+        )))->save();
+
         return response()->json(['cliente' => $cliente->fresh(), 'message' => 'Perfil atualizado!']);
     }
 
@@ -197,7 +207,7 @@ class ClienteController extends Controller
         // caixa) não exige a senha atual — ela é temporária e conhecida pelo
         // operador, não pelo cliente.
         $regras = [
-            'senha_nova' => 'required|string|min:6|confirmed',
+            'senha_nova' => 'required|string|min:8|confirmed',
         ];
         if (!$cliente->senha_temporaria) {
             $regras['senha_atual'] = 'required|string';
@@ -213,6 +223,9 @@ class ClienteController extends Controller
             'password' => Hash::make($dados['senha_nova']),
             'senha_temporaria' => false,
         ]);
+
+        // Revoga TODOS os tokens (inclusive o atual) — força re-login pós troca
+        $cliente->tokens()->delete();
 
         return response()->json(['message' => 'Senha alterada com sucesso!']);
     }

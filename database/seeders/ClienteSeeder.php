@@ -11,6 +11,11 @@ class ClienteSeeder extends Seeder
 {
     public function run(): void
     {
+        if (!app()->environment('local')) {
+            $this->command?->warn('ClienteSeeder ignorado fora de ambiente local.');
+            return;
+        }
+
         $nomes = [
             'Maria Silva', 'João Souza', 'Ana Costa', 'Pedro Almeida', 'Juliana Lima',
             'Carlos Oliveira', 'Fernanda Pereira', 'Ricardo Santos', 'Patrícia Rodrigues',

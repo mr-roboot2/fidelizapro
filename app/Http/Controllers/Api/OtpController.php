@@ -31,16 +31,8 @@ class OtpController extends Controller
         // independentemente do formato que o usuário digitou.
         $telefoneDigits = preg_replace('/\D/', '', $dados['telefone']);
 
-        $cliente = Cliente::whereTelefone($dados['telefone'])
-            ->where('empresa_id', $empresa->id)
-            ->where('ativo', true)
-            ->first();
-
-        if (!$cliente) {
-            throw ValidationException::withMessages(['telefone' => 'Cliente não encontrado nesta empresa.']);
-        }
-
-        // Throttle: max N códigos em 15 min (config global do super admin)
+        // Throttle aplicado SEMPRE — mesmo para telefones não cadastrados —
+        // para evitar enumeração via análise de tempo de resposta.
         $maxOtps = (int) (\App\Models\ConfiguracaoSistema::instancia()->otp_max_por_telefone ?: 3);
         $recentes = OtpCodigo::where('empresa_id', $empresa->id)
             ->where('telefone', $telefoneDigits)
@@ -50,6 +42,21 @@ class OtpController extends Controller
             return response()->json([
                 'message' => 'Muitas tentativas. Aguarde 15 minutos.',
             ], 429);
+        }
+
+        $cliente = Cliente::whereTelefone($dados['telefone'])
+            ->where('empresa_id', $empresa->id)
+            ->where('ativo', true)
+            ->first();
+
+        // Resposta genérica: nunca revelar se o telefone existe (anti-enumeração).
+        // Se não existe, fingimos sucesso sem enviar nada.
+        if (!$cliente) {
+            return response()->json([
+                'message' => 'Se o telefone estiver cadastrado, você receberá um código por WhatsApp.',
+                'expira_em_segundos' => 300,
+                'codigo_dev' => null,
+            ]);
         }
 
         // Invalida códigos anteriores não usados
@@ -97,7 +104,7 @@ class OtpController extends Controller
         $dados = $request->validate([
             'telefone' => 'required|string|max:20',
             'codigo' => 'required|string|size:6',
-            'senha_nova' => 'required|string|min:6|confirmed',
+            'senha_nova' => 'required|string|min:8|confirmed',
             'empresa_slug' => 'required|string',
         ]);
 
@@ -118,7 +125,7 @@ class OtpController extends Controller
             throw ValidationException::withMessages(['codigo' => 'Código expirado. Solicite um novo.']);
         }
 
-        $maxTentativas = (int) (\App\Models\ConfiguracaoSistema::instancia()->otp_max_tentativas ?: 5);
+        $maxTentativas = (int) (\App\Models\ConfiguracaoSistema::instancia()->otp_max_tentativas ?: 3);
         $otp->increment('tentativas');
         if ($otp->tentativas > $maxTentativas) {
             $otp->update(['usado' => true]);
@@ -141,6 +148,9 @@ class OtpController extends Controller
             'ultimo_acesso' => now(),
             'ultimo_ip' => $request->ip(),
         ]);
+
+        // Invalida TODOS os tokens existentes — se algum estava vazado, expira agora.
+        $cliente->tokens()->delete();
 
         $token = $cliente->createToken('pwa-cliente-recovery')->plainTextToken;
 
@@ -204,7 +214,7 @@ class OtpController extends Controller
             throw ValidationException::withMessages(['codigo' => 'Código expirado. Solicite um novo.']);
         }
 
-        $maxTentativas = (int) (\App\Models\ConfiguracaoSistema::instancia()->otp_max_tentativas ?: 5);
+        $maxTentativas = (int) (\App\Models\ConfiguracaoSistema::instancia()->otp_max_tentativas ?: 3);
         $otp->increment('tentativas');
         if ($otp->tentativas > $maxTentativas) {
             $otp->update(['usado' => true]);

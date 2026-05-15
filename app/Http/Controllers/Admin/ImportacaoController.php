@@ -85,7 +85,8 @@ class ImportacaoController extends Controller
                         'nome' => $nome,
                         'telefone' => $telefone,
                         'cpf' => $linhaDados['cpf'] ?? null,
-                        'password' => Hash::make(substr(preg_replace('/\D/', '', $telefone), -6)),
+                        'password' => Hash::make(\Illuminate\Support\Str::random(16)),
+                        'senha_temporaria' => true,
                         'aceita_whatsapp' => true,
                     ]);
                     $criados++;
