@@ -1211,7 +1211,7 @@ async function telaCatalogo() {
                     <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden ${!r.pode_resgatar ? 'opacity-60' : ''} hover:shadow-md transition">
                         <div class="aspect-square flex items-center justify-center text-white text-5xl relative"
                              style="background:linear-gradient(135deg,${cor},${corSec})">
-                            ${r.imagem ? `<img src="${r.imagem}" class="w-full h-full object-cover">` : '<i class="ri-gift-line"></i>'}
+                            ${r.imagem ? `<img src="${escAttr(r.imagem)}" class="w-full h-full object-cover">` : '<i class="ri-gift-line"></i>'}
                             ${!r.pode_resgatar ? `
                                 <div class="absolute top-2 right-2 bg-black/40 backdrop-blur text-white text-[10px] px-2 py-0.5 rounded-full">
                                     Faltam ${fmtNum(r.custo_pontos - STATE.cliente.pontos_atual)} pts
@@ -1418,8 +1418,8 @@ async function telaEditarPerfil() {
             <div class="bg-white rounded-2xl shadow-md border border-slate-100 p-5 flex flex-col items-center gap-3">
                 <div id="avatar-preview" class="w-24 h-24 rounded-full border-4 border-slate-100 flex items-center justify-center text-4xl font-bold text-white shadow-md overflow-hidden" style="background:linear-gradient(135deg,${cor},${corSec})">
                     ${c.foto
-                        ? `<img src="${c.foto}" class="w-full h-full object-cover" alt="">`
-                        : c.nome.charAt(0).toUpperCase()}
+                        ? `<img src="${escAttr(c.foto)}" class="w-full h-full object-cover" alt="">`
+                        : esc(String(c.nome || '').charAt(0).toUpperCase())}
                 </div>
                 <input type="file" id="input-foto" accept="image/png,image/jpeg,image/webp" class="hidden">
                 <div class="flex gap-2">
@@ -2042,7 +2042,7 @@ async function telaIndicacoes() {
                             i.status === 'cadastrado' ? 'bg-blue-50 text-blue-700' :
                             i.status === 'expirado' ? 'bg-slate-100 text-slate-600' :
                             'bg-amber-50 text-amber-700'
-                        }">${i.status}</span>
+                        }">${esc(i.status)}</span>
                     </div>
                 `).join('')}
             </div>`}
@@ -2499,7 +2499,9 @@ function roletaConfete() {
 }
 
 function roletaModalResultado(resultado, premio) {
-    const ehGanho = resultado.tipo_resultado !== 'consolacao';
+    // `sem_premio` é resultado de estoque indisponível mid-flight (RoletaService).
+    // Tratar como 'consolacao' visualmente — não foi "ganhou".
+    const ehGanho = resultado.tipo_resultado !== 'consolacao' && resultado.tipo_resultado !== 'sem_premio';
     const cor = ehGanho ? 'linear-gradient(135deg,#f59e0b,#ef4444 60%,#a855f7)' : 'linear-gradient(135deg,#6366f1,#8b5cf6)';
     const icone = resultado.tipo_resultado === 'sorteio_bilhete' ? '🎟️' : (ehGanho ? '🎉' : '💛');
     const titulo = ehGanho
