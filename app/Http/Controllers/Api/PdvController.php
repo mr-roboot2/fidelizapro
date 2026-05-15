@@ -56,13 +56,15 @@ class PdvController extends Controller
             if (empty($dados['telefone']) || empty($dados['nome'])) {
                 return response()->json(['message' => 'Cliente não encontrado. Para auto-cadastro envie nome + telefone.'], 404);
             }
+            // Senha inicial = últimos 6 dígitos do telefone. senha_temporaria=true
+            // força troca no primeiro acesso ao PWA cliente.
             $cliente = Cliente::create([
                 'empresa_id' => $empresa->id,
                 'nome' => $dados['nome'],
                 'telefone' => $dados['telefone'],
                 'cpf' => $dados['cpf'] ?? null,
                 'data_nascimento' => $dados['data_nascimento'] ?? null,
-                'password' => Hash::make(\Illuminate\Support\Str::random(16)),
+                'password' => Hash::make(substr(preg_replace('/\D/', '', $dados['telefone']), -6)),
                 'senha_temporaria' => true,
                 'aceita_whatsapp' => true,
             ]);

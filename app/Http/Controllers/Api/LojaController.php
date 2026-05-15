@@ -102,13 +102,16 @@ class LojaController extends Controller
             'data_nascimento' => 'nullable|date',
         ]);
 
+        // Senha inicial = últimos 6 dígitos do telefone (fácil de explicar para
+        // o cliente). Risco mitigado por senha_temporaria=true: o PWA força
+        // troca de senha antes de qualquer operação que precise de token válido.
         $cliente = Cliente::create([
             'empresa_id'       => $empresaId,
             'nome'             => $dados['nome'],
             'telefone'         => $dados['telefone'],
             'cpf'              => $dados['cpf'] ?? null,
             'data_nascimento'  => $dados['data_nascimento'] ?? null,
-            'password'         => Hash::make(\Illuminate\Support\Str::random(16)),
+            'password'         => Hash::make(substr(preg_replace('/\D/', '', $dados['telefone']), -6)),
             'senha_temporaria' => true,
             'aceita_whatsapp'  => true,
         ]);

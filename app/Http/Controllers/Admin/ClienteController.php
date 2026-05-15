@@ -55,7 +55,9 @@ class ClienteController extends Controller
         ]);
 
         $dados['empresa_id'] = $empresaId;
-        $dados['password'] = Hash::make(\Illuminate\Support\Str::random(16));
+        // Senha inicial = últimos 6 dígitos do telefone. senha_temporaria=true
+        // força troca antes do primeiro uso.
+        $dados['password'] = Hash::make(substr(preg_replace('/\D/', '', $dados['telefone']), -6));
         $dados['senha_temporaria'] = true;
         $dados['aceita_whatsapp'] = $request->boolean('aceita_whatsapp', true);
 

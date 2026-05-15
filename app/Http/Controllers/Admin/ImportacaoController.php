@@ -80,12 +80,14 @@ class ImportacaoController extends Controller
                         $erros[] = "Linha {$linha}: cliente novo precisa de nome.";
                         continue;
                     }
+                    // Senha inicial = últimos 6 dígitos do telefone (UX simples
+                    // de explicar). senha_temporaria=true exige troca no primeiro acesso.
                     $cliente = Cliente::create([
                         'empresa_id' => $empresaId,
                         'nome' => $nome,
                         'telefone' => $telefone,
                         'cpf' => $linhaDados['cpf'] ?? null,
-                        'password' => Hash::make(\Illuminate\Support\Str::random(16)),
+                        'password' => Hash::make(substr(preg_replace('/\D/', '', $telefone), -6)),
                         'senha_temporaria' => true,
                         'aceita_whatsapp' => true,
                     ]);
