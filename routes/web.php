@@ -33,8 +33,10 @@ use App\Http\Controllers\SuperAdmin\UserController as SuperUserController;
 use App\Http\Controllers\SuperAdmin\ImpersonateController;
 use App\Http\Controllers\SuperAdmin\AuditoriaController as SuperAuditoriaController;
 use App\Http\Controllers\SuperAdmin\AssinaturaController as SuperAssinaturaController;
+// Imports de webhook (WebhookPagamentoController, WhatsappWebhookController,
+// PixWebhookController) moveram pra routes/webhooks.php. WebhookPagamentoController
+// continua referenciado abaixo pelo mock /pagamento-mock (só local).
 use App\Http\Controllers\WebhookPagamentoController;
-use App\Http\Controllers\WhatsappWebhookController;
 use App\Http\Controllers\InstallController;
 use App\Http\Controllers\DocumentoLegalPublicoController;
 use App\Http\Controllers\SuperAdmin\DocumentoLegalController as SuperDocumentoLegalController;
@@ -60,7 +62,7 @@ Route::middleware('install.gate')->prefix('install')->group(function () {
     Route::get('/admin',     [InstallController::class, 'admin']);
     Route::post('/admin',    [InstallController::class, 'adminStore']);
     Route::post('/admin/skip', [InstallController::class, 'adminSkip']);
-    Route::get('/complete',  [InstallController::class, 'complete']);
+    Route::get('/complete',  [InstallController::class, 'complete'])->name('install.complete');
 });
 
 Route::get('/', fn() => redirect()->route('admin.login'));

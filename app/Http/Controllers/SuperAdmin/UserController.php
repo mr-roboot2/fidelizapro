@@ -68,47 +68,37 @@ class UserController extends Controller
             'ativo' => 'boolean',
         ]);
 
-        // Captura senha plain ANTES de hashear pra não enviar bcrypt ao
-        // observer de auditoria (que loga $dados em auditoria_logs.depois).
-        // O AuditoriaService já redacta 'password' globalmente, mas removemos
-        // do array antes do `update()` por segurança redundante — assim a
-        // senha simplesmente não entra na trilha de auditoria como campo
-        // alterado, em vez de aparecer como '[REDACTED]'.
-        $senhaTrocada = false;
-        if (!empty($dados['password'])) {
-            $hashed = Hash::make($dados['password']);
-            $senhaTrocada = true;
-            // Aplicar password fora do array (via forceFill) pra não cair
-            // no diff de auditoria do model.
-            $user->password = $hashed;
-            $user->save();
-            unset($dados['password']);
-        } else {
-            unset($dados['password']);
-        }
+        $senhaTrocada = !empty($dados['password']);
+        $hashed = $senhaTrocada ? Hash::make($dados['password']) : null;
+        unset($dados['password']);
+
         $dados['ativo'] = $request->boolean('ativo');
         if ($dados['role'] === 'super_admin') $dados['empresa_id'] = null;
 
-        // Detecta o que mudou ANTES do update — define se precisamos revogar
-        // tokens e/ou rotacionar o remember_token.
-        $roleMudou  = isset($dados['role'])  && $dados['role']  !== $user->role;
+        // Detecta o que muda ANTES de qualquer write — define se precisamos
+        // revogar tokens.
+        $roleMudou    = isset($dados['role'])  && $dados['role']  !== $user->role;
         $foiInativado = $user->ativo && !$dados['ativo'];
+        $precisaRevogar = $senhaTrocada || $roleMudou || $foiInativado;
 
-        $user->update($dados);
-
-        // Revoga tokens Sanctum em QUALQUER mudança de role/ativo/senha.
-        // Sem isso, operador rebaixado/inativado continua operando via API
-        // por até 30 dias com o token antigo (Sanctum default TTL).
-        if ($senhaTrocada || $roleMudou || $foiInativado) {
+        // Revoga tokens PRIMEIRO (antes do update). Se algo falhar no update,
+        // os tokens já foram invalidados — estado conservador. Antes a
+        // revogação rodava depois → race se o update lançasse exception.
+        if ($precisaRevogar) {
             $user->tokens()->delete();
         }
 
-        // Rotaciona remember_token na troca de senha — cookie remember_web_*
-        // sobrevive a reset por padrão. Sem isso, atacante que furtou o cookie
-        // continua logando após o admin trocar a senha pra mitigar incidente.
+        // Aplica senha + rotaciona remember_token em UM ÚNICO save antes do
+        // update do resto. Observador Auditavel grava 1 log com `password` e
+        // `remember_token` ambos como '[REDACTED]' (via redactSensiveis), em
+        // vez de 2 logs separados.
         if ($senhaTrocada) {
-            $user->forceFill(['remember_token' => \Illuminate\Support\Str::random(60)])->save();
+            $user->password = $hashed;
+            $user->remember_token = \Illuminate\Support\Str::random(60);
+            $user->save();
         }
+
+        $user->update($dados);
 
         return redirect()->route('super.users.index')->with('success', 'Usuário atualizado!');
     }

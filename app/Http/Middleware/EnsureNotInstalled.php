@@ -22,8 +22,23 @@ use Throwable;
  */
 class EnsureNotInstalled
 {
+    /**
+     * Rotas que CONTINUAM acessíveis mesmo após instalado — caso da tela
+     * "Instalação concluída" pós-redirect. Sem isso, marcarInstalado()
+     * cria o lock ANTES do redirect e o admin recém-criado vê a tela
+     * "locked" em vez do welcome final.
+     */
+    protected const ROTAS_PERMITIDAS_POS_INSTALL = [
+        'install.complete', // rota nomeada do GET /install/complete
+    ];
+
     public function handle(Request $request, Closure $next)
     {
+        $rota = $request->route()?->getName();
+        if (in_array($rota, self::ROTAS_PERMITIDAS_POS_INSTALL, true)) {
+            return $next($request);
+        }
+
         if (file_exists(storage_path('installed.lock'))) {
             return response()->view('install.locked', [], 403);
         }

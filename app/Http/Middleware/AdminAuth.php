@@ -26,6 +26,18 @@ class AdminAuth
                 ->withErrors(['email' => 'Sua conta foi desativada. Entre em contato com o administrador.']);
         }
 
+        // Empresa desativada pelo super admin (toggle): operador continuava
+        // operando até sessão expirar. PWA cliente já é barrado em
+        // criarCliente/login porque o controller filtra `where('ativo',true)`,
+        // mas operadores do painel não tinham esse check.
+        if ($user->empresa_id && (!$user->empresa || !$user->empresa->ativo)) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            return redirect()->route('admin.login')
+                ->withErrors(['email' => 'A empresa está desativada. Entre em contato com o suporte.']);
+        }
+
         // Super admin sem empresa vinculada vai pra área dele
         if ($user->isSuperAdmin() && empty($user->empresa_id)) {
             return redirect()->route('super.dashboard');

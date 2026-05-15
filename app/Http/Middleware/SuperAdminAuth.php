@@ -14,7 +14,20 @@ class SuperAdminAuth
             return redirect()->route('admin.login');
         }
 
-        if (!Auth::user()->isSuperAdmin()) {
+        $user = Auth::user();
+
+        // Super admin desativado por outro super admin (off-boarding, conta
+        // comprometida) continuava entrando até sessão expirar. AdminAuth
+        // já cobre isso pra admin/gerente/atendente; aqui é o gêmeo pra super.
+        if (!$user->ativo) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            return redirect()->route('admin.login')
+                ->withErrors(['email' => 'Sua conta foi desativada.']);
+        }
+
+        if (!$user->isSuperAdmin()) {
             abort(403, 'Acesso restrito ao Super Admin.');
         }
 
