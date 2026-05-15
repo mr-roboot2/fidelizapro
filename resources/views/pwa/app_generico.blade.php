@@ -18,7 +18,7 @@
     @endif
     <title>{{ $config->nome_sistema }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@@4.2.0/fonts/remixicon.css">
+    <link rel="stylesheet" href="{{ "https://cdn.jsdelivr.net/npm/remixicon" }}@4.2.0/fonts/remixicon.css">
     <link rel="stylesheet" href="{{ asset('app/style.css') }}?v={{ @filemtime(public_path('app/style.css')) }}">
     <style>
         :root {

@@ -21,7 +21,7 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"
             integrity="sha384-dJoZvqZ3TiAEwy1FdO5TyONGMocmQHh3kGq9CJA4aszVAQZ4M7pGc9eE0HEWFxZH"
             crossorigin="anonymous" defer></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@@4.2.0/fonts/remixicon.css">
+    <link rel="stylesheet" href="{{ "https://cdn.jsdelivr.net/npm/remixicon" }}@4.2.0/fonts/remixicon.css">
     <link rel="stylesheet" href="{{ asset('app/style.css') }}?v={{ @filemtime(public_path('app/style.css')) }}">
     <style>
         :root {

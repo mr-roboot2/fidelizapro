@@ -9,7 +9,7 @@
         <link rel="icon" href="{{ $sistema->faviconUrl() }}">
     @endif
     <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@@4.2.0/fonts/remixicon.css">
+    <link rel="stylesheet" href="{{ "https://cdn.jsdelivr.net/npm/remixicon" }}@4.2.0/fonts/remixicon.css">
 </head>
 @php
     $cor1 = $sistema->cor_primaria ?? '#6366f1';

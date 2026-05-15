@@ -18,7 +18,7 @@
     @endif
     <title>{{ $config->nome_sistema }} — Loja</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@@4.2.0/fonts/remixicon.css">
+    <link rel="stylesheet" href="{{ "https://cdn.jsdelivr.net/npm/remixicon" }}@4.2.0/fonts/remixicon.css">
     <style>
         :root {
             --cor-primaria: {{ $config->cor_primaria }};
