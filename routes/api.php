@@ -45,7 +45,9 @@ Route::prefix('v1')->group(function () {
     });
 
     // PDV externo (autenticado por X-Pdv-Secret). Limite configurável por
-    // empresa (rate_limit_pdv) — default 60/min/IP.
+    // empresa (rate_limit_pdv) — default 60/min/IP. Empresa em
+    // bloqueio_total é rejeitada DENTRO do PdvController::lancarCompra
+    // (não tem auth — empresa vem do slug).
     Route::middleware('empresa.throttle:pdv')->group(function () {
         Route::post('pdv/{slug}/compras', [PdvController::class, 'lancarCompra']);
     });
@@ -104,7 +106,9 @@ Route::middleware(['auth:sanctum', 'throttle:api-cliente'])->prefix('v1')->group
             ->middleware(['throttle:indicacao', 'verifica.pagamento.api']);
 
         Route::get('pesquisas/minha-geral', [PesquisaController::class, 'minhaGeral']);
-        Route::post('pesquisas', [PesquisaController::class, 'responder']);
+        // Pesquisa credita pontos — bloqueia em empresa inadimplente.
+        Route::post('pesquisas', [PesquisaController::class, 'responder'])
+            ->middleware('verifica.pagamento.api');
         Route::put('pesquisas/{id}', [PesquisaController::class, 'atualizar']);
         Route::delete('pesquisas/{id}', [PesquisaController::class, 'excluir']);
 

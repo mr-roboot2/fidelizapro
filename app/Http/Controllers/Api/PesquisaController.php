@@ -29,6 +29,15 @@ class PesquisaController extends Controller
 
     public function responder(Request $request, PontuacaoService $pontuacaoService)
     {
+        try {
+            return $this->responderInterno($request, $pontuacaoService);
+        } catch (\DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
+    protected function responderInterno(Request $request, PontuacaoService $pontuacaoService)
+    {
         $cliente = $request->user();
 
         // Escopa exists: à empresa do cliente. Sem isso, o cliente podia
@@ -65,11 +74,29 @@ class PesquisaController extends Controller
             }
         }
 
-        // Wrap em transaction + recheck DENTRO do lock pra fechar race:
-        // 2 requests paralelas liam jaCreditouAvaliacao=false simultaneamente
-        // (antes do primeiro UPDATE em transacoes_pontos commitar) e ambas
-        // creditavam pontos.
+        // Wrap em transaction + lock no Cliente ANTES do create:
+        // 2 requests paralelas com mesmo compra_id liam jaRespondida=false
+        // pré-transaction, ambas entravam aqui e criavam pesquisas duplicadas
+        // (dados sujos). Agora o lock ordena e o recheck dentro do lock
+        // detecta o duplicate. O `Pesquisa::create` só roda depois do recheck.
         [$pesquisa, $pontosCreditados] = DB::transaction(function () use ($cliente, $dados, $pontuacaoService) {
+            // Lock no Cliente serializa o fluxo inteiro de avaliação por cliente.
+            \App\Models\Cliente::lockForUpdate()->findOrFail($cliente->id);
+
+            // Recheck dentro do lock: se outra request paralela já criou
+            // pesquisa pra esse compra_id (ou geral), aborta.
+            if (!empty($dados['compra_id'])) {
+                if (Pesquisa::where('cliente_id', $cliente->id)
+                    ->where('compra_id', $dados['compra_id'])->exists()) {
+                    throw new \DomainException('Você já avaliou esta compra.');
+                }
+            } else {
+                if (Pesquisa::where('cliente_id', $cliente->id)
+                    ->whereNull('compra_id')->exists()) {
+                    throw new \DomainException('Você já tem uma avaliação geral. Use Editar para alterar.');
+                }
+            }
+
             $pesquisa = Pesquisa::create([
                 'empresa_id' => $cliente->empresa_id,
                 'cliente_id' => $cliente->id,
@@ -78,11 +105,6 @@ class PesquisaController extends Controller
                 'comentario' => $dados['comentario'] ?? null,
                 'respostas'  => $dados['respostas'] ?? null,
             ]);
-
-            // Lock no Cliente serializa o crédito por avaliação. lockForUpdate
-            // re-busca o cliente do DB e impede que outra transação rode
-            // creditar() em paralelo até a nossa terminar.
-            \App\Models\Cliente::lockForUpdate()->findOrFail($cliente->id);
 
             $pontosCreditados = 0;
             $jaCreditouAvaliacao = TransacaoPonto::where('cliente_id', $cliente->id)

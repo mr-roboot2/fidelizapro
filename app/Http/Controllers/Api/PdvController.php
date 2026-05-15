@@ -27,6 +27,15 @@ class PdvController extends Controller
             return response()->json(['message' => 'Credencial PDV inválida.'], 401);
         }
 
+        // Empresa em bloqueio_total (cancelada/30+ dias atraso): PDV
+        // externo NÃO deve continuar creditando pontos/cashback.
+        if ($empresa->statusInadimplencia() === 'bloqueio_total') {
+            return response()->json([
+                'error' => 'empresa_bloqueada',
+                'message' => 'Esta empresa está com a assinatura bloqueada.',
+            ], 403);
+        }
+
         $dados = $request->validate([
             'telefone' => 'nullable|string|max:20',
             'cpf' => 'nullable|string|max:14',

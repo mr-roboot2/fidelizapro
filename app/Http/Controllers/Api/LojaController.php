@@ -25,7 +25,14 @@ class LojaController extends Controller
 
         $user = User::where('email', $dados['email'])->where('ativo', true)->first();
 
-        if (!$user || !Hash::check($dados['password'], $user->password)) {
+        // Anti-timing: roda Hash::check sempre, mesmo sem user, contra hash
+        // dummy. Antes, email inexistente respondia ~5ms vs ~200ms quando
+        // existia — atacante enumerava operadores via timing.
+        $hashAlvo = $user?->password
+            ?? '$2y$12$invalidinvalidinvalidinvalidinvalidinvalidinvalidinvali';
+        $senhaConfere = Hash::check($dados['password'], $hashAlvo);
+
+        if (!$user || !$senhaConfere) {
             throw ValidationException::withMessages(['email' => 'E-mail ou senha inválidos.']);
         }
 
@@ -160,13 +167,19 @@ class LojaController extends Controller
                     'origem'    => 'manual',
                 ]);
             });
+        } catch (\DomainException $e) {
+            // Erros de domínio (saldo insuficiente, regra de negócio) são
+            // seguros pra exibir — mensagem já é genérica.
+            return response()->json(['message' => $e->getMessage()], 422);
         } catch (Throwable $e) {
             Log::error('[Loja PWA] Falha ao lançar compra: '.$e->getMessage(), [
                 'cliente_id' => $cliente->id,
                 'valor'      => $valorBruto,
                 'trace'      => $e->getTraceAsString(),
             ]);
-            return response()->json(['message' => 'Erro ao registrar compra: '.$e->getMessage()], 500);
+            // Mensagem genérica pro cliente — não vaza nome de coluna,
+            // SQL state, etc. Detalhes ficam no log.
+            return response()->json(['message' => 'Não foi possível registrar a compra. Tente novamente.'], 500);
         }
 
         $cliente->refresh();
