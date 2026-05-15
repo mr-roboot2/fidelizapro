@@ -39,13 +39,14 @@
             </div>
             <div class="divide-y divide-slate-100 max-h-80 overflow-y-auto">
                 @foreach ($vencidas as $c)
-                    <a href="{{ route('super.cobrancas.show', $c) }}" class="p-3 hover:bg-slate-50 flex items-center justify-between gap-2 text-sm">
-                        <div class="min-w-0 flex-1">
+                    <div class="p-3 hover:bg-slate-50 flex items-center justify-between gap-2 text-sm">
+                        <a href="{{ route('super.cobrancas.show', $c) }}" class="min-w-0 flex-1">
                             <p class="font-medium text-slate-700 truncate">{{ $c->empresa->nome ?? '—' }}</p>
-                            <p class="text-xs text-rose-600">venceu {{ $c->vencimento->format('d/m/Y') }} ({{ $c->vencimento->diffInDays(now()) }}d atrás)</p>
-                        </div>
+                            <p class="text-xs text-rose-600">venceu {{ $c->vencimento->format('d/m/Y') }} ({{ (int) $c->vencimento->diffInDays(now()) }}d atrás)</p>
+                        </a>
                         <p class="font-semibold whitespace-nowrap">R$ {{ number_format($c->valor, 2, ',', '.') }}</p>
-                    </a>
+                        @include('super.assinaturas._cobranca_actions', ['c' => $c])
+                    </div>
                 @endforeach
             </div>
         </div>
@@ -62,13 +63,14 @@
             </div>
             <div class="divide-y divide-slate-100 max-h-80 overflow-y-auto">
                 @foreach ($proximasCobrancas as $c)
-                    <a href="{{ route('super.cobrancas.show', $c) }}" class="p-3 hover:bg-slate-50 flex items-center justify-between gap-2 text-sm">
-                        <div class="min-w-0 flex-1">
+                    <div class="p-3 hover:bg-slate-50 flex items-center justify-between gap-2 text-sm">
+                        <a href="{{ route('super.cobrancas.show', $c) }}" class="min-w-0 flex-1">
                             <p class="font-medium text-slate-700 truncate">{{ $c->empresa->nome ?? '—' }}</p>
-                            <p class="text-xs text-slate-500">vence {{ $c->vencimento->format('d/m/Y') }} (em {{ now()->diffInDays($c->vencimento) }}d)</p>
-                        </div>
+                            <p class="text-xs text-slate-500">vence {{ $c->vencimento->format('d/m/Y') }} (em {{ (int) now()->diffInDays($c->vencimento) }}d)</p>
+                        </a>
                         <p class="font-semibold whitespace-nowrap">R$ {{ number_format($c->valor, 2, ',', '.') }}</p>
-                    </a>
+                        @include('super.assinaturas._cobranca_actions', ['c' => $c])
+                    </div>
                 @endforeach
             </div>
         </div>

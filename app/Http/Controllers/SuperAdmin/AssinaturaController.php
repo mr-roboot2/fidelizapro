@@ -119,4 +119,48 @@ class AssinaturaController extends Controller
         $service->cancelar($assinatura);
         return back()->with('success', 'Assinatura cancelada.');
     }
+
+    public function cancelarCobranca(Cobranca $cobranca)
+    {
+        if ($cobranca->status === 'pago') {
+            return back()->with('error', 'Não dá pra cancelar uma cobrança já paga.');
+        }
+        if ($cobranca->status === 'cancelado') {
+            return back()->with('error', 'Cobrança já está cancelada.');
+        }
+
+        $cancelouNoGateway = true;
+        if ($cobranca->gateway_charge_id) {
+            try {
+                $cancelouNoGateway = (new \App\Services\Pagamento\AsaasGateway())->cancelarCobranca($cobranca);
+            } catch (\Throwable $e) {
+                $cancelouNoGateway = false;
+            }
+        }
+
+        $cobranca->update(['status' => 'cancelado']);
+
+        $msg = $cancelouNoGateway
+            ? 'Cobrança cancelada (inclusive no gateway).'
+            : 'Cobrança cancelada localmente, mas falhou no gateway — verifique manualmente no painel Asaas.';
+        return back()->with($cancelouNoGateway ? 'success' : 'error', $msg);
+    }
+
+    public function excluirCobranca(Cobranca $cobranca)
+    {
+        if ($cobranca->status === 'pago') {
+            return back()->with('error', 'Não dá pra excluir uma cobrança já paga (use cancelar/estornar).');
+        }
+
+        if ($cobranca->gateway_charge_id) {
+            try {
+                (new \App\Services\Pagamento\AsaasGateway())->cancelarCobranca($cobranca);
+            } catch (\Throwable $e) {
+                // segue com a exclusão local mesmo se gateway falhar
+            }
+        }
+
+        $cobranca->delete();
+        return redirect()->route('super.assinaturas.index')->with('success', 'Cobrança excluída.');
+    }
 }

@@ -136,6 +136,7 @@ Route::middleware(['admin.auth', 'empresa.scope', 'verifica.pagamento'])->prefix
     Route::get('atividade-suspeita', [AtividadeSuspeitaController::class, 'index'])->name('atividade.suspeita');
     Route::get('meu-plano', [MeuPlanoController::class, 'index'])->name('meu-plano.index');
     Route::post('meu-plano/upgrade/{plano}', [MeuPlanoController::class, 'upgrade'])->name('meu-plano.upgrade');
+    Route::post('meu-plano/cobrancas/{cobranca}/cancelar', [MeuPlanoController::class, 'cancelarCobranca'])->name('meu-plano.cobrancas.cancelar');
 
     Route::prefix('setup')->name('setup.')->group(function () {
         Route::get('/', [SetupController::class, 'index'])->name('index');
@@ -258,6 +259,8 @@ Route::middleware(['super.auth'])->prefix('super')->name('super.')->group(functi
     Route::post('cobrancas/{cobranca}/marcar-paga', [SuperAssinaturaController::class, 'marcarPaga'])->name('cobrancas.marcar-paga');
     Route::get('cobrancas/{cobranca}', [SuperAssinaturaController::class, 'cobrancaShow'])->name('cobrancas.show');
     Route::post('cobrancas/{cobranca}/regerar-pix', [SuperAssinaturaController::class, 'regerarPix'])->name('cobrancas.regerar-pix');
+    Route::post('cobrancas/{cobranca}/cancelar', [SuperAssinaturaController::class, 'cancelarCobranca'])->name('cobrancas.cancelar');
+    Route::delete('cobrancas/{cobranca}', [SuperAssinaturaController::class, 'excluirCobranca'])->name('cobrancas.excluir');
 });
 
 // Webhooks de gateway de pagamento (públicos)

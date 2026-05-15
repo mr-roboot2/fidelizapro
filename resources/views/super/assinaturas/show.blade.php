@@ -72,18 +72,34 @@
                                 ])>{{ $c->status === 'pendente' && $c->vencida() ? 'Vencido' : ucfirst($c->status) }}</span>
                             </td>
                             <td class="p-3 text-xs">{{ $c->pago_em?->format('d/m/Y') ?? '—' }}</td>
-                            <td class="p-3 text-center text-xs space-x-1">
-                                @if ($c->link_pagamento)
-                                    <a href="{{ $c->link_pagamento }}" target="_blank" class="text-rose-600">
-                                        <i class="ri-link"></i> Pagar
-                                    </a>
-                                @endif
-                                @if ($c->status === 'pendente')
-                                    <form action="{{ route('super.cobrancas.marcar-paga', $c) }}" method="POST" class="inline">
-                                        @csrf
-                                        <button class="text-emerald-600">Marcar paga</button>
-                                    </form>
-                                @endif
+                            <td class="p-3 text-center text-xs">
+                                <div class="inline-flex items-center gap-2">
+                                    @if ($c->link_pagamento)
+                                        <a href="{{ $c->link_pagamento }}" target="_blank" class="text-rose-600">
+                                            <i class="ri-link"></i> Pagar
+                                        </a>
+                                    @endif
+                                    @if ($c->status === 'pendente')
+                                        <form action="{{ route('super.cobrancas.marcar-paga', $c) }}" method="POST" class="inline">
+                                            @csrf
+                                            <button class="text-emerald-600">Marcar paga</button>
+                                        </form>
+                                    @endif
+                                    @if ($c->status !== 'pago')
+                                        @if ($c->status !== 'cancelado')
+                                            <form action="{{ route('super.cobrancas.cancelar', $c) }}" method="POST" class="inline"
+                                                  onsubmit="return confirm('Cancelar essa cobrança?')">
+                                                @csrf
+                                                <button title="Cancelar" class="text-amber-600"><i class="ri-close-circle-line"></i></button>
+                                            </form>
+                                        @endif
+                                        <form action="{{ route('super.cobrancas.excluir', $c) }}" method="POST" class="inline"
+                                              onsubmit="return confirm('EXCLUIR essa cobrança permanentemente?')">
+                                            @csrf @method('DELETE')
+                                            <button title="Excluir" class="text-rose-600"><i class="ri-delete-bin-line"></i></button>
+                                        </form>
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                     @empty

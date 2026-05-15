@@ -102,6 +102,26 @@ class AsaasGateway implements GatewayInterface
         return $r->successful();
     }
 
+    /**
+     * Cancela uma cobrança individual no Asaas (DELETE /payments/{id}).
+     * Só funciona pra cobranças não pagas. Retorna true se cancelou ou se nem
+     * existia gateway_charge_id pra cancelar.
+     */
+    public function cancelarCobranca(Cobranca $cobranca): bool
+    {
+        if (!$cobranca->gateway_charge_id) return true;
+        $r = $this->http()->delete($this->baseUrl().'/payments/'.$cobranca->gateway_charge_id);
+        if (!$r->successful()) {
+            Log::warning('Asaas: falha ao cancelar cobrança', [
+                'cobranca_id' => $cobranca->id,
+                'gateway_id'  => $cobranca->gateway_charge_id,
+                'body'        => $r->body(),
+            ]);
+            return false;
+        }
+        return true;
+    }
+
     public function processarWebhook(array $payload): array
     {
         // Asaas webhook: { event: 'PAYMENT_RECEIVED', payment: { id, externalReference } }

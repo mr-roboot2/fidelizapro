@@ -28,7 +28,7 @@
                 <p class="text-sm text-slate-600 mt-1">
                     Vence em {{ $cobranca->vencimento->format('d/m/Y') }}
                     @if ($cobranca->vencida())
-                        <span class="text-rose-600 font-semibold">(vencida há {{ $cobranca->vencimento->diffInDays(now()) }} dia(s))</span>
+                        <span class="text-rose-600 font-semibold">(vencida há {{ (int) $cobranca->vencimento->diffInDays(now()) }} dia(s))</span>
                     @endif
                 </p>
             </div>
@@ -82,6 +82,22 @@
                       onsubmit="return confirm('Regerar PIX?')">@csrf
                     <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold">
                         <i class="ri-refresh-line"></i> Regerar PIX
+                    </button>
+                </form>
+            @endif
+            @if ($cobranca->status !== 'pago')
+                @if ($cobranca->status !== 'cancelado')
+                    <form action="{{ route('super.cobrancas.cancelar', $cobranca) }}" method="POST"
+                          onsubmit="return confirm('Cancelar essa cobrança? Tenta cancelar também no Asaas.')">@csrf
+                        <button class="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-semibold">
+                            <i class="ri-close-circle-line"></i> Cancelar cobrança
+                        </button>
+                    </form>
+                @endif
+                <form action="{{ route('super.cobrancas.excluir', $cobranca) }}" method="POST"
+                      onsubmit="return confirm('EXCLUIR essa cobrança permanentemente? Essa ação não pode ser desfeita.')">@csrf @method('DELETE')
+                    <button class="px-4 py-2 bg-rose-600 text-white rounded-lg text-sm font-semibold">
+                        <i class="ri-delete-bin-line"></i> Excluir
                     </button>
                 </form>
             @endif

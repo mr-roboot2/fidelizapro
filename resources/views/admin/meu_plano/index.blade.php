@@ -81,12 +81,21 @@
                                 @endif
                             </p>
                         </div>
-                        @if ($cobrancaPendente->link_pagamento)
-                            <a href="{{ $cobrancaPendente->link_pagamento }}" target="_blank"
-                               class="px-3 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-semibold">
-                                <i class="ri-external-link-line"></i> Abrir no gateway
-                            </a>
-                        @endif
+                        <div class="flex items-center gap-2">
+                            @if ($cobrancaPendente->link_pagamento)
+                                <a href="{{ $cobrancaPendente->link_pagamento }}" target="_blank"
+                                   class="px-3 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-semibold">
+                                    <i class="ri-external-link-line"></i> Abrir no gateway
+                                </a>
+                            @endif
+                            <form action="{{ route('admin.meu-plano.cobrancas.cancelar', $cobrancaPendente) }}" method="POST"
+                                  onsubmit="return confirm('Cancelar essa cobrança pendente? Isso libera você pra trocar de plano.')">
+                                @csrf
+                                <button class="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded-lg text-xs font-semibold">
+                                    <i class="ri-close-circle-line"></i> Cancelar cobrança
+                                </button>
+                            </form>
+                        </div>
                     </div>
 
                     @if (!empty($meta['pix_qr_code']) || !empty($meta['pix_copia_cola']))
@@ -165,7 +174,7 @@
         </div>
 
         @if ($cobrancas->isNotEmpty())
-            <div class="bg-white rounded-xl shadow-sm p-6">
+            <div class="bg-white rounded-xl shadow-sm p-6" x-data="{ aberto: null }">
                 <h2 class="font-semibold text-lg mb-4">Histórico de cobranças</h2>
                 <table class="w-full text-sm">
                     <thead class="text-xs text-slate-500 border-b">
@@ -173,7 +182,8 @@
                             <th class="py-2">Vencimento</th>
                             <th>Valor</th>
                             <th>Status</th>
-                            <th class="text-right">Pago em</th>
+                            <th>Pago em</th>
+                            <th class="text-right"></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -192,13 +202,121 @@
                                         {{ $c->status === 'pendente' && $c->vencida() ? 'Vencida' : ucfirst($c->status) }}
                                     </span>
                                 </td>
-                                <td class="text-right text-xs text-slate-500">
+                                <td class="text-xs text-slate-500">
                                     {{ $c->pago_em?->format('d/m/Y H:i') ?? '—' }}
+                                </td>
+                                <td class="text-right">
+                                    <button type="button" @click="aberto = {{ $c->id }}"
+                                            class="text-xs text-indigo-600 hover:text-indigo-700 font-semibold">
+                                        <i class="ri-eye-line"></i> Ver
+                                    </button>
                                 </td>
                             </tr>
                         @endforeach
                     </tbody>
                 </table>
+
+                {{-- Modais (um por cobrança) --}}
+                @foreach ($cobrancas as $c)
+                    @php $m = $c->meta ?? []; @endphp
+                    <div x-show="aberto === {{ $c->id }}" x-cloak
+                         x-transition.opacity
+                         @keydown.escape.window="aberto = null"
+                         class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
+                        <div @click.away="aberto = null"
+                             class="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+                            <div class="p-5 border-b border-slate-200 flex items-start justify-between">
+                                <div>
+                                    <p class="text-xs text-slate-500 uppercase tracking-wider">Cobrança #{{ $c->id }}</p>
+                                    <p class="text-2xl font-bold mt-1">R$ {{ number_format($c->valor, 2, ',', '.') }}</p>
+                                    <p class="text-sm text-slate-600 mt-1">
+                                        Vence em {{ $c->vencimento->format('d/m/Y') }}
+                                        @if ($c->vencida())
+                                            <span class="text-rose-600 font-semibold">(vencida)</span>
+                                        @endif
+                                    </p>
+                                </div>
+                                <button type="button" @click="aberto = null" class="text-slate-400 hover:text-slate-600">
+                                    <i class="ri-close-line text-2xl"></i>
+                                </button>
+                            </div>
+
+                            <div class="p-5 space-y-4">
+                                <div class="grid grid-cols-2 gap-3 text-sm">
+                                    <div>
+                                        <p class="text-xs text-slate-500">Status</p>
+                                        <p class="font-medium">{{ $c->status === 'pendente' && $c->vencida() ? 'Vencida' : ucfirst($c->status) }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-slate-500">Forma de pagamento</p>
+                                        <p class="font-medium">{{ ucfirst($c->forma_pagamento ?? '—') }}</p>
+                                    </div>
+                                    @if ($c->pago_em)
+                                        <div>
+                                            <p class="text-xs text-slate-500">Pago em</p>
+                                            <p class="font-medium text-emerald-700">{{ $c->pago_em->format('d/m/Y H:i') }}</p>
+                                        </div>
+                                    @endif
+                                </div>
+
+                                @if ($c->status === 'pago')
+                                    <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 text-sm">
+                                        <i class="ri-checkbox-circle-fill"></i> Pagamento confirmado.
+                                    </div>
+                                @elseif ($c->status === 'cancelado')
+                                    <div class="p-4 bg-slate-100 border border-slate-200 rounded-lg text-slate-600 text-sm">
+                                        <i class="ri-close-circle-line"></i> Esta cobrança foi cancelada.
+                                    </div>
+                                @elseif (!empty($m['pix_qr_code']) || !empty($m['pix_qr_code_svg']) || !empty($m['pix_copia_cola']))
+                                    <div x-data="{ copiado: false }" class="space-y-3">
+                                        @if (!empty($m['pix_qr_code']))
+                                            <div class="bg-white p-3 rounded-lg border border-slate-200 inline-block w-48 mx-auto">
+                                                <img src="data:image/png;base64,{{ $m['pix_qr_code'] }}" alt="QR PIX" class="w-full">
+                                            </div>
+                                        @elseif (!empty($m['pix_qr_code_svg']))
+                                            <div class="bg-white p-3 rounded-lg border border-slate-200 inline-block w-48 mx-auto [&_svg]:w-full">{!! $m['pix_qr_code_svg'] !!}</div>
+                                        @endif
+                                        @if (!empty($m['pix_copia_cola']))
+                                            <div>
+                                                <p class="text-xs text-slate-600 font-semibold uppercase tracking-wider mb-1">PIX copia e cola</p>
+                                                <textarea readonly rows="3" x-ref="codigo{{ $c->id }}"
+                                                          class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono">{{ $m['pix_copia_cola'] }}</textarea>
+                                                <button type="button"
+                                                        @click="$refs['codigo{{ $c->id }}'].select(); document.execCommand('copy'); copiado=true; setTimeout(()=>copiado=false,2000)"
+                                                        class="mt-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold">
+                                                    <i class="ri-file-copy-line"></i>
+                                                    <span x-text="copiado ? 'Copiado!' : 'Copiar código'"></span>
+                                                </button>
+                                            </div>
+                                        @endif
+                                    </div>
+                                @else
+                                    <div class="p-4 bg-slate-50 border border-slate-200 rounded-lg text-slate-600 text-sm">
+                                        <i class="ri-loader-line"></i> Sem PIX gerado ainda pra essa cobrança.
+                                    </div>
+                                @endif
+
+                                <div class="flex flex-wrap gap-2 pt-3 border-t border-slate-100">
+                                    @if ($c->link_pagamento)
+                                        <a href="{{ $c->link_pagamento }}" target="_blank"
+                                           class="px-3 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-semibold">
+                                            <i class="ri-external-link-line"></i> Abrir no gateway
+                                        </a>
+                                    @endif
+                                    @if ($c->status === 'pendente')
+                                        <form action="{{ route('admin.meu-plano.cobrancas.cancelar', $c) }}" method="POST"
+                                              onsubmit="return confirm('Cancelar essa cobrança pendente?')">
+                                            @csrf
+                                            <button class="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded-lg text-xs font-semibold">
+                                                <i class="ri-close-circle-line"></i> Cancelar cobrança
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
             </div>
         @endif
     </div>

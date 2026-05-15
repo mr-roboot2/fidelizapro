@@ -43,6 +43,21 @@ class MeuPlanoController extends Controller
             return back()->with('error', 'Plano indisponível.');
         }
 
+        // Bloqueio: não permite trocar de plano se houver cobrança pendente
+        $assinaturaExistente = $empresa->assinatura;
+        if ($assinaturaExistente) {
+            $pendente = $assinaturaExistente->cobrancas()
+                ->where('status', 'pendente')->first();
+            if ($pendente) {
+                return back()->with('error',
+                    'Você tem uma cobrança pendente de R$ '
+                    .number_format($pendente->valor, 2, ',', '.')
+                    .' (vence '.$pendente->vencimento->format('d/m/Y')
+                    .'). Pague ou cancele essa cobrança antes de trocar de plano.'
+                );
+            }
+        }
+
         $cobranca = DB::transaction(function () use ($empresa, $plano) {
             $assinatura = Assinatura::firstOrNew(
                 ['empresa_id' => $empresa->id],
@@ -73,5 +88,34 @@ class MeuPlanoController extends Controller
 
         return redirect()->route('admin.meu-plano.index')
             ->with('success', "Plano {$plano->nome} ativado! Pague o PIX abaixo pra liberar.");
+    }
+
+    /**
+     * Permite que o próprio lojista cancele uma cobrança pendente da
+     * assinatura dele. Necessário pra destravar troca de plano se o lojista
+     * gerou uma cobrança por engano. Tenta cancelar no gateway também.
+     */
+    public function cancelarCobranca(Cobranca $cobranca)
+    {
+        $empresa = Auth::user()->empresa;
+        abort_unless($cobranca->empresa_id === $empresa->id, 403);
+
+        if ($cobranca->status === 'pago') {
+            return back()->with('error', 'Não dá pra cancelar uma cobrança já paga.');
+        }
+        if ($cobranca->status === 'cancelado') {
+            return back()->with('error', 'Cobrança já está cancelada.');
+        }
+
+        if ($cobranca->gateway_charge_id) {
+            try {
+                (new \App\Services\Pagamento\AsaasGateway())->cancelarCobranca($cobranca);
+            } catch (\Throwable $e) {
+                // segue mesmo se falhar no gateway
+            }
+        }
+        $cobranca->update(['status' => 'cancelado']);
+
+        return back()->with('success', 'Cobrança cancelada. Agora você pode trocar de plano.');
     }
 }
