@@ -17,7 +17,10 @@ use App\Http\Controllers\Api\SorteioController;
 
 // Públicas
 Route::prefix('v1')->group(function () {
-    Route::get('empresas', [EmpresaController::class, 'publicas']);
+    // Listagem pública de empresas ativas. Throttle dedicado pra impedir
+    // scraping da base de clientes do SaaS por concorrentes.
+    Route::get('empresas', [EmpresaController::class, 'publicas'])
+        ->middleware('throttle:empresas-publica');
     Route::get('qr/{codigo}', [ClienteController::class, 'qr'])->where('codigo', '[A-Za-z0-9-]+');
 
     // Auth com throttle anti brute-force. Limite por empresa (campo
@@ -67,8 +70,12 @@ Route::middleware(['auth:sanctum', 'throttle:api-cliente'])->prefix('v1')->group
         Route::get('loja/me', [LojaController::class, 'me']);
         Route::get('loja/clientes', [LojaController::class, 'buscarClientes']);
         Route::get('loja/clientes/qr/{codigo}', [LojaController::class, 'clientePorQr'])->where('codigo', '[A-Za-z0-9-]+');
-        Route::post('loja/clientes', [LojaController::class, 'criarCliente']);
-        Route::post('loja/compras', [LojaController::class, 'lancarCompra']);
+        // Rotas que mexem em estado financeiro do programa: bloqueadas
+        // quando empresa está inadimplente em bloqueio_total.
+        Route::middleware('verifica.pagamento.api')->group(function () {
+            Route::post('loja/clientes', [LojaController::class, 'criarCliente']);
+            Route::post('loja/compras', [LojaController::class, 'lancarCompra']);
+        });
     });
 
     // Demais rotas exigem senha definitiva. Cliente com senha_temporaria=true
@@ -87,13 +94,14 @@ Route::middleware(['auth:sanctum', 'throttle:api-cliente'])->prefix('v1')->group
         Route::get('recompensas', [RecompensaController::class, 'catalogo']);
 
         Route::get('resgates', [ResgateController::class, 'index']);
-        Route::post('resgates', [ResgateController::class, 'solicitar']);
+        Route::post('resgates', [ResgateController::class, 'solicitar'])
+            ->middleware('verifica.pagamento.api');
 
         Route::get('indicacoes', [IndicacaoController::class, 'index']);
         // Rate limit dedicado pra spam (10/min/usuario). Antifraude adicional
         // (dedupe, anti-self, cap diário) está no controller.
         Route::post('indicacoes', [IndicacaoController::class, 'indicar'])
-            ->middleware('throttle:indicacao');
+            ->middleware(['throttle:indicacao', 'verifica.pagamento.api']);
 
         Route::get('pesquisas/minha-geral', [PesquisaController::class, 'minhaGeral']);
         Route::post('pesquisas', [PesquisaController::class, 'responder']);
@@ -101,12 +109,14 @@ Route::middleware(['auth:sanctum', 'throttle:api-cliente'])->prefix('v1')->group
         Route::delete('pesquisas/{id}', [PesquisaController::class, 'excluir']);
 
         Route::get('parceiros', [BeneficioController::class, 'listar']);
-        Route::post('parceiros/cupons', [BeneficioController::class, 'gerarCupom']);
+        Route::post('parceiros/cupons', [BeneficioController::class, 'gerarCupom'])
+            ->middleware('verifica.pagamento.api');
         Route::get('parceiros/meus-cupons', [BeneficioController::class, 'meusCupons']);
 
         Route::get('cliente/roleta/status', [RoletaController::class, 'status']);
         // Limita 30 giros/min por usuário — evita farm automatizado de prêmios
-        Route::post('cliente/roleta/girar', [RoletaController::class, 'girar'])->middleware('throttle:30,1');
+        Route::post('cliente/roleta/girar', [RoletaController::class, 'girar'])
+            ->middleware(['throttle:30,1', 'verifica.pagamento.api']);
 
         Route::get('cliente/sorteios', [SorteioController::class, 'index']);
         Route::get('cliente/sorteios/historico', [SorteioController::class, 'historico']);

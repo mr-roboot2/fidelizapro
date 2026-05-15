@@ -40,10 +40,13 @@ class AppServiceProvider extends ServiceProvider
         // Adicional: max 20 tentativas falhas por email/15min, independente
         // do IP — fecha o brute force distribuído.
         RateLimiter::for('admin-login', function (Request $request) {
-            $email = (string) $request->input('email', '');
+            // Normaliza: trim + lowercase. Sem trim, atacante variava
+            // 'admin@x.com', 'admin@x.com ', 'admin@x.com\t' → keys
+            // distintos no throttle → multiplicador de tentativas.
+            $email = strtolower(trim((string) $request->input('email', '')));
             return [
-                Limit::perMinute(5)->by(strtolower($email).'|'.$request->ip()),
-                Limit::perMinutes(15, 20)->by('email:'.strtolower($email)),
+                Limit::perMinute(5)->by($email.'|'.$request->ip()),
+                Limit::perMinutes(15, 20)->by('email:'.$email),
             ];
         });
 
@@ -86,6 +89,23 @@ class AppServiceProvider extends ServiceProvider
             return $request->user()
                 ? Limit::perMinute(5)->by('user:'.$request->user()->id)
                 : Limit::perMinute(2)->by('ip:'.$request->ip());
+        });
+
+        // validar-cupom: tela pública /parceiro/{secret}/validar. Sem
+        // throttle, atacante com `secret` conhecido (visualmente público
+        // em URLs impressas pra clientes apresentarem) brute-forceava
+        // códigos curtos. 20/min/IP é folgado pra parceiro real e barra
+        // automação.
+        RateLimiter::for('validar-cupom', function (Request $request) {
+            return Limit::perMinute(20)->by('ip:'.$request->ip());
+        });
+
+        // empresas-publica: listagem GET /api/v1/empresas. Não-autenticada.
+        // Concorrente automatizava scraping da base de clientes do SaaS.
+        // 10/min/IP atende uso legítimo (PWA carrega 1× pra mostrar
+        // catálogo) e impede scraping em larga escala.
+        RateLimiter::for('empresas-publica', function (Request $request) {
+            return Limit::perMinute(10)->by('ip:'.$request->ip());
         });
 
         // Mesma instância pra start e finish, pra preservar o array static

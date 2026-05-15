@@ -47,7 +47,10 @@ use App\Http\Controllers\SuperAdmin\WhatsappLogController as SuperWhatsappLogCon
 use App\Http\Controllers\SuperAdmin\TutorialController as SuperTutorialController;
 use App\Http\Controllers\Admin\AjudaController;
 
-// Instalador web (auto-trava após concluir via storage/installed.lock)
+// Instalador web (auto-trava após concluir via storage/installed.lock).
+// `/install/complete` agora está DENTRO do gate — antes ficava acessível
+// publicamente após instalação e o template renderizava `base_path()`,
+// vazando o caminho absoluto do servidor pra ataques orientados.
 Route::middleware('install.gate')->prefix('install')->group(function () {
     Route::get('/',          [InstallController::class, 'welcome']);
     Route::get('/database',  [InstallController::class, 'database']);
@@ -57,8 +60,8 @@ Route::middleware('install.gate')->prefix('install')->group(function () {
     Route::get('/admin',     [InstallController::class, 'admin']);
     Route::post('/admin',    [InstallController::class, 'adminStore']);
     Route::post('/admin/skip', [InstallController::class, 'adminSkip']);
+    Route::get('/complete',  [InstallController::class, 'complete']);
 });
-Route::get('/install/complete', [InstallController::class, 'complete']);
 
 Route::get('/', fn() => redirect()->route('admin.login'));
 
@@ -219,9 +222,13 @@ Route::middleware(['admin.auth', 'empresa.scope', 'verifica.pagamento'])->prefix
     });
 });
 
-// Tela pública de validação de cupom (parceiro acessa por URL com secret)
+// Tela pública de validação de cupom (parceiro acessa por URL com secret).
+// Throttle dedicado: sem ele, atacante que conhece o `secret` (visualmente
+// público em URLs impressas) brute-forceava códigos curtos.
 Route::get('/parceiro/{secret}', [ParceiroPublicoController::class, 'tela'])->name('parceiro.publico');
-Route::post('/parceiro/{secret}/validar', [ParceiroPublicoController::class, 'validar'])->name('parceiro.validar');
+Route::post('/parceiro/{secret}/validar', [ParceiroPublicoController::class, 'validar'])
+    ->middleware('throttle:validar-cupom')
+    ->name('parceiro.validar');
 
 // Sair de impersonação: precisa rodar com o usuário admin impersonado
 // (nesse contexto Auth::user() NÃO é super, então não pode estar no grupo super.auth).
@@ -305,22 +312,10 @@ Route::middleware(['super.auth'])->prefix('super')->name('super.')->group(functi
     Route::delete('cobrancas/{cobranca}', [SuperAssinaturaController::class, 'excluirCobranca'])->name('cobrancas.excluir');
 });
 
-// Webhooks de gateway de pagamento (públicos)
-// IMPORTANTE: o `{gateway}` é restrito ao set explícito de provedores ativos.
-// Sem o where(), qualquer slug != 'asaas' cai no MockGateway (default do
-// AssinaturaService::gateway) e marca cobrança como paga SEM autenticação.
-Route::post('/webhook/pagamento/{gateway}', [WebhookPagamentoController::class, 'receber'])
-    ->where('gateway', 'asaas')
-    ->name('webhook.pagamento');
-// Preferência: token via header X-Pix-Webhook-Token (não vaza em access.log).
-// Variante com token no path mantida pra retrocompat com gateways que só
-// aceitam URL — desencorajada na config do super admin.
-Route::post('/webhook/pix', [\App\Http\Controllers\PixWebhookController::class, 'receber'])->name('webhook.pix');
-Route::post('/webhook/pix/{token}', [\App\Http\Controllers\PixWebhookController::class, 'receber'])->name('webhook.pix.legacy');
-
-// Webhook WhatsApp Cloud API (Meta) — global (uma WABA pra todas empresas)
-Route::get('/webhook/whatsapp/meta',  [WhatsappWebhookController::class, 'verificar'])->name('webhook.whatsapp.verificar');
-Route::post('/webhook/whatsapp/meta', [WhatsappWebhookController::class, 'receber'])->name('webhook.whatsapp.receber');
+// Webhooks foram movidos para routes/webhooks.php pra rodarem FORA do
+// middleware group `web` (sem StartSession/EncryptCookies/etc) — antes,
+// cada POST forjado criava session file em storage/framework/sessions
+// antes do controller responder 401, virando vetor de DoS por inode.
 
 // Mock de pagamento (apenas ambiente local — bloqueado em produção via
 // abort_unless dentro do controller também).
