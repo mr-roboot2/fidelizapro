@@ -21,50 +21,11 @@ class WebhookPagamentoController extends Controller
     public function receber(Request $request, string $gateway, AssinaturaService $service)
     {
         if ($gateway === 'asaas') {
-            $esperado = (string) (ConfiguracaoSistema::instancia()->asaas_webhook_token ?? '');
-            // Asaas envia o token no header "asaas-access-token". Aceitamos
-            // também algumas variações comuns por segurança (alguns proxies
-            // normalizam underscores; raros gateways usam outro nome).
-            $recebido = (string) (
-                $request->header('asaas-access-token')
-                ?? $request->header('Asaas-Access-Token')
-                ?? $request->header('access_token')
-                ?? ''
-            );
-
-            if (!$esperado || !hash_equals($esperado, $recebido)) {
-                // Diagnóstico: aponta a primeira posição que diverge e os
-                // códigos ASCII de cada lado (ajuda identificar invisíveis,
-                // encoding ou char alterado). Não loga o token completo.
-                $diffPos = -1; $ordEsp = null; $ordRec = null;
-                $tam = max(strlen($esperado), strlen($recebido));
-                for ($i = 0; $i < $tam; $i++) {
-                    $a = $esperado[$i] ?? '';
-                    $b = $recebido[$i] ?? '';
-                    if ($a !== $b) {
-                        $diffPos = $i;
-                        $ordEsp  = $a === '' ? null : ord($a);
-                        $ordRec  = $b === '' ? null : ord($b);
-                        break;
-                    }
-                }
-
+            $esperado = ConfiguracaoSistema::instancia()->asaas_webhook_token;
+            $recebido = (string) $request->header('asaas-access-token', '');
+            if (!$esperado || !hash_equals((string) $esperado, $recebido)) {
                 Log::warning("[Webhook {$gateway}] Assinatura inválida", [
-                    'ip'              => $request->ip(),
-                    'header_presente' => $recebido !== '',
-                    'esperado_len'    => strlen($esperado),
-                    'recebido_len'    => strlen($recebido),
-                    'esperado_prefix' => substr($esperado, 0, 4),
-                    'recebido_prefix' => substr($recebido, 0, 4),
-                    'esperado_suffix' => substr($esperado, -4),
-                    'recebido_suffix' => substr($recebido, -4),
-                    'diff_pos'        => $diffPos,
-                    'esperado_ord'    => $ordEsp,
-                    'recebido_ord'    => $ordRec,
-                    // md5 dos tokens permite comparar sem expor — se os md5
-                    // forem iguais, hash_equals deveria passar (é bug nosso).
-                    'esperado_md5'    => md5($esperado),
-                    'recebido_md5'    => md5($recebido),
+                    'ip' => $request->ip(),
                 ]);
                 return response()->json(['error' => 'invalid_signature'], 401);
             }
