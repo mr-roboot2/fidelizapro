@@ -8,7 +8,7 @@
         <link rel="icon" href="{{ $sistema->faviconUrl() }}">
     @endif
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@@4.2.0/fonts/remixicon.css">
     @php($_captcha = app(\App\Services\CaptchaService::class))
     @if ($_captcha->isEnabled())
         <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
