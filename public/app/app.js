@@ -75,14 +75,14 @@ function confirmar(opts = {}) {
                     <div class="w-12 h-12 rounded-2xl ${corIcone} flex items-center justify-center text-2xl shrink-0" style="${styleIcone}">
                         <i class="${icone}"></i>
                     </div>
-                    <h3 class="font-bold text-lg text-slate-800 flex-1">${titulo}</h3>
+                    <h3 class="font-bold text-lg text-slate-800 flex-1">${esc(titulo)}</h3>
                 </div>
                 <div class="px-6 pb-5 pt-3">
-                    <p class="text-sm text-slate-600 leading-relaxed whitespace-pre-line">${mensagem}</p>
+                    <p class="text-sm text-slate-600 leading-relaxed whitespace-pre-line">${esc(mensagem)}</p>
                 </div>
                 <div class="px-4 pb-5 sm:pb-4 flex gap-2" style="padding-bottom: max(1rem, env(safe-area-inset-bottom));">
-                    <button data-acao="cancelar" class="flex-1 py-3 rounded-xl bg-slate-100 text-slate-700 font-semibold text-sm hover:bg-slate-200 active:bg-slate-300 transition">${cancelar}</button>
-                    <button data-acao="ok" class="flex-1 py-3 rounded-xl text-white font-semibold text-sm hover:opacity-90 active:opacity-80 transition shadow" style="${styleBtn}">${ok}</button>
+                    <button data-acao="cancelar" class="flex-1 py-3 rounded-xl bg-slate-100 text-slate-700 font-semibold text-sm hover:bg-slate-200 active:bg-slate-300 transition">${esc(cancelar)}</button>
+                    <button data-acao="ok" class="flex-1 py-3 rounded-xl text-white font-semibold text-sm hover:opacity-90 active:opacity-80 transition shadow" style="${styleBtn}">${esc(ok)}</button>
                 </div>
             </div>
         `;
@@ -778,7 +778,7 @@ async function telaRegistrar() {
                 <i class="ri-arrow-left-line"></i> Voltar
             </button>
             <h1 class="text-2xl font-bold">Criar conta</h1>
-            <p class="text-white/80 text-sm">${e?.nome || 'FidelizaPro'}</p>
+            <p class="text-white/80 text-sm">${e?.nome ? esc(e.nome) : 'FidelizaPro'}</p>
         </div>
         <form id="form-reg" class="p-6 -mt-4 bg-white rounded-t-3xl space-y-5 flex-1 overflow-y-auto">
 
@@ -994,7 +994,7 @@ async function telaHome() {
                         </svg>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <p class="font-semibold text-slate-700">${roleta.nome || 'Roleta da sorte'}</p>
+                        <p class="font-semibold text-slate-700">${roleta.nome ? esc(roleta.nome) : 'Roleta da sorte'}</p>
                         <p class="text-xs text-slate-400">Compre e ganhe giros</p>
                     </div>
                     <i class="ri-arrow-right-s-line text-slate-300 text-xl"></i>
@@ -1015,16 +1015,16 @@ async function telaHome() {
             let icone = '🎟️', titulo, sub, cor = 'border-amber-200';
             if (venceu) {
                 icone = '🏆'; cor = 'border-amber-400 bg-amber-50';
-                titulo = `Você venceu "${venceu.nome}"!`;
+                titulo = `Você venceu "${esc(venceu.nome)}"!`;
                 sub = 'Toque pra ver o resultado';
             } else if (temBilhetes) {
                 titulo = `Você tem ${sorteiosData.total_bilhetes_ativos} ${sorteiosData.total_bilhetes_ativos === 1 ? 'bilhete' : 'bilhetes'} ativos`;
                 sub = 'Toque pra ver os sorteios';
             } else if (sorteioAtivo) {
-                titulo = `Sorteio "${sorteioAtivo.nome}" tá rolando!`;
+                titulo = `Sorteio "${esc(sorteioAtivo.nome)}" tá rolando!`;
                 sub = 'Gire a roleta pra ganhar bilhetes';
             } else if (sortidoComBilh) {
-                titulo = `Resultado de "${sortidoComBilh.nome}" saiu`;
+                titulo = `Resultado de "${esc(sortidoComBilh.nome)}" saiu`;
                 sub = 'Toque pra ver';
             } else {
                 icone = '<i class="ri-history-fill text-slate-500"></i>'; cor = 'border-slate-200';
@@ -1271,10 +1271,10 @@ async function telaQrCode() {
                 <div class="bg-white p-3 rounded-2xl border-2 border-slate-100 inline-block">
                     <img src="${API}/qr/${codigo}" width="240" height="240" alt="QR Code" class="block">
                 </div>
-                <p class="mt-4 font-mono text-base font-semibold text-slate-700 tracking-wider">${STATE.cliente.codigo_qr}</p>
+                <p class="mt-4 font-mono text-base font-semibold text-slate-700 tracking-wider">${esc(STATE.cliente.codigo_qr)}</p>
                 <div class="mt-4 pt-4 border-t border-slate-100">
-                    <p class="font-semibold text-slate-800">${STATE.cliente.nome}</p>
-                    <p class="text-sm text-slate-500">${STATE.cliente.telefone}</p>
+                    <p class="font-semibold text-slate-800">${esc(STATE.cliente.nome)}</p>
+                    <p class="text-sm text-slate-500">${esc(STATE.cliente.telefone)}</p>
                 </div>
             </div>
 
@@ -1441,7 +1441,7 @@ async function telaEditarPerfil() {
                     <label class="block text-sm font-medium text-slate-700 mb-1.5">Nome completo</label>
                     <div class="relative">
                         <i class="ri-user-line absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                        <input name="nome" value="${(c.nome || '').replace(/"/g, '&quot;')}" required
+                        <input name="nome" value="${escAttr(c.nome || '')}" required
                                class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-slate-400 focus:outline-none transition">
                     </div>
                 </div>
@@ -1450,7 +1450,7 @@ async function telaEditarPerfil() {
                     <label class="block text-sm font-medium text-slate-700 mb-1.5">Telefone</label>
                     <div class="relative">
                         <i class="ri-smartphone-line absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                        <input value="${c.telefone || ''}" disabled
+                        <input value="${escAttr(c.telefone || '')}" disabled
                                class="w-full pl-11 pr-4 py-3 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 cursor-not-allowed">
                     </div>
                     <p class="text-[11px] text-slate-500 mt-1 ml-1">O telefone não pode ser alterado por aqui</p>
@@ -1460,7 +1460,7 @@ async function telaEditarPerfil() {
                     <label class="block text-sm font-medium text-slate-700 mb-1.5">E-mail</label>
                     <div class="relative">
                         <i class="ri-mail-line absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                        <input name="email" type="email" value="${(c.email || '').replace(/"/g, '&quot;')}" placeholder="seu@email.com"
+                        <input name="email" type="email" value="${escAttr(c.email || '')}" placeholder="seu@email.com"
                                class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-slate-400 focus:outline-none transition">
                     </div>
                 </div>
@@ -1469,7 +1469,7 @@ async function telaEditarPerfil() {
                     <label class="block text-sm font-medium text-slate-700 mb-1.5">CPF</label>
                     <div class="relative">
                         <i class="ri-id-card-line absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                        <input name="cpf" value="${c.cpf || ''}" placeholder="000.000.000-00" maxlength="14"
+                        <input name="cpf" value="${escAttr(c.cpf || '')}" placeholder="000.000.000-00" maxlength="14"
                                class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-slate-400 focus:outline-none transition">
                     </div>
                 </div>
@@ -1478,7 +1478,7 @@ async function telaEditarPerfil() {
                     <label class="block text-sm font-medium text-slate-700 mb-1.5">Data de nascimento</label>
                     <div class="relative">
                         <i class="ri-cake-2-line absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 z-10"></i>
-                        <input name="data_nascimento" type="date" value="${c.data_nascimento || ''}"
+                        <input name="data_nascimento" type="date" value="${escAttr(c.data_nascimento || '')}"
                                class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-slate-400 focus:outline-none transition text-slate-700">
                     </div>
                     <p class="text-[11px] text-slate-500 mt-1 ml-1">Receba um presente no seu aniversário</p>
@@ -1780,12 +1780,12 @@ async function telaExtrato() {
                 <i class="ri-arrow-${credito ? 'up' : 'down'}-line ${credito ? 'text-emerald-600' : 'text-rose-600'}"></i>
             </div>
             <div class="flex-1 min-w-0">
-                <p class="font-medium text-slate-800 text-sm">${m.descricao || (credito ? 'Crédito' : 'Débito')}</p>
+                <p class="font-medium text-slate-800 text-sm">${m.descricao ? esc(m.descricao) : (credito ? 'Crédito' : 'Débito')}</p>
                 <div class="flex flex-wrap gap-x-2 text-[11px] text-slate-500 mt-0.5">
-                    <span>${m.data}</span>
+                    <span>${esc(m.data)}</span>
                     <span class="px-1.5 rounded bg-slate-100 text-slate-600">${esc(m.origem)}</span>
                 </div>
-                <p class="text-[11px] text-slate-400 mt-0.5">Saldo após: ${saldoFmt}${pendente ? ` &middot; <span class="text-amber-600">libera em ${m.liberado_em}</span>` : ''}</p>
+                <p class="text-[11px] text-slate-400 mt-0.5">Saldo após: ${saldoFmt}${pendente ? ` &middot; <span class="text-amber-600">libera em ${esc(m.liberado_em)}</span>` : ''}</p>
             </div>
             <p class="font-bold text-sm whitespace-nowrap ${credito ? 'text-emerald-600' : 'text-rose-600'}">${sinal}${valor}</p>
         </li>`;
@@ -1906,8 +1906,8 @@ async function telaResgates() {
                             <i class="ri-gift-line text-xl" style="color:${cor}"></i>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <p class="font-semibold text-slate-800 truncate">${r.recompensa}</p>
-                            <p class="text-xs text-slate-500 mt-0.5">${r.data}</p>
+                            <p class="font-semibold text-slate-800 truncate">${esc(r.recompensa)}</p>
+                            <p class="text-xs text-slate-500 mt-0.5">${esc(r.data)}</p>
                             <div class="flex items-center gap-2 mt-2 flex-wrap">
                                 <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 ${info.cls}">
                                     <i class="${info.icon}"></i> ${info.label}
@@ -1923,11 +1923,11 @@ async function telaResgates() {
                     ${utilizavel ? `
                         <div class="mt-3 p-3 ${alertaPrazo ? 'bg-rose-50 border-rose-300' : 'bg-amber-50 border-amber-300'} border-2 border-dashed rounded-xl text-center">
                             <p class="text-[11px] ${alertaPrazo ? 'text-rose-700' : 'text-amber-700'} mb-1 uppercase tracking-wider">Apresente no caixa</p>
-                            <p class="text-2xl font-bold font-mono tracking-wider ${alertaPrazo ? 'text-rose-800' : 'text-amber-800'}">${r.codigo}</p>
+                            <p class="text-2xl font-bold font-mono tracking-wider ${alertaPrazo ? 'text-rose-800' : 'text-amber-800'}">${esc(r.codigo)}</p>
                             ${alertaPrazo ? `<p class="text-[11px] text-rose-600 mt-1">⏰ ${diasRestantes === 0 ? 'Expira hoje!' : `Resta${diasRestantes === 1 ? '' : 'm'} ${diasRestantes} dia${diasRestantes === 1 ? '' : 's'}`}</p>` : ''}
                         </div>
                     ` : `
-                        <p class="text-[11px] font-mono text-slate-400 mt-2">${r.codigo}</p>
+                        <p class="text-[11px] font-mono text-slate-400 mt-2">${esc(r.codigo)}</p>
                     `}
                 </div>
             `}).join('')}
@@ -1953,7 +1953,7 @@ async function telaIndicacoes() {
         <div class="px-4 -mt-6">
             <div class="bg-white rounded-2xl shadow-md border border-slate-100 p-5 text-center">
                 <p class="text-[11px] text-slate-500 uppercase tracking-wider">Seu código de indicação</p>
-                <p class="text-3xl font-bold font-mono my-2 tracking-widest" style="color:${cor}">${data.codigo_indicacao}</p>
+                <p class="text-3xl font-bold font-mono my-2 tracking-widest" style="color:${cor}">${esc(data.codigo_indicacao)}</p>
                 <div class="flex gap-2 mt-3">
                     <button data-link="${escAttr(data.link)}" onclick="copiarLink(this.dataset.link)" class="flex-1 py-2.5 rounded-xl border-2 font-semibold text-sm flex items-center justify-center gap-1.5 hover:bg-slate-50 transition" style="border-color:${escAttr(cor)}; color:${escAttr(cor)}">
                         <i class="ri-link"></i> Copiar link
@@ -2100,7 +2100,7 @@ async function telaPesquisa() {
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1.5">Comentário (opcional)</label>
                     <textarea name="comentario" rows="5" maxlength="1000" placeholder="Conte como foi sua experiência..."
-                              class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-slate-400 focus:outline-none transition">${comentarioInicial.replace(/</g, '&lt;')}</textarea>
+                              class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-slate-400 focus:outline-none transition">${esc(comentarioInicial)}</textarea>
                 </div>
 
                 ${existente ? `
@@ -2227,7 +2227,7 @@ async function telaParceiros() {
                                         ${b.condicoes ? `<p class="text-[11px] text-slate-500 mt-1.5 flex items-start gap-1"><i class="ri-information-line mt-0.5 flex-shrink-0"></i> <span>${esc(b.condicoes)}</span></p>` : ''}
                                         ${b.valido_ate ? `<p class="text-[11px] text-slate-500 mt-1"><i class="ri-time-line"></i> Válido até ${esc(b.valido_ate)}</p>` : ''}
                                     </div>
-                                    <button onclick="ativarCupom(${b.id}, '${b.nome.replace(/'/g, "\\'")}')"
+                                    <button data-beneficio-id="${b.id}" data-beneficio-nome="${escAttr(b.nome)}" onclick="ativarCupom(this.dataset.beneficioId, this.dataset.beneficioNome)"
                                             ${!b.pode_resgatar ? 'disabled' : ''}
                                             class="text-xs px-3 py-2 rounded-xl text-white font-semibold disabled:bg-slate-300 disabled:text-slate-500 shrink-0 hover:shadow-md transition"
                                             style="${b.pode_resgatar ? `background:linear-gradient(135deg,${cor},${corSec})` : ''}">
@@ -2303,11 +2303,11 @@ async function telaMeusCupons() {
                 <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden">
                     <div class="p-4 flex items-start gap-3">
                         ${c.parceiro_logo
-                            ? `<img src="${c.parceiro_logo}" class="w-11 h-11 rounded-xl object-cover flex-shrink-0">`
+                            ? `<img src="${escAttr(c.parceiro_logo)}" class="w-11 h-11 rounded-xl object-cover flex-shrink-0">`
                             : `<div class="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 flex-shrink-0"><i class="ri-store-2-line text-xl"></i></div>`}
                         <div class="flex-1 min-w-0">
-                            <p class="font-semibold text-slate-800 truncate">${c.beneficio}</p>
-                            <p class="text-xs text-slate-500">${c.parceiro}</p>
+                            <p class="font-semibold text-slate-800 truncate">${esc(c.beneficio)}</p>
+                            <p class="text-xs text-slate-500">${esc(c.parceiro)}</p>
                         </div>
                         <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 ${info.cls} flex-shrink-0">
                             <i class="${info.icon}"></i> ${info.label}
@@ -2316,13 +2316,13 @@ async function telaMeusCupons() {
                     ${c.utilizavel ? `
                         <div class="mx-4 mb-4 p-4 bg-amber-50 border-2 border-dashed border-amber-300 rounded-xl text-center">
                             <p class="text-[11px] text-amber-700 mb-1.5 uppercase tracking-wider font-semibold">Apresente no parceiro</p>
-                            <p class="text-3xl font-bold font-mono tracking-wider text-amber-800">${c.codigo}</p>
-                            <p class="text-[11px] text-amber-600 mt-2"><i class="ri-time-line"></i> Válido até ${c.valido_ate}</p>
+                            <p class="text-3xl font-bold font-mono tracking-wider text-amber-800">${esc(c.codigo)}</p>
+                            <p class="text-[11px] text-amber-600 mt-2"><i class="ri-time-line"></i> Válido até ${esc(c.valido_ate)}</p>
                         </div>
                     ` : ''}
                     ${c.usado_em ? `
                         <div class="mx-4 mb-4 px-3 py-2 bg-slate-50 rounded-lg text-xs text-slate-500 text-center">
-                            <i class="ri-checkbox-circle-line"></i> Usado em ${c.usado_em}
+                            <i class="ri-checkbox-circle-line"></i> Usado em ${esc(c.usado_em)}
                         </div>
                     ` : ''}
                 </div>
@@ -2506,18 +2506,18 @@ function roletaModalResultado(resultado, premio) {
             <div class="p-8 text-center text-white" style="background:${cor}">
                 <div class="text-6xl mb-3 animate-bounce">${icone}</div>
                 <h2 class="text-2xl font-bold">${titulo}</h2>
-                <p class="text-white/95 mt-2 text-sm">${resultado.mensagem}</p>
+                <p class="text-white/95 mt-2 text-sm">${esc(resultado.mensagem)}</p>
                 ${resultado.expira_em ? `
                     <p class="text-white/80 text-xs mt-3 inline-flex items-center gap-1 bg-white/15 px-3 py-1 rounded-full">
-                        <i class="ri-time-line"></i> Apresente o código até ${resultado.expira_em}
+                        <i class="ri-time-line"></i> Apresente o código até ${esc(resultado.expira_em)}
                     </p>` : ''}
                 ${resultado.sorteio_nome ? `
                     <p class="text-white/80 text-xs mt-3 inline-flex items-center gap-1 bg-white/15 px-3 py-1 rounded-full">
-                        <i class="ri-calendar-event-line"></i> Sorteio "${resultado.sorteio_nome}" — ${resultado.sorteio_data}
+                        <i class="ri-calendar-event-line"></i> Sorteio "${esc(resultado.sorteio_nome)}" — ${esc(resultado.sorteio_data)}
                     </p>
                     ${resultado.bilhete_numero ? `
                         <p class="text-white mt-3 inline-flex items-center gap-2 bg-white/25 backdrop-blur px-4 py-2 rounded-full font-bold">
-                            <i class="ri-ticket-2-fill"></i> Seu bilhete: ${resultado.bilhete_numero}
+                            <i class="ri-ticket-2-fill"></i> Seu bilhete: ${esc(resultado.bilhete_numero)}
                         </p>` : ''}
                 ` : ''}
             </div>
@@ -2575,7 +2575,7 @@ async function telaRoleta() {
                 <button onclick="showScreen('home')" class="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
                     <i class="ri-arrow-left-line text-xl"></i>
                 </button>
-                <h1 class="text-lg font-bold">${status.nome}</h1>
+                <h1 class="text-lg font-bold">${esc(status.nome)}</h1>
                 <div class="w-10"></div>
             </div>
             <div class="mt-4 bg-white/15 backdrop-blur rounded-2xl border border-white/20 p-3 flex items-center justify-around">
@@ -2627,8 +2627,8 @@ async function telaRoleta() {
                 <div class="space-y-1">
                     ${premios.map(p => `
                         <div class="flex items-center gap-2 text-sm">
-                            <span class="inline-block w-3 h-3 rounded-full" style="background:${p.cor}"></span>
-                            <span class="text-slate-700">${p.label}</span>
+                            <span class="inline-block w-3 h-3 rounded-full" style="background:${escAttr(p.cor)}"></span>
+                            <span class="text-slate-700">${esc(p.label)}</span>
                         </div>
                     `).join('')}
                 </div>
@@ -2757,12 +2757,12 @@ async function telaSorteios() {
                         <div class="grid grid-cols-2 gap-2 mt-3 text-xs">
                             <div class="bg-slate-50 rounded-lg p-2">
                                 <p class="text-slate-400 text-[10px] uppercase tracking-wider">Sorteio</p>
-                                <p class="font-semibold text-slate-700">${s.data_sorteio}</p>
+                                <p class="font-semibold text-slate-700">${esc(s.data_sorteio)}</p>
                             </div>
                             <div class="bg-slate-50 rounded-lg p-2">
                                 <p class="text-slate-400 text-[10px] uppercase tracking-wider">Prêmio</p>
                                 <p class="font-semibold text-slate-700 truncate">
-                                    ${s.recompensa || (s.valor_estimado ? 'R$ ' + Number(s.valor_estimado).toFixed(2).replace('.', ',') : '—')}
+                                    ${s.recompensa ? esc(s.recompensa) : (s.valor_estimado ? 'R$ ' + Number(s.valor_estimado).toFixed(2).replace('.', ',') : '—')}
                                 </p>
                             </div>
                         </div>

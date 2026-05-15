@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Instalação') - FidelizaPro</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css"
+          integrity="sha384-iQsqPTYE5qeK3iqIgOg+9OkOd3S5YmN2EZEmGlhqDbxd7ZaJRWiNiBoxet73ers7"
+          crossorigin="anonymous">
 </head>
 <body class="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 min-h-screen p-4 py-8">
     <div class="max-w-3xl mx-auto">

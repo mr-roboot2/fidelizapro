@@ -4,6 +4,7 @@ namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ConfiguracaoSistema;
+use App\Support\HtmlSanitizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -66,6 +67,13 @@ class ConfiguracaoSistemaController extends Controller
         // Campos cifrados: se vazio no form, mantém o valor atual no banco.
         if (empty($dados['pix_api_key'])) unset($dados['pix_api_key']);
         if (empty($dados['asaas_webhook_token'])) unset($dados['asaas_webhook_token']);
+
+        // rodape_html é renderizado com {!! !!} na página pública de documento
+        // legal — sem sanitize, super admin com conta comprometida injeta
+        // <script> que rouba sessão de qualquer visitante.
+        if (isset($dados['rodape_html'])) {
+            $dados['rodape_html'] = HtmlSanitizer::sanitize($dados['rodape_html']);
+        }
 
         if ($request->boolean('remover_logo') && $config->logo) {
             Storage::disk('public')->delete($config->logo);

@@ -18,8 +18,12 @@
     @endif
     <title>{{ $empresa->nome }} — Fidelidade</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js" defer></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"
+            integrity="sha384-dJoZvqZ3TiAEwy1FdO5TyONGMocmQHh3kGq9CJA4aszVAQZ4M7pGc9eE0HEWFxZH"
+            crossorigin="anonymous" defer></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css"
+          integrity="sha384-iQsqPTYE5qeK3iqIgOg+9OkOd3S5YmN2EZEmGlhqDbxd7ZaJRWiNiBoxet73ers7"
+          crossorigin="anonymous">
     <link rel="stylesheet" href="{{ asset('app/style.css') }}?v={{ @filemtime(public_path('app/style.css')) }}">
     <style>
         :root {

@@ -7,8 +7,12 @@
     <title>@yield('title', 'Painel') - {{ $sistema->nome_sistema ?? 'FidelizaPro' }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"
+            integrity="sha384-e6nUZLBkQ86NJ6TVVKAeSaK8jWa3NhkYWZFomE39AvDbQWeie9PlQqM3pmYW5d1g"
+            crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css"
+          integrity="sha384-iQsqPTYE5qeK3iqIgOg+9OkOd3S5YmN2EZEmGlhqDbxd7ZaJRWiNiBoxet73ers7"
+          crossorigin="anonymous">
     <style>
         [x-cloak]{display:none!important}
         /* Scrollbar discreto no sidebar escuro */

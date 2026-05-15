@@ -228,6 +228,10 @@ async function carregarJsQR() {
     return new Promise((resolve, reject) => {
         const s = document.createElement('script');
         s.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';
+        // SRI: hash da versão fixa (1.4.0). Se a CDN servir um arquivo
+        // adulterado/diferente, o browser recusa a executar.
+        s.integrity = 'sha384-W2NuU3G6FG6sJoodX1Hu9yXdOwovEEp9Kc+2R8JkKqsgyvN+wG/phtv307EqHXtM';
+        s.crossOrigin = 'anonymous';
         s.onload = resolve;
         s.onerror = reject;
         document.head.appendChild(s);

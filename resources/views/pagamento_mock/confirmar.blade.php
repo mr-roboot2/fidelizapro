@@ -5,7 +5,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Pagamento — {{ $sistema->nome_sistema ?? 'FidelizaPro' }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css"
+          integrity="sha384-iQsqPTYE5qeK3iqIgOg+9OkOd3S5YmN2EZEmGlhqDbxd7ZaJRWiNiBoxet73ers7"
+          crossorigin="anonymous">
 </head>
 <body class="bg-slate-100 min-h-screen p-4">
     <div class="max-w-md mx-auto py-8">

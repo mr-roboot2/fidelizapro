@@ -67,7 +67,9 @@
 </div>
 
 @if ($tutoriais->count() > 1)
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"
+        integrity="sha384-c81fS1FUTNDEFNJedwRhPOUSu95Q7PxLpvVZXrdrF9g9PPeEtdhbwyGa/48ga/tQ"
+        crossorigin="anonymous"></script>
 <script>
 (function () {
     const lista = document.getElementById('lista-tutoriais');

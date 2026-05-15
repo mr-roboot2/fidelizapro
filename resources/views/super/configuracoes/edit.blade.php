@@ -317,10 +317,12 @@
                     <p class="text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
                         <i class="ri-link"></i> URL do webhook (configure no painel do gateway)
                     </p>
-                    <code class="block text-xs font-mono bg-white border border-slate-200 px-3 py-2 rounded break-all">{{ url('/webhook/pix/'.$config->pix_webhook_token) }}</code>
+                    <code class="block text-xs font-mono bg-white border border-slate-200 px-3 py-2 rounded break-all">{{ url('/webhook/pix') }}</code>
                     <p class="text-[11px] text-slate-500 mt-2">
-                        O Asaas avisa essa URL quando o cliente paga. Configure como webhook de eventos
-                        <code>PAYMENT_RECEIVED</code> e <code>PAYMENT_CONFIRMED</code>.
+                        <strong>Recomendado:</strong> envie o token no header <code>X-Pix-Webhook-Token</code> (token aparece em logs se ficar na URL).<br>
+                        Token atual: <code class="text-[11px]">{{ str_repeat('•', max(0, strlen($config->pix_webhook_token) - 6)) . substr($config->pix_webhook_token, -6) }}</code>
+                        <a href="javascript:navigator.clipboard.writeText({{ json_encode($config->pix_webhook_token) }})" class="text-indigo-600 hover:underline">copiar</a>.<br>
+                        Se o gateway só aceitar token na URL: <code class="text-[11px]">{{ url('/webhook/pix/SEU_TOKEN') }}</code>
                     </p>
                 </div>
             @endif

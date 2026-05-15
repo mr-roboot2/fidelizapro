@@ -8,7 +8,13 @@
         <link rel="icon" href="{{ $sistema->faviconUrl() }}">
     @endif
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css"
+          integrity="sha384-iQsqPTYE5qeK3iqIgOg+9OkOd3S5YmN2EZEmGlhqDbxd7ZaJRWiNiBoxet73ers7"
+          crossorigin="anonymous">
+    @php($_captcha = app(\App\Services\CaptchaService::class))
+    @if ($_captcha->isEnabled())
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    @endif
 </head>
 @php
     $cor1 = $sistema->cor_primaria ?? '#6366f1';
@@ -55,6 +61,9 @@
                 <input type="checkbox" name="remember" class="rounded border-slate-300 text-indigo-600">
                 <span class="ml-2">Lembrar de mim</span>
             </label>
+            @if ($_captcha->isEnabled())
+                <div class="cf-turnstile" data-sitekey="{{ $_captcha->siteKey() }}"></div>
+            @endif
             <button type="submit" class="w-full text-white py-2.5 rounded-lg font-semibold transition hover:opacity-95" style="background:linear-gradient(135deg,{{ $cor1 }},{{ $cor2 }})">
                 Entrar
             </button>
