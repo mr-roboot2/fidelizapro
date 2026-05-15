@@ -33,16 +33,38 @@ class WebhookPagamentoController extends Controller
             );
 
             if (!$esperado || !hash_equals($esperado, $recebido)) {
+                // Diagnóstico: aponta a primeira posição que diverge e os
+                // códigos ASCII de cada lado (ajuda identificar invisíveis,
+                // encoding ou char alterado). Não loga o token completo.
+                $diffPos = -1; $ordEsp = null; $ordRec = null;
+                $tam = max(strlen($esperado), strlen($recebido));
+                for ($i = 0; $i < $tam; $i++) {
+                    $a = $esperado[$i] ?? '';
+                    $b = $recebido[$i] ?? '';
+                    if ($a !== $b) {
+                        $diffPos = $i;
+                        $ordEsp  = $a === '' ? null : ord($a);
+                        $ordRec  = $b === '' ? null : ord($b);
+                        break;
+                    }
+                }
+
                 Log::warning("[Webhook {$gateway}] Assinatura inválida", [
                     'ip'              => $request->ip(),
                     'header_presente' => $recebido !== '',
                     'esperado_len'    => strlen($esperado),
                     'recebido_len'    => strlen($recebido),
-                    // Primeiros 4 chars não vazam secret mas ajudam a confirmar
-                    // se é problema de digitação/encoding.
                     'esperado_prefix' => substr($esperado, 0, 4),
                     'recebido_prefix' => substr($recebido, 0, 4),
-                    'headers_keys'    => array_keys($request->headers->all()),
+                    'esperado_suffix' => substr($esperado, -4),
+                    'recebido_suffix' => substr($recebido, -4),
+                    'diff_pos'        => $diffPos,
+                    'esperado_ord'    => $ordEsp,
+                    'recebido_ord'    => $ordRec,
+                    // md5 dos tokens permite comparar sem expor — se os md5
+                    // forem iguais, hash_equals deveria passar (é bug nosso).
+                    'esperado_md5'    => md5($esperado),
+                    'recebido_md5'    => md5($recebido),
                 ]);
                 return response()->json(['error' => 'invalid_signature'], 401);
             }
