@@ -129,6 +129,10 @@
                                 @endif
                             </div>
                         </div>
+                    @elseif ($cobrancaPendente->link_pagamento)
+                        <p class="text-xs text-amber-700">
+                            <i class="ri-information-line"></i> QR PIX não disponível — use o botão "Abrir no gateway" ao lado pra pagar.
+                        </p>
                     @else
                         <p class="text-xs text-slate-500"><i class="ri-loader-line animate-spin"></i> Aguardando geração do código PIX...</p>
                     @endif
@@ -289,6 +293,11 @@
                                                 </button>
                                             </div>
                                         @endif
+                                    </div>
+                                @elseif ($c->link_pagamento)
+                                    <div class="p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm">
+                                        <i class="ri-information-line"></i> QR PIX não disponível, mas a cobrança foi criada.
+                                        Use o botão <strong>"Abrir no gateway"</strong> abaixo pra pagar.
                                     </div>
                                 @else
                                     <div class="p-4 bg-slate-50 border border-slate-200 rounded-lg text-slate-600 text-sm">

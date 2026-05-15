@@ -111,7 +111,18 @@
         @if ($cobranca->status === 'pago')
             <p class="text-emerald-600"><i class="ri-checkbox-circle-fill text-2xl"></i> Pago</p>
         @elseif (empty($meta['pix_qr_code']) && empty($meta['pix_qr_code_svg']))
-            <p class="text-sm text-slate-500"><i class="ri-loader-line"></i> Sem PIX gerado. Clique em "Regerar PIX" no painel ao lado.</p>
+            @if ($cobranca->link_pagamento)
+                <div class="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm">
+                    <i class="ri-information-line"></i> QR PIX indisponível (ex.: chave PIX não cadastrada na conta do gateway).
+                    A cobrança foi criada — pague abaixo via "Abrir no gateway" ou clique em "Regerar PIX".
+                </div>
+                <a href="{{ $cobranca->link_pagamento }}" target="_blank"
+                   class="mt-3 inline-block px-3 py-2 bg-slate-900 text-white rounded-lg text-xs font-semibold">
+                    <i class="ri-external-link-line"></i> Abrir no gateway
+                </a>
+            @else
+                <p class="text-sm text-slate-500"><i class="ri-loader-line"></i> Sem PIX gerado. Clique em "Regerar PIX" no painel ao lado.</p>
+            @endif
         @else
             <div x-data="{ copiado: false }">
                 @if ($pixExpirado)

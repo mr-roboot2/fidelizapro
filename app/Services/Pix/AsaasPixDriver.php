@@ -6,6 +6,7 @@ use App\Models\Cobranca;
 use App\Models\ConfiguracaoSistema;
 use App\Models\Empresa;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 /**
@@ -52,12 +53,19 @@ class AsaasPixDriver implements PixDriverInterface
         }
         $payment = $r->json();
 
-        // 2. Busca QR Code
+        // 2. Busca QR Code — falha aqui é degradação parcial (ex.: conta sandbox
+        // sem chave PIX cadastrada). Mantemos link_pagamento + payment id pra
+        // que o lojista ainda consiga pagar via checkout web do Asaas.
         $qr = $this->client()->get("/payments/{$payment['id']}/pixQrCode");
-        if (!$qr->successful()) {
-            throw new RuntimeException('Falha ao gerar QR Asaas: '.$qr->body());
+        $qrData = [];
+        if ($qr->successful()) {
+            $qrData = $qr->json();
+        } else {
+            Log::warning('[Asaas] Falha ao gerar QR PIX — payment criado, link salvo', [
+                'payment_id' => $payment['id'],
+                'body'       => $qr->body(),
+            ]);
         }
-        $qrData = $qr->json();
 
         return [
             'qr_code_base64'      => $qrData['encodedImage'] ?? null,
