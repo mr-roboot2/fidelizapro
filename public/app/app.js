@@ -262,7 +262,7 @@ async function telaEscolherEmpresa() {
     document.documentElement.style.setProperty('--cor-secundaria', s.cor_secundaria);
 
     const cardEmpresa = (e) => `
-        <button onclick='selecionarEmpresa(${JSON.stringify(e).replace(/</g, "\\u003c")})'
+        <button data-empresa="${escAttr(JSON.stringify(e))}" onclick="selecionarEmpresa(JSON.parse(this.dataset.empresa))"
                 class="empresa-card w-full flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-2xl text-left transition-all hover:shadow-lg hover:-translate-y-0.5 hover:border-transparent active:scale-[0.98]">
             ${e.logo
                 ? `<img src="${escAttr(e.logo)}" class="w-14 h-14 rounded-2xl object-contain bg-slate-50 flex-shrink-0 ring-1 ring-slate-100">`
@@ -848,7 +848,7 @@ async function telaRegistrar() {
                         <label class="block text-sm font-medium text-slate-700 mb-1.5">Código de indicação</label>
                         <div class="relative">
                             <i class="ri-gift-2-line absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                            <input name="codigo_indicacao" value="${ref}" placeholder="Quem te indicou?"
+                            <input name="codigo_indicacao" value="${escAttr(ref)}" placeholder="Quem te indicou?"
                                    class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-slate-400 focus:outline-none transition">
                         </div>
                     </div>

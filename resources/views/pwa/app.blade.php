@@ -60,8 +60,11 @@
 </button>
 
 <script>
-// White label: empresa pré-carregada do servidor
-window.PRELOAD_EMPRESA = {!! json_encode([
+// White label: empresa pré-carregada do servidor.
+// Usa Js::from() (Laravel 8+) que escapa `<`, `>`, `&`, `'`, `"` corretamente
+// pra contexto de script. Antes era json_encode sem flags — admin podia
+// salvar `nome = '</script><script>...</script>'` e injetar JS no PWA.
+window.PRELOAD_EMPRESA = {!! \Illuminate\Support\Js::from([
     'id' => $empresa->id,
     'slug' => $empresa->slug,
     'nome' => $empresa->nome,
