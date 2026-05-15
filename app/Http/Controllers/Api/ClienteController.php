@@ -235,6 +235,12 @@ class ClienteController extends Controller
         // Revoga TODOS os tokens (inclusive o atual) — força re-login pós troca
         $cliente->tokens()->delete();
 
+        // Rotaciona remember_token caso o Cliente use "remember me" em algum
+        // futuro fluxo. Hoje a PWA não usa, mas defesa em profundidade.
+        if (\Illuminate\Support\Facades\Schema::hasColumn('clientes', 'remember_token')) {
+            $cliente->forceFill(['remember_token' => \Illuminate\Support\Str::random(60)])->save();
+        }
+
         return response()->json(['message' => 'Senha alterada com sucesso!']);
     }
 }

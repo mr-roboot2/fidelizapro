@@ -112,8 +112,12 @@ Route::middleware(['admin.auth', 'empresa.scope', 'verifica.pagamento'])->prefix
     });
     Route::get('clientes', [ClienteController::class, 'index'])->name('clientes.index');
     Route::get('clientes/{cliente}', [ClienteController::class, 'show'])->name('clientes.show');
-    Route::post('clientes/{cliente}/pontos', [ClienteController::class, 'ajustarPontos'])->name('clientes.pontos');
     Route::middleware('admin.role:admin,gerente')->group(function () {
+        // Ajuste manual de pontos é VETOR de fraude end-to-end pra atendente
+        // desonesto (cria pontos → resgata → entrega). Restringido a admin/
+        // gerente. Caixa lança compra via `caixa.lancar` que credita pontos
+        // pela regra de pontuação configurada, sem entrada arbitrária.
+        Route::post('clientes/{cliente}/pontos', [ClienteController::class, 'ajustarPontos'])->name('clientes.pontos');
         Route::get('clientes/{cliente}/edit', [ClienteController::class, 'edit'])->name('clientes.edit');
         Route::match(['put','patch'], 'clientes/{cliente}', [ClienteController::class, 'update'])->name('clientes.update');
         Route::delete('clientes/{cliente}', [ClienteController::class, 'destroy'])->name('clientes.destroy');

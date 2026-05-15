@@ -9,6 +9,7 @@ use App\Http\Middleware\EmpresaScope;
 use App\Http\Middleware\EmpresaThrottle;
 use App\Http\Middleware\RequireCaptcha;
 use App\Http\Middleware\RequireModulo;
+use App\Http\Middleware\RequireUser;
 use App\Http\Middleware\SuperAdminAuth;
 use App\Http\Middleware\EnsureNotInstalled;
 use App\Http\Middleware\RequirePasswordChanged;
@@ -34,15 +35,29 @@ return Application::configure(basePath: dirname(__DIR__))
             'verifica.pagamento' => VerificaPagamento::class,
             'senha.definitiva' => RequirePasswordChanged::class,
             'captcha' => RequireCaptcha::class,
+            'sanctum.user' => RequireUser::class,
         ]);
 
-        // Confia em proxies (CloudPanel, Cloudflare, Nginx reverse-proxy).
-        // Sem isso o Request::ip() volta o IP do proxy interno e o throttle
-        // por IP/EmpresaThrottle vira contagem global (rate limit quebrado).
-        // 'private_ranges' aceita só ranges privados — seguro em qualquer
-        // setup. Se estiver atrás de IPs públicos específicos (Cloudflare),
-        // configure CLOUDFLARE_IPS / use 'at' com lista explícita.
-        $middleware->trustProxies(at: 'private_ranges');
+        // Confia em proxies pra Request::ip() retornar IP real do cliente
+        // (não o IP da edge). Sem isso EmpresaThrottle, RateLimiter de login,
+        // antifraude IP da roleta e logs de auditoria veem todos os clientes
+        // como o mesmo IP do proxy → rate limit virou global.
+        //
+        // 'private_ranges' funciona pra proxy on-premise (Nginx local,
+        // CloudPanel). Pra Cloudflare (e qualquer CDN com edge em IP público),
+        // a lista oficial está em https://www.cloudflare.com/ips/. Pode
+        // sobrescrever via TRUSTED_PROXIES no .env (CSV) — em produção atrás
+        // de CF sempre setar essa env. Em desenvolvimento local, deixar
+        // vazio cai no default 'private_ranges'.
+        $middleware->trustProxies(
+            at: env('TRUSTED_PROXIES')
+                ? array_filter(array_map('trim', explode(',', env('TRUSTED_PROXIES'))))
+                : 'private_ranges',
+            headers: \Illuminate\Http\Request::HEADER_X_FORWARDED_FOR
+                | \Illuminate\Http\Request::HEADER_X_FORWARDED_HOST
+                | \Illuminate\Http\Request::HEADER_X_FORWARDED_PORT
+                | \Illuminate\Http\Request::HEADER_X_FORWARDED_PROTO
+        );
 
         // Headers de segurança globais (X-Frame-Options, X-Content-Type-Options,
         // Referrer-Policy, Permissions-Policy, HSTS em production+HTTPS e CSP
@@ -52,9 +67,14 @@ return Application::configure(basePath: dirname(__DIR__))
         // API consumida via Bearer token (sem cookies/CSRF). Não usar statefulApi(),
         // que marcaria requests do mesmo domínio como SPA e exigiria X-XSRF-TOKEN.
 
-        // Webhooks de gateways externos não têm CSRF token
+        // Webhooks de gateways externos não têm CSRF token. Listamos `webhook/pix`
+        // (header-based, sem token na URL) E `webhook/pix/*` (legacy com token
+        // na URL) separadamente — `Str::is('webhook/pix/*', 'webhook/pix')`
+        // retorna false em Laravel, então a versão sem segmento adicional
+        // precisa estar listada explícita.
         $middleware->validateCsrfTokens(except: [
             'webhook/pagamento/*',
+            'webhook/pix',
             'webhook/pix/*',
             'webhook/whatsapp/*',
         ]);

@@ -23,19 +23,22 @@ Route::prefix('v1')->group(function () {
     // Auth com throttle anti brute-force. Limite por empresa (campo
     // rate_limit_auth) — default 10/min/IP se a empresa não for resolvida.
     Route::middleware('empresa.throttle:auth')->group(function () {
-        // Captcha aplicado em endpoints que disparam custo (OTP) ou que
-        // são alvo clássico de botnet (login, cadastro). No-op se
-        // CAPTCHA_PROVIDER=disabled (default).
-        Route::post('auth/login', [AuthController::class, 'login'])->middleware('captcha');
-        Route::post('auth/registrar', [AuthController::class, 'registrar'])->middleware('captcha');
+        // NOTA: captcha removido das rotas /api/* nesta rodada — o PWA cliente
+        // e o PWA loja ainda NÃO integram o widget Cloudflare Turnstile, então
+        // ligar captcha global quebrava cadastro/login do cliente. Captcha
+        // ativo apenas em /admin/login (Blade tem o widget). Pra ligar aqui,
+        // precisa: 1) integrar `<script src="https://challenges.cloudflare.com/turnstile/v0/api.js">`
+        // nos blades do PWA; 2) implementar render dinâmico via `window.turnstile.render`
+        // antes de cada submit em app.js; 3) recolocar middleware('captcha') aqui.
+        Route::post('auth/login', [AuthController::class, 'login']);
+        Route::post('auth/registrar', [AuthController::class, 'registrar']);
         // OTP solicitar carrega throttle extra (otp-solicitar) por custar $$
         // em mensagens WhatsApp: 3/min/IP+telefone + 20/hora/IP fecha bomb.
         Route::post('auth/otp/solicitar', [OtpController::class, 'solicitar'])
-            ->middleware(['throttle:otp-solicitar', 'captcha']);
+            ->middleware('throttle:otp-solicitar');
         Route::post('auth/otp/validar', [OtpController::class, 'validar']);
-        Route::post('auth/recuperar-senha', [OtpController::class, 'recuperarSenha'])
-            ->middleware('captcha');
-        Route::post('loja/login', [LojaController::class, 'login'])->middleware('captcha');
+        Route::post('auth/recuperar-senha', [OtpController::class, 'recuperarSenha']);
+        Route::post('loja/login', [LojaController::class, 'login']);
     });
 
     // PDV externo (autenticado por X-Pdv-Secret). Limite configurável por
@@ -55,14 +58,18 @@ Route::middleware(['auth:sanctum', 'throttle:api-cliente'])->prefix('v1')->group
     Route::post('auth/logout', [AuthController::class, 'logout']);
     Route::put('cliente/senha', [ClienteController::class, 'alterarSenha']);
 
-    // Rotas do operador da loja (User da empresa, não Cliente). O middleware
-    // ignora User — mas mantemos fora do grupo para deixar claro.
-    Route::post('loja/logout', [LojaController::class, 'logout']);
-    Route::get('loja/me', [LojaController::class, 'me']);
-    Route::get('loja/clientes', [LojaController::class, 'buscarClientes']);
-    Route::get('loja/clientes/qr/{codigo}', [LojaController::class, 'clientePorQr'])->where('codigo', '[A-Za-z0-9-]+');
-    Route::post('loja/clientes', [LojaController::class, 'criarCliente']);
-    Route::post('loja/compras', [LojaController::class, 'lancarCompra']);
+    // Rotas do operador da loja (User da empresa). `sanctum.user` rejeita
+    // token de Cliente — sem isso, Cliente token autenticava em /loja/* e
+    // listava TODOS os clientes da empresa (Sanctum não diferencia
+    // tokenable_type por padrão).
+    Route::middleware('sanctum.user')->group(function () {
+        Route::post('loja/logout', [LojaController::class, 'logout']);
+        Route::get('loja/me', [LojaController::class, 'me']);
+        Route::get('loja/clientes', [LojaController::class, 'buscarClientes']);
+        Route::get('loja/clientes/qr/{codigo}', [LojaController::class, 'clientePorQr'])->where('codigo', '[A-Za-z0-9-]+');
+        Route::post('loja/clientes', [LojaController::class, 'criarCliente']);
+        Route::post('loja/compras', [LojaController::class, 'lancarCompra']);
+    });
 
     // Demais rotas exigem senha definitiva. Cliente com senha_temporaria=true
     // recebe 403 password_change_required — PWA já lê a flag em /auth/me e

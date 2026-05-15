@@ -78,14 +78,25 @@ class UserController extends Controller
         $dados['ativo'] = $request->boolean('ativo');
         if ($dados['role'] === 'super_admin') $dados['empresa_id'] = null;
 
+        // Detecta o que mudou ANTES do update — define se precisamos revogar
+        // tokens e/ou rotacionar o remember_token.
+        $roleMudou  = isset($dados['role'])  && $dados['role']  !== $user->role;
+        $foiInativado = $user->ativo && !$dados['ativo'];
+
         $user->update($dados);
 
-        // Quando senha é trocada via painel super, normalmente é porque o
-        // operador perdeu acesso OU foi comprometido. Em ambos os casos,
-        // tokens Sanctum dele continuariam válidos até 30d se não revogados.
-        // Mata todos os tokens do operador pra forçar re-login.
-        if ($senhaTrocada) {
+        // Revoga tokens Sanctum em QUALQUER mudança de role/ativo/senha.
+        // Sem isso, operador rebaixado/inativado continua operando via API
+        // por até 30 dias com o token antigo (Sanctum default TTL).
+        if ($senhaTrocada || $roleMudou || $foiInativado) {
             $user->tokens()->delete();
+        }
+
+        // Rotaciona remember_token na troca de senha — cookie remember_web_*
+        // sobrevive a reset por padrão. Sem isso, atacante que furtou o cookie
+        // continua logando após o admin trocar a senha pra mitigar incidente.
+        if ($senhaTrocada) {
+            $user->forceFill(['remember_token' => \Illuminate\Support\Str::random(60)])->save();
         }
 
         return redirect()->route('super.users.index')->with('success', 'Usuário atualizado!');
