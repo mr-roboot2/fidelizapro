@@ -61,17 +61,47 @@ class CaptchaService
     }
 
     /**
+     * Cacheia o estado por request (Schema::hasTable + read na config) —
+     * sem cache, cada chamada de isEnabled() roda 2-3 queries.
+     */
+    protected static ?array $configCache = null;
+
+    /**
      * Lê config do banco com guard pra primeira instalação (tabela
-     * ainda inexistente, ou DB indisponível). Retorna null se algo falhar.
+     * ainda inexistente). Retorna null se a config não estiver definida.
+     *
+     * IMPORTANTE: erros de DB (timeout/conexão perdida) **propagam** ao
+     * invés de virar null silencioso. Antes, qualquer falha temporária do
+     * MySQL fazia `isEnabled()` retornar false → middleware passa request
+     * SEM captcha → janela de bypass durante deploys/falhas. Agora a
+     * exception sobe e o request quebra com 500 (preferível: brute-force
+     * bloqueado por throttle + 500 é visível em monitoring).
      */
     protected function config(string $key): ?string
     {
-        try {
-            $valor = ConfiguracaoSistema::instancia()->{$key} ?? null;
-            return is_string($valor) && $valor !== '' ? $valor : null;
-        } catch (Throwable $e) {
-            return null;
+        if (self::$configCache === null) {
+            try {
+                if (!\Illuminate\Support\Facades\Schema::hasTable('configuracoes_sistema')) {
+                    // Primeira instalação: sem tabela, captcha não pode ligar.
+                    self::$configCache = [];
+                } else {
+                    $config = ConfiguracaoSistema::instancia();
+                    self::$configCache = [
+                        'captcha_provider'   => $config->captcha_provider,
+                        'captcha_site_key'   => $config->captcha_site_key,
+                        'captcha_secret_key' => $config->captcha_secret_key,
+                    ];
+                }
+            } catch (Throwable $e) {
+                // Diferente do null silencioso de antes: registra warning
+                // mas propaga a exception — admin/monitoring vê o problema
+                // ao invés de captcha virar no-op silencioso em produção.
+                Log::warning('[Captcha] Falha ao ler config: '.$e->getMessage());
+                throw $e;
+            }
         }
+        $valor = self::$configCache[$key] ?? null;
+        return is_string($valor) && $valor !== '' ? $valor : null;
     }
 
     /**

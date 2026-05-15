@@ -38,10 +38,17 @@ class WhatsappController extends Controller
             'whatsapp_instance' => 'nullable|string|max:255',
             'whatsapp_phone_id' => 'nullable|string|max:255',
             'whatsapp_waba_id'  => 'nullable|string|max:50',
+            'whatsapp_app_secret' => 'nullable|string|max:255',
             'whatsapp_ativo'    => 'boolean',
         ]);
 
         $dados['whatsapp_ativo'] = $request->boolean('whatsapp_ativo');
+
+        // Tokens sensíveis: vazio no form mantém valor atual (igual padrão
+        // de asaas_webhook_token, pix_api_key e captcha_secret_key).
+        foreach (['whatsapp_api_token', 'whatsapp_client_token', 'whatsapp_app_secret'] as $secreto) {
+            if (empty($dados[$secreto])) unset($dados[$secreto]);
+        }
 
         $config = ConfiguracaoSistema::instancia();
         $config->update($dados);

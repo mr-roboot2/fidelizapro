@@ -72,14 +72,18 @@ class SecurityHeaders
             "img-src 'self' data: https:",
             // Scripts: Tailwind CDN JIT precisa de unsafe-eval. Inline scripts
             // são extensos no Blade — unsafe-inline mantido. Whitelist de
-            // origens externas é estrita (só Tailwind + jsDelivr).
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net",
+            // origens externas é estrita (Tailwind, jsDelivr, Turnstile).
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://challenges.cloudflare.com",
             // Style: inline obrigatório (estilo dinâmico de cor da empresa)
             "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
             "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:",
-            // Connect: chamadas API ficam no mesmo domínio (PWA white-label
-            // serve em /app/{slug} mesmo origin).
+            // Connect: chamadas API ficam no mesmo domínio. Turnstile faz
+            // XHR pra siteverify mas isso é backend; widget client-side só
+            // postMessage interno via iframe, sem connect-src cross-origin.
             "connect-src 'self'",
+            // Frame: Turnstile renderiza widget em iframe próprio (managed/
+            // invisible mode). Sem isso o widget não aparece.
+            "frame-src 'self' https://challenges.cloudflare.com",
             // Hardening anti-clickjacking / anti-redirect:
             "frame-ancestors 'self'",
             "base-uri 'self'",

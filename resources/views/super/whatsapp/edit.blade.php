@@ -34,7 +34,8 @@
 
                 <div x-show="provedor !== 'mock'">
                     <label class="text-sm font-medium">API Token</label>
-                    <input type="text" name="whatsapp_api_token" value="{{ old('whatsapp_api_token', $config->whatsapp_api_token) }}"
+                    <input type="password" name="whatsapp_api_token" autocomplete="off"
+                           placeholder="{{ $config->whatsapp_api_token ? '••••••••• (salvo — só sobrescreve se preencher)' : 'Cole o token do provider' }}"
                            class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg font-mono text-sm">
                 </div>
 
@@ -46,7 +47,8 @@
 
                 <div x-show="provedor === 'zapi'">
                     <label class="text-sm font-medium">Client-Token (Z-API)</label>
-                    <input type="text" name="whatsapp_client_token" value="{{ old('whatsapp_client_token', $config->whatsapp_client_token) }}"
+                    <input type="password" name="whatsapp_client_token" autocomplete="off"
+                           placeholder="{{ $config->whatsapp_client_token ? '••••••••• (salvo — só sobrescreve se preencher)' : 'Account-level token' }}"
                            class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg font-mono text-sm">
                     <p class="text-[11px] text-slate-500 mt-1">Account-level token (no painel Z-API → Segurança → Token da conta). É <strong>diferente</strong> do token da instância.</p>
                 </div>
@@ -61,6 +63,16 @@
                     <label class="text-sm font-medium">WhatsApp Business Account ID</label>
                     <input type="text" name="whatsapp_waba_id" value="{{ old('whatsapp_waba_id', $config->whatsapp_waba_id) }}"
                            class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg font-mono text-sm">
+                </div>
+
+                <div x-show="provedor === 'meta_cloud'" class="sm:col-span-2">
+                    <label class="text-sm font-medium">App Secret (HMAC do webhook)</label>
+                    <input type="password" name="whatsapp_app_secret" autocomplete="off"
+                           placeholder="{{ $config->whatsapp_app_secret ? '••••••••• (salvo — só sobrescreve se preencher)' : 'Meta → seu app → Settings → Basic → App Secret' }}"
+                           class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg font-mono text-sm">
+                    <p class="text-[11px] text-slate-500 mt-1">
+                        <strong>Obrigatório pra validar HMAC SHA256 do webhook Meta.</strong> Sem isso, o endpoint <code>/webhook/whatsapp/meta</code> aceita POSTs forjados (atualmente só loga, mas é vetor latente). Pegue em <a href="https://developers.facebook.com" target="_blank" class="text-rose-600 hover:underline">developers.facebook.com</a> → seu app → Settings → Basic → App Secret → Show.
+                    </p>
                 </div>
             </div>
 
