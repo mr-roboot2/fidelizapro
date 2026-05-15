@@ -48,6 +48,14 @@ class SecurityHeaders
 
         // API, webhook e storage não retornam HTML — pular CSP.
         if ($request->is('api/*', 'webhook/*', 'storage/*')) {
+            // Respostas /api/* com PII (dashboard, extrato, perfil) não
+            // devem cachear em proxy intermediário. Define no-store
+            // globalmente em todas as respostas autenticadas — endpoints
+            // públicos como /api/v1/empresas/qr e /qr/{codigo} ficam OK
+            // porque retornam dados públicos.
+            if ($request->is('api/*')) {
+                $response->headers->set('Cache-Control', 'no-store, private');
+            }
             return $response;
         }
 

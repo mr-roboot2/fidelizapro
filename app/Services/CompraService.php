@@ -59,7 +59,10 @@ class CompraService
                     "Cashback pela compra #{$compra->id}");
             }
 
-            $eraNovo = $cliente->total_compras === 0;
+            // Cast int explícito: drivers PDO com emulate_prepares=true podem
+            // retornar string "0" e === 0 falharia (failure-closed mas ainda
+            // assim quebrava o crédito de indicação legítimo).
+            $eraNovo = (int) $cliente->total_compras === 0;
 
             $cliente->total_gasto = (float) $cliente->total_gasto + $valor;
             $cliente->total_compras = $cliente->total_compras + 1;

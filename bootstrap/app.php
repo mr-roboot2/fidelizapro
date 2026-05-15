@@ -89,5 +89,16 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // Cliente API sem auth caía em 500 quando o request NÃO mandava
+        // Accept: application/json — o handler default tentava
+        // redirect()->route('login') que não existe (rota nomeada é
+        // 'admin.login'). Pra qualquer rota /api/*, força resposta JSON
+        // 401 ao invés de redirect.
+        $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, $request) {
+            if ($request->is('api/*')) {
+                return response()->json([
+                    'message' => 'Unauthenticated.',
+                ], 401);
+            }
+        });
     })->create();

@@ -60,18 +60,36 @@ class AuditoriaService
     }
 
     /**
+     * Chaves nested (em arrays JSON) que carregam segredo equivalente
+     * a credencial — ex: `meta.pix_copia_cola` é o BR Code que paga PIX,
+     * `meta.pix_qr_code` é o PNG base64 que renderiza pagamento.
+     * Pra Cobranca.meta e outros JSON auditados.
+     */
+    protected const CHAVES_SENSIVEIS_NESTED = [
+        'pix_copia_cola', 'pix_qr_code', 'pix_qr_code_svg',
+        'token', 'secret', 'api_key', 'api_token',
+    ];
+
+    /**
      * Remove campos sensíveis de arrays antes/depois antes de persistir.
      * Substitui valor por '[REDACTED]' (em vez de remover a chave) pra
      * deixar visível que o campo MUDOU sem expor o valor.
+     *
+     * Recursivo: cobre JSON aninhado (Cobranca.meta com BR Code, etc.).
      */
     protected function redactSensiveis(?array $dados): ?array
     {
         if ($dados === null) return null;
         $resultado = [];
         foreach ($dados as $k => $v) {
-            $resultado[$k] = in_array($k, self::CAMPOS_SENSIVEIS, true)
-                ? '[REDACTED]'
-                : $v;
+            if (in_array($k, self::CAMPOS_SENSIVEIS, true)
+                || in_array($k, self::CHAVES_SENSIVEIS_NESTED, true)) {
+                $resultado[$k] = '[REDACTED]';
+            } elseif (is_array($v)) {
+                $resultado[$k] = $this->redactSensiveis($v);
+            } else {
+                $resultado[$k] = $v;
+            }
         }
         return $resultado;
     }
