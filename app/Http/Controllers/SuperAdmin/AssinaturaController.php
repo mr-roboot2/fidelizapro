@@ -140,9 +140,12 @@ class AssinaturaController extends Controller
 
         $cobranca->update(['status' => 'cancelado']);
 
+        $reverteu = (new \App\Services\ReverterUpgradePlano())->executar($cobranca);
+        $msgRev   = $reverteu ? ' Plano revertido pro anterior.' : '';
+
         $msg = $cancelouNoGateway
-            ? 'Cobrança cancelada (inclusive no gateway).'
-            : 'Cobrança cancelada localmente, mas falhou no gateway — verifique manualmente no painel Asaas.';
+            ? 'Cobrança cancelada (inclusive no gateway).'.$msgRev
+            : 'Cobrança cancelada localmente, mas falhou no gateway — verifique manualmente no painel Asaas.'.$msgRev;
         return back()->with($cancelouNoGateway ? 'success' : 'error', $msg);
     }
 
@@ -160,7 +163,11 @@ class AssinaturaController extends Controller
             }
         }
 
+        // Reverte o plano ANTES de deletar (precisa da meta da cobrança)
+        $reverteu = (new \App\Services\ReverterUpgradePlano())->executar($cobranca);
+
         $cobranca->delete();
-        return redirect()->route('super.assinaturas.index')->with('success', 'Cobrança excluída.');
+        return redirect()->route('super.assinaturas.index')
+            ->with('success', 'Cobrança excluída.'.($reverteu ? ' Plano do lojista revertido pro anterior.' : ''));
     }
 }

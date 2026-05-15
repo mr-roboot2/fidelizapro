@@ -62,6 +62,18 @@ class MeuPlanoController extends Controller
             $assinatura = Assinatura::firstOrNew(
                 ['empresa_id' => $empresa->id],
             );
+
+            // Snapshot do estado anterior pra permitir reverter se a cobrança
+            // do upgrade for cancelada antes do pagamento.
+            $snapshotUpgrade = [
+                'assinatura_existia'           => $assinatura->exists,
+                'plano_anterior_id'            => $assinatura->plano_id ?? $empresa->plano_id,
+                'valor_mensal_anterior'        => $assinatura->valor_mensal,
+                'proximo_vencimento_anterior'  => $assinatura->proximo_vencimento?->toDateString(),
+                'empresa_plano_id_anterior'    => $empresa->plano_id,
+                'plano_alvo_id'                => $plano->id,
+            ];
+
             $assinatura->fill([
                 'plano_id'           => $plano->id,
                 'status'             => $assinatura->exists ? $assinatura->status : 'ativa',
@@ -77,6 +89,7 @@ class MeuPlanoController extends Controller
                 'valor'         => $plano->preco_mensal,
                 'vencimento'    => now()->addDays(7),
                 'status'        => 'pendente',
+                'meta'          => ['upgrade' => $snapshotUpgrade],
             ]);
 
             $empresa->update(['plano_id' => $plano->id]);
@@ -116,6 +129,11 @@ class MeuPlanoController extends Controller
         }
         $cobranca->update(['status' => 'cancelado']);
 
-        return back()->with('success', 'Cobrança cancelada. Agora você pode trocar de plano.');
+        $reverteu = (new \App\Services\ReverterUpgradePlano())->executar($cobranca);
+
+        return back()->with('success', $reverteu
+            ? 'Cobrança cancelada e plano revertido pro anterior.'
+            : 'Cobrança cancelada. Agora você pode trocar de plano.'
+        );
     }
 }
