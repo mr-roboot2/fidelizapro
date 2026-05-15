@@ -87,24 +87,24 @@ return Application::configure(basePath: dirname(__DIR__))
             'webhook/pix/*',
             'webhook/whatsapp/*',
         ]);
+
+        // Força `Accept: application/json` em todas as rotas /api/*. Sem isso,
+        // clientes que não setam o header recebem redirect/HTML do handler
+        // default em exceptions (AuthenticationException tentando route('login'),
+        // ValidationException 302, ModelNotFoundException 404 HTML, etc).
+        // Aplicado no grupo `api` (prepend = roda antes de tudo no grupo).
+        $middleware->prependToGroup('api', function ($request, $next) {
+            $request->headers->set('Accept', 'application/json');
+            return $next($request);
+        });
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        // Força resposta JSON em /api/*, mesmo sem Accept: application/json.
-        // Cobre ValidationException, NotFoundHttpException, ModelNotFoundException
-        // e a maioria dos casos.
+        // Toda response JSON pra /api/* + qualquer Accept: json.
+        // Combinado com o middleware que prepend Accept: application/json
+        // no grupo api (acima), garante que TODAS as exceptions seguem o
+        // caminho JSON do handler default — 401 pra auth, 422 pra validation,
+        // 404 pra model not found, etc.
         $exceptions->shouldRenderJsonWhen(function ($request) {
             return $request->is('api/*') || $request->expectsJson();
-        });
-
-        // AuthenticationException é caso especial — o handler default chama
-        // `unauthenticated()` que checa $request->expectsJson() DIRETO, sem
-        // respeitar shouldRenderJsonWhen. Pra request /api/* sem Accept:json,
-        // o flow tentava redirect()->route('login') que não existe (rota
-        // nomeada é 'admin.login') → RouteNotFoundException → 500.
-        // Captura aqui ANTES do default e retorna 401 JSON.
-        $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, $request) {
-            if ($request->is('api/*') || $request->expectsJson()) {
-                return response()->json(['message' => $e->getMessage() ?: 'Unauthenticated.'], 401);
-            }
         });
     })->create();
