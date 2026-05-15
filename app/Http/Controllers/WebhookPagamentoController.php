@@ -21,11 +21,28 @@ class WebhookPagamentoController extends Controller
     public function receber(Request $request, string $gateway, AssinaturaService $service)
     {
         if ($gateway === 'asaas') {
-            $esperado = ConfiguracaoSistema::instancia()->asaas_webhook_token;
-            $recebido = (string) $request->header('asaas-access-token', '');
-            if (!$esperado || !hash_equals((string) $esperado, $recebido)) {
+            $esperado = (string) (ConfiguracaoSistema::instancia()->asaas_webhook_token ?? '');
+            // Asaas envia o token no header "asaas-access-token". Aceitamos
+            // também algumas variações comuns por segurança (alguns proxies
+            // normalizam underscores; raros gateways usam outro nome).
+            $recebido = (string) (
+                $request->header('asaas-access-token')
+                ?? $request->header('Asaas-Access-Token')
+                ?? $request->header('access_token')
+                ?? ''
+            );
+
+            if (!$esperado || !hash_equals($esperado, $recebido)) {
                 Log::warning("[Webhook {$gateway}] Assinatura inválida", [
-                    'ip' => $request->ip(),
+                    'ip'              => $request->ip(),
+                    'header_presente' => $recebido !== '',
+                    'esperado_len'    => strlen($esperado),
+                    'recebido_len'    => strlen($recebido),
+                    // Primeiros 4 chars não vazam secret mas ajudam a confirmar
+                    // se é problema de digitação/encoding.
+                    'esperado_prefix' => substr($esperado, 0, 4),
+                    'recebido_prefix' => substr($recebido, 0, 4),
+                    'headers_keys'    => array_keys($request->headers->all()),
                 ]);
                 return response()->json(['error' => 'invalid_signature'], 401);
             }
