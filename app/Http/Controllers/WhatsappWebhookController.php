@@ -29,14 +29,19 @@ class WhatsappWebhookController extends Controller
         }
 
         Log::warning('[Meta Webhook] Falha na verificação', [
-            'mode' => $mode, 'token_recebido' => $token,
+            'mode' => $mode,
         ]);
         return response('Forbidden', 403);
     }
 
     public function receber(Request $request)
     {
-        Log::info('[Meta Webhook] Evento recebido', $request->all());
+        // Logamos apenas metadados — payloads de WhatsApp contêm PII (telefone, texto)
+        Log::info('[Meta Webhook] Evento recebido', [
+            'object'  => $request->input('object'),
+            'entry_id'=> $request->input('entry.0.id'),
+            'changes' => count($request->input('entry.0.changes', [])),
+        ]);
         return response()->json(['ok' => true]);
     }
 }

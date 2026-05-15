@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Cobranca;
+use App\Models\ConfiguracaoSistema;
 use App\Services\AssinaturaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -11,10 +12,31 @@ class WebhookPagamentoController extends Controller
 {
     /**
      * POST /webhook/pagamento/{gateway}
+     *
+     * Asaas envia header `asaas-access-token` configurável no painel deles —
+     * comparamos com o valor salvo em configuracoes_sistema.asaas_webhook_token
+     * usando hash_equals (timing-safe). Sem token configurado a requisição é
+     * rejeitada para evitar webhook forjado marcando cobranças como pagas.
      */
     public function receber(Request $request, string $gateway, AssinaturaService $service)
     {
-        Log::info("[Webhook {$gateway}] Recebido", $request->all());
+        if ($gateway === 'asaas') {
+            $esperado = ConfiguracaoSistema::instancia()->asaas_webhook_token;
+            $recebido = (string) $request->header('asaas-access-token', '');
+            if (!$esperado || !hash_equals((string) $esperado, $recebido)) {
+                Log::warning("[Webhook {$gateway}] Assinatura inválida", [
+                    'ip' => $request->ip(),
+                ]);
+                return response()->json(['error' => 'invalid_signature'], 401);
+            }
+        }
+
+        Log::info("[Webhook {$gateway}] Recebido", [
+            'event'             => $request->input('event'),
+            'payment_id'        => $request->input('payment.id'),
+            'payment_status'    => $request->input('payment.status'),
+            'external_reference'=> $request->input('payment.externalReference'),
+        ]);
 
         try {
             $payload = $request->all();
@@ -45,9 +67,12 @@ class WebhookPagamentoController extends Controller
 
     /**
      * Tela de "pagamento mock" para dev — clica e marca como pago.
+     * Restrito a ambiente local para evitar bypass de pagamento em produção.
      */
     public function pagamentoMock(int $cobrancaId, AssinaturaService $service)
     {
+        abort_unless(app()->environment('local'), 404);
+
         $cobranca = Cobranca::with('assinatura.empresa')->findOrFail($cobrancaId);
 
         if ($cobranca->status === 'pago') {
@@ -59,6 +84,8 @@ class WebhookPagamentoController extends Controller
 
     public function confirmarPagamentoMock(int $cobrancaId, AssinaturaService $service)
     {
+        abort_unless(app()->environment('local'), 404);
+
         $cobranca = Cobranca::findOrFail($cobrancaId);
         if ($cobranca->status !== 'pago') {
             $service->marcarPaga($cobranca);

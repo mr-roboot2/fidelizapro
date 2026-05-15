@@ -80,6 +80,11 @@ class AssinaturaService
      */
     public function marcarPaga(Cobranca $cobranca, ?string $gatewayChargeId = null): void
     {
+        // Idempotência: webhooks podem chegar duplicados; não re-aplica upgrade
+        if ($cobranca->status === 'pago') {
+            return;
+        }
+
         $cobranca->update([
             'status' => 'pago',
             'pago_em' => now(),

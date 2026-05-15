@@ -21,7 +21,11 @@ class PixWebhookController extends Controller
             return response()->json(['error' => 'invalid token'], 403);
         }
 
-        Log::info('[PIX webhook] Recebido', $request->all());
+        Log::info('[PIX webhook] Recebido', [
+            'event'          => $request->input('event'),
+            'payment_id'     => $request->input('payment.id'),
+            'payment_status' => $request->input('payment.status'),
+        ]);
 
         try {
             $cobranca = $pix->driver()->processarWebhook($request->all());
