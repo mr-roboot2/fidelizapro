@@ -7,6 +7,7 @@ use App\Http\Middleware\AdminAuth;
 use App\Http\Middleware\AdminRole;
 use App\Http\Middleware\EmpresaScope;
 use App\Http\Middleware\EmpresaThrottle;
+use App\Http\Middleware\ForceJsonAccept;
 use App\Http\Middleware\RequireCaptcha;
 use App\Http\Middleware\RequireModulo;
 use App\Http\Middleware\RequireUser;
@@ -93,10 +94,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // default em exceptions (AuthenticationException tentando route('login'),
         // ValidationException 302, ModelNotFoundException 404 HTML, etc).
         // Aplicado no grupo `api` (prepend = roda antes de tudo no grupo).
-        $middleware->prependToGroup('api', function ($request, $next) {
-            $request->headers->set('Accept', 'application/json');
-            return $next($request);
-        });
+        $middleware->prependToGroup('api', ForceJsonAccept::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         // Toda response JSON pra /api/* + qualquer Accept: json.
