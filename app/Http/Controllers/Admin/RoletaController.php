@@ -15,6 +15,7 @@ use App\Services\RoletaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class RoletaController extends Controller
 {
@@ -205,12 +206,16 @@ class RoletaController extends Controller
 
     protected function validarPremio(Request $request, Roleta $roleta): array
     {
+        $empresaId = Auth::user()->empresa_id;
+
         return $request->validate([
             'ordem'              => 'required|integer|min:0|max:255',
             'label'              => 'required|string|max:60',
             'cor'                => 'required|string|regex:/^#[0-9a-fA-F]{6}$/',
             'tipo'               => 'required|in:'.implode(',', array_keys(RoletaPremio::TIPOS)),
-            'recompensa_id'      => 'nullable|exists:recompensas,id|required_if:tipo,recompensa',
+            // IDOR cross-tenant: recompensa precisa pertencer à mesma empresa
+            'recompensa_id'      => ['nullable', 'required_if:tipo,recompensa',
+                                     Rule::exists('recompensas', 'id')->where(fn ($q) => $q->where('empresa_id', $empresaId))],
             'pontos'             => 'nullable|integer|min:1|required_if:tipo,pontos',
             'peso'               => 'required|integer|min:0|max:1000',
             'quantidade_max_dia' => 'nullable|integer|min:1|max:1000',

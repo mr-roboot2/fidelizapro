@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class SorteioController extends Controller
 {
@@ -213,11 +214,14 @@ class SorteioController extends Controller
 
     protected function validar(Request $request): array
     {
+        $empresaId = Auth::user()->empresa_id;
+
         return $request->validate([
             'nome'                     => 'required|string|max:120',
             'descricao'                => 'nullable|string',
-            'imagem'                   => 'nullable|image|max:2048',
-            'recompensa_id'            => 'nullable|exists:recompensas,id',
+            'imagem'                   => 'nullable|image|mimes:png,jpg,jpeg,webp|mimetypes:image/png,image/jpeg,image/webp|max:2048',
+            // IDOR cross-tenant: recompensa precisa pertencer à mesma empresa
+            'recompensa_id'            => ['nullable', Rule::exists('recompensas', 'id')->where(fn ($q) => $q->where('empresa_id', $empresaId))],
             'valor_estimado'           => 'nullable|numeric|min:0',
             'data_sorteio'             => 'required|date',
             'status'                   => 'required|in:planejado,ativo,sorteado,cancelado',

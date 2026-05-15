@@ -115,7 +115,8 @@ class TutorialController extends Controller
 
     protected function validar(Request $request, ?Tutorial $tutorial = null): array
     {
-        $regrasArquivo = ['nullable', 'file', 'mimetypes:video/mp4,video/webm,video/ogg,video/quicktime', 'max:204800']; // 200MB
+        // Combina mimes (extensão) + mimetypes (header) — atacante teria que forjar os dois
+        $regrasArquivo = ['nullable', 'file', 'mimes:mp4,webm,ogg,mov', 'mimetypes:video/mp4,video/webm,video/ogg,video/quicktime', 'max:204800']; // 200MB
 
         // Se for criar com tipo=upload, exige o arquivo
         if ($request->input('tipo_video') === 'upload' && !$tutorial) {

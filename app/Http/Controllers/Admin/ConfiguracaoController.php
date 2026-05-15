@@ -24,13 +24,13 @@ class ConfiguracaoController extends Controller
             'telefone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:255',
             'endereco' => 'nullable|string|max:255',
-            'cor_primaria' => 'required|string|max:7',
-            'cor_secundaria' => 'required|string|max:7',
+            'cor_primaria' => 'required|string|regex:/^#[0-9a-fA-F]{6}$/',
+            'cor_secundaria' => 'required|string|regex:/^#[0-9a-fA-F]{6}$/',
             'pontos_por_real' => 'required|numeric|min:0',
             'cashback_percentual' => 'required|numeric|min:0|max:100',
             'dias_liberar_cashback' => 'required|integer|min:0|max:365',
             'validade_pontos_dias' => 'required|integer|min:30',
-            'logo' => 'nullable|image|max:1024',
+            'logo' => 'nullable|image|mimes:png,jpg,jpeg,webp|mimetypes:image/png,image/jpeg,image/webp|max:1024',
         ]);
 
         if ($request->hasFile('logo')) {

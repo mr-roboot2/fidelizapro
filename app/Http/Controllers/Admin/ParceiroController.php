@@ -103,7 +103,7 @@ class ParceiroController extends Controller
             'nome' => 'required|string|max:255',
             'descricao' => 'nullable|string',
             'categoria' => 'nullable|string|max:80',
-            'logo' => 'nullable|image|max:1024',
+            'logo' => 'nullable|image|mimes:png,jpg,jpeg,webp|mimetypes:image/png,image/jpeg,image/webp|max:1024',
             'telefone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:255',
             'endereco' => 'nullable|string|max:255',

@@ -35,10 +35,12 @@ class ConfiguracaoSistemaController extends Controller
             'rodape_html'      => 'nullable|string|max:1000',
             'horario_automacoes' => 'required|date_format:H:i',
             'horario_cashback'   => 'required|date_format:H:i',
-            'logo'             => 'nullable|image|mimes:png,jpg,jpeg,svg,webp|max:8192',
+            // SVG removido: XML executável vira XSS armazenado (servido com
+            // Content-Type image/svg+xml e <script> dentro).
+            'logo'             => 'nullable|image|mimes:png,jpg,jpeg,webp|mimetypes:image/png,image/jpeg,image/webp|max:8192',
             'logo_bg_color'    => 'nullable|string|regex:/^#[0-9a-fA-F]{6}$/',
             'logo_scale'       => 'nullable|integer|min:30|max:150',
-            'favicon'          => 'nullable|image|mimes:png,jpg,jpeg,svg,webp,ico|max:1024',
+            'favicon'          => 'nullable|image|mimes:png,jpg,jpeg,webp,ico|mimetypes:image/png,image/jpeg,image/webp,image/x-icon,image/vnd.microsoft.icon|max:1024',
             'favicon_bg_color' => 'nullable|string|regex:/^#[0-9a-fA-F]{6}$/',
             'favicon_scale'    => 'nullable|integer|min:30|max:150',
             'remover_logo'     => 'nullable|in:1',

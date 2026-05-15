@@ -51,12 +51,12 @@ class EmpresaController extends Controller
             'cashback_percentual' => 'required_unless:modo_fidelidade,pontos|nullable|numeric|min:0|max:100',
             'validade_pontos_dias' => 'required_unless:modo_fidelidade,cashback|nullable|integer|min:30',
             'dias_liberar_cashback' => 'nullable|integer|min:0',
-            'logo' => 'nullable|image|max:8192',
+            'logo' => 'nullable|image|mimes:png,jpg,jpeg,webp|mimetypes:image/png,image/jpeg,image/webp|max:8192',
             'logo_bg_color' => 'nullable|string|regex:/^#[0-9a-fA-F]{6}$/',
             'logo_scale' => 'nullable|integer|min:30|max:150',
             'admin_nome' => 'required|string|max:255',
             'admin_email' => 'required|email|unique:users,email',
-            'admin_password' => 'required|string|min:6',
+            'admin_password' => 'required|string|min:8',
         ]);
 
         // Zera os campos que não correspondem ao modo escolhido
@@ -132,7 +132,7 @@ class EmpresaController extends Controller
             'validade_pontos_dias' => 'required_unless:modo_fidelidade,cashback|nullable|integer|min:30',
             'dias_liberar_cashback' => 'nullable|integer|min:0',
             'plano_id' => 'nullable|exists:planos,id',
-            'logo' => 'nullable|image|max:8192',
+            'logo' => 'nullable|image|mimes:png,jpg,jpeg,webp|mimetypes:image/png,image/jpeg,image/webp|max:8192',
             'logo_bg_color' => 'nullable|string|regex:/^#[0-9a-fA-F]{6}$/',
             'logo_scale' => 'nullable|integer|min:30|max:150',
             'ativo' => 'boolean',

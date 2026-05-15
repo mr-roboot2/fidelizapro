@@ -71,7 +71,7 @@ class RecompensaController extends Controller
         return $request->validate([
             'nome' => 'required|string|max:255',
             'descricao' => 'nullable|string',
-            'imagem' => 'nullable|image|max:2048',
+            'imagem' => 'nullable|image|mimes:png,jpg,jpeg,webp|mimetypes:image/png,image/jpeg,image/webp|max:2048',
             'custo_pontos' => 'required|integer|min:1',
             'estoque' => 'nullable|integer|min:0',
             'tipo' => 'required|in:produto,desconto,servico,experiencia',

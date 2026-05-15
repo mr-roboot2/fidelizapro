@@ -1,0 +1,16 @@
+# Bloqueia execução de qualquer arquivo dinâmico/script no diretório de uploads.
+# Defesa em profundidade contra polyglot (PNG+PHP) e SVG com JS inline.
+<FilesMatch "\.(php|phtml|phar|html?|htaccess|svg|xml|js|cgi|pl|py|asp|aspx|sh)$">
+    Require all denied
+</FilesMatch>
+
+# Desabilita listagem do diretório
+Options -Indexes -ExecCGI
+
+# Força Content-Type explícito quando possível
+<IfModule mod_mime.c>
+    AddType image/png .png
+    AddType image/jpeg .jpg .jpeg
+    AddType image/webp .webp
+    AddType image/x-icon .ico
+</IfModule>
