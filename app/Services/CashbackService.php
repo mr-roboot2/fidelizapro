@@ -28,7 +28,9 @@ class CashbackService
         ?string $descricao = null
     ): MovimentoCashback {
         return DB::transaction(function () use ($cliente, $valor, $origem, $referencia, $descricao) {
-            $cliente->refresh();
+            // lockForUpdate impede que créditos concorrentes leiam o mesmo
+            // saldo_anterior e gerem registros inconsistentes.
+            $cliente = Cliente::lockForUpdate()->findOrFail($cliente->id);
             $empresa = $cliente->empresa;
             $dias = (int) ($empresa->dias_liberar_cashback ?? 0);
             $pendente = $dias > 0;
@@ -72,7 +74,10 @@ class CashbackService
         ?string $descricao = null
     ): MovimentoCashback {
         return DB::transaction(function () use ($cliente, $valor, $origem, $referencia, $descricao) {
-            $cliente->refresh();
+            // lockForUpdate: 5 compras paralelas com usar_cashback=R$50 sobre
+            // saldo=R$50 podiam debitar 5x se a leitura acontecesse antes do
+            // primeiro update commitar.
+            $cliente = Cliente::lockForUpdate()->findOrFail($cliente->id);
             $saldoAnterior = round((float) $cliente->cashback_atual, 2);
             $valor = round((float) $valor, 2);
 

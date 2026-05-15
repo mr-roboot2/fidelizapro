@@ -40,7 +40,10 @@ class PontuacaoService
         ?string $descricao = null
     ): TransacaoPonto {
         return DB::transaction(function () use ($cliente, $pontos, $origem, $referencia, $descricao) {
-            $cliente->refresh();
+            // lockForUpdate serializa requests concorrentes que mexem no saldo
+            // do mesmo cliente. Sem isso, dois créditos paralelos liam o mesmo
+            // saldo_anterior e gravavam um saldo_posterior inconsistente.
+            $cliente = Cliente::lockForUpdate()->findOrFail($cliente->id);
             $saldoAnterior = (float) $cliente->pontos_atual;
             $saldoPosterior = $saldoAnterior + $pontos;
 
@@ -71,7 +74,9 @@ class PontuacaoService
         ?string $descricao = null
     ): TransacaoPonto {
         return DB::transaction(function () use ($cliente, $pontos, $origem, $referencia, $descricao) {
-            $cliente->refresh();
+            // lockForUpdate impede que 5 requests paralelas leiam saldo=1500
+            // e debitem 1000 cada (gera resgates sem pontos).
+            $cliente = Cliente::lockForUpdate()->findOrFail($cliente->id);
             $saldoAnterior = (float) $cliente->pontos_atual;
 
             if ($saldoAnterior < $pontos) {

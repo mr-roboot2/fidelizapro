@@ -23,6 +23,14 @@ class ResgateService
     public function solicitar(Cliente $cliente, Recompensa $recompensa, ?string $observacao = null, ?string $ip = null): Resgate
     {
         $resgate = DB::transaction(function () use ($cliente, $recompensa, $observacao, $ip) {
+            // lockForUpdate no Cliente serializa requests paralelas que tentam
+            // resgatar simultaneamente — sem isso, 5 chamadas paralelas leem
+            // pontos_atual=1500, todas passam a validação `pontos_atual < custo`
+            // e o cliente ganha 5 recompensas com pontos suficientes só pra 1.
+            $cliente = Cliente::lockForUpdate()->findOrFail($cliente->id);
+            // Recompensa também é lockada pra contagem de estoque concorrente
+            $recompensa = Recompensa::lockForUpdate()->findOrFail($recompensa->id);
+
             if ($cliente->empresa_id !== $recompensa->empresa_id) {
                 throw new \DomainException('Recompensa não pertence à empresa do cliente.');
             }

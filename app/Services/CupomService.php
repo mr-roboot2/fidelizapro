@@ -18,11 +18,16 @@ class CupomService
             throw new \DomainException('Benefício não pertence à empresa do cliente.');
         }
 
-        if (!$beneficio->podeResgatarPor($cliente)) {
-            throw new \DomainException('Benefício indisponível ou limite atingido.');
-        }
-
         return DB::transaction(function () use ($cliente, $beneficio) {
+            // lockForUpdate + revalidação DENTRO da transaction. Sem isso,
+            // o check `podeResgatarPor` rodava fora da transaction e múltiplas
+            // requests paralelas conseguiam burlar `limite_total=1`.
+            $beneficio = Beneficio::lockForUpdate()->findOrFail($beneficio->id);
+
+            if (!$beneficio->podeResgatarPor($cliente)) {
+                throw new \DomainException('Benefício indisponível ou limite atingido.');
+            }
+
             $cupom = Cupom::create([
                 'beneficio_id' => $beneficio->id,
                 'cliente_id' => $cliente->id,
