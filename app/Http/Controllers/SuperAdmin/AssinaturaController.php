@@ -129,27 +129,49 @@ class AssinaturaController extends Controller
             return back()->with('error', 'Cobrança já está cancelada.');
         }
 
-        // Tenta cancelar primeiro no Asaas. Se falhar e o admin NÃO marcou
-        // "forçar cancelamento local", aborta — assim o estado local segue
-        // consistente com o gateway. Antes, falha no Asaas marcava local
-        // como cancelado mesmo assim e gerava cobrança fantasma (cliente
-        // podia pagar no Asaas e o webhook era ignorado por status!=pendente).
-        $cancelouNoGateway = true;
-        if ($cobranca->gateway_charge_id) {
-            try {
-                $cancelouNoGateway = (new \App\Services\Pagamento\AsaasGateway())->cancelarCobranca($cobranca);
-            } catch (\Throwable $e) {
-                $cancelouNoGateway = false;
-                \Log::warning('Asaas: exception ao cancelar cobrança', [
-                    'cobranca_id' => $cobranca->id,
-                    'erro' => $e->getMessage(),
-                ]);
-            }
-        }
-
         $forcar = $request->boolean('forcar_local');
 
-        if (!$cancelouNoGateway && !$forcar) {
+        // Lock + recheck dentro da transaction: admin clicando "cancelar" em
+        // 2 abas simultâneas executava ReverterUpgradePlano 2× (uma vez por
+        // request). lockForUpdate serializa, e o segundo cai no early-return
+        // status===cancelado.
+        $resultado = \DB::transaction(function () use ($cobranca, $forcar) {
+            $lockada = Cobranca::lockForUpdate()->find($cobranca->id);
+            if (!$lockada || $lockada->status === 'cancelado') {
+                return ['skipped' => true];
+            }
+
+            $cancelouNoGateway = true;
+            if ($lockada->gateway_charge_id) {
+                try {
+                    $cancelouNoGateway = (new \App\Services\Pagamento\AsaasGateway())->cancelarCobranca($lockada);
+                } catch (\Throwable $e) {
+                    $cancelouNoGateway = false;
+                    \Log::warning('Asaas: exception ao cancelar cobrança', [
+                        'cobranca_id' => $lockada->id,
+                        'erro' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            if (!$cancelouNoGateway && !$forcar) {
+                return ['cancelou_gateway' => false, 'aborted' => true];
+            }
+
+            $lockada->update(['status' => 'cancelado']);
+            $reverteu = (new \App\Services\ReverterUpgradePlano())->executar($lockada);
+
+            return [
+                'cancelou_gateway' => $cancelouNoGateway,
+                'reverteu' => $reverteu,
+            ];
+        });
+
+        if ($resultado['skipped'] ?? false) {
+            return back()->with('info', 'Cobrança já estava cancelada por outra ação.');
+        }
+
+        if ($resultado['aborted'] ?? false) {
             return back()->with('error',
                 'Falha ao cancelar no Asaas. A cobrança continua ativa lá e localmente. '
                 .'Para cancelar SÓ localmente (deixando viva no gateway, sob seu risco), '
@@ -157,15 +179,11 @@ class AssinaturaController extends Controller
             );
         }
 
-        $cobranca->update(['status' => 'cancelado']);
-
-        $reverteu = (new \App\Services\ReverterUpgradePlano())->executar($cobranca);
-        $msgRev   = $reverteu ? ' Plano revertido pro anterior.' : '';
-
-        $msg = $cancelouNoGateway
+        $msgRev = ($resultado['reverteu'] ?? false) ? ' Plano revertido pro anterior.' : '';
+        $msg = $resultado['cancelou_gateway']
             ? 'Cobrança cancelada (inclusive no gateway).'.$msgRev
             : '⚠️ Cobrança cancelada localmente, mas ainda ATIVA no Asaas — cancele manualmente no painel deles ou o cliente pode pagar e o crédito não cair aqui.'.$msgRev;
-        return back()->with($cancelouNoGateway ? 'success' : 'warning', $msg);
+        return back()->with($resultado['cancelou_gateway'] ? 'success' : 'warning', $msg);
     }
 
     public function excluirCobranca(Cobranca $cobranca)

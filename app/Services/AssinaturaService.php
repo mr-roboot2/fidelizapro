@@ -100,11 +100,23 @@ class AssinaturaService
 
             (new AplicarUpgradePlano())->executar($lockada->fresh());
 
-            $assinatura = $lockada->fresh()->assinatura;
-            $assinatura->update([
-                'status' => 'ativa',
-                'proximo_vencimento' => $lockada->vencimento->addMonth(),
-            ]);
+            // Lock + monotonicidade do proximo_vencimento. Sem o lock na
+            // Assinatura, 2 webhooks de cobranças DIFERENTES da mesma
+            // assinatura avançam só 1 mês ao invés de 2 (último write
+            // vence). E sem o max(), um webhook que chega atrasado pode
+            // RETROAGIR o vencimento (cobrança de janeiro paga em março
+            // → proximo_vencimento volta pra fevereiro). max() preserva
+            // monotonicidade.
+            $assinatura = Assinatura::lockForUpdate()->find($lockada->assinatura_id);
+            if ($assinatura) {
+                $candidato = $lockada->vencimento->copy()->addMonth();
+                $atual = $assinatura->proximo_vencimento;
+                $novoVencimento = ($atual && $atual->gt($candidato)) ? $atual : $candidato;
+                $assinatura->update([
+                    'status' => 'ativa',
+                    'proximo_vencimento' => $novoVencimento,
+                ]);
+            }
         });
     }
 

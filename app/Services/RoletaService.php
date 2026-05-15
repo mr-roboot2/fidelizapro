@@ -334,21 +334,54 @@ class RoletaService
         }
 
         if ($premio->tipo === 'recompensa' && $premio->recompensa_id) {
-            $resgate = Resgate::create([
-                'empresa_id'    => $cliente->empresa_id,
-                'cliente_id'    => $cliente->id,
-                'recompensa_id' => $premio->recompensa_id,
-                'pontos_usados' => 0,
-                'status'        => 'aprovado',
-                'observacao'    => "Prêmio da roleta: {$premio->label}",
-                'aprovado_em'   => now(),
-                'expira_em'     => $roleta->validade_dias ? now()->addDays($roleta->validade_dias) : null,
-            ]);
-            $giro->recompensa_id = $premio->recompensa_id;
-            $giro->resgate_id    = $resgate->id;
-            $expiraEm            = $resgate->expira_em;
+            // Lock + revalidação da recompensa: sem isso, 10 giros simultâneos
+            // que sorteiam o mesmo prêmio com estoque=5 criavam 10 resgates.
+            // Também respeita Recompensa::disponivel() (ativo, data, estoque).
+            $recompensa = \App\Models\Recompensa::lockForUpdate()->find($premio->recompensa_id);
+            $podeEntregar = $recompensa && $recompensa->disponivel();
 
-            $this->notificarPremioGanho($cliente, $premio->label, $resgate->codigo, $resgate->expira_em);
+            if ($podeEntregar) {
+                $resgate = Resgate::create([
+                    'empresa_id'    => $cliente->empresa_id,
+                    'cliente_id'    => $cliente->id,
+                    'recompensa_id' => $premio->recompensa_id,
+                    'pontos_usados' => 0,
+                    'status'        => 'aprovado',
+                    'observacao'    => "Prêmio da roleta: {$premio->label}",
+                    'aprovado_em'   => now(),
+                    'expira_em'     => $roleta->validade_dias ? now()->addDays($roleta->validade_dias) : null,
+                ]);
+
+                // Decrementa estoque se a recompensa tem controle.
+                if ($recompensa->estoque !== null) {
+                    $recompensa->decrement('estoque');
+                }
+
+                $giro->recompensa_id = $premio->recompensa_id;
+                $giro->resgate_id    = $resgate->id;
+                $expiraEm            = $resgate->expira_em;
+
+                $this->notificarPremioGanho($cliente, $premio->label, $resgate->codigo, $resgate->expira_em);
+            } else {
+                // Estoque esgotou entre o sorteio do prêmio e o lock: registra
+                // o giro como "nada" pra cliente girar de novo sem perder o crédito.
+                // Em prod isso aparece como "Quase!" ao invés de prêmio físico.
+                \Log::warning('[Roleta] Prêmio sorteado mas recompensa indisponível — giro convertido em sem-prêmio', [
+                    'cliente_id' => $cliente->id,
+                    'recompensa_id' => $premio->recompensa_id,
+                    'premio_label' => $premio->label,
+                ]);
+                $giro->premio_id = null;
+                $giro->save();
+                return [
+                    'tipo_resultado'    => 'sem_premio',
+                    'pontos_concedidos' => null,
+                    'recompensa_id'     => null,
+                    'resgate_id'        => null,
+                    'expira_em'         => null,
+                    'mensagem'          => $roleta->mensagem_sem_premio ?: 'Tente de novo!',
+                ];
+            }
         }
 
         if ($premio->tipo === 'sorteio_bilhete' && $sorteioAtivo) {
