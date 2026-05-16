@@ -48,10 +48,13 @@ class AuthController extends Controller
         }
 
         $cliente->update(['ultimo_acesso' => now(), 'ultimo_ip' => $request->ip()]);
-        // Revoga tokens antigos do mesmo dispositivo (mesmo name). Sem isso,
-        // cada login criava um novo token sem invalidar os anteriores, e um
-        // token vazado vivia 30 dias mesmo após o usuário "deslogar".
-        $cliente->tokens()->where('name', 'pwa-cliente')->delete();
+        // Revoga TODOS os tokens de sessão do cliente. Antes só apagava
+        // 'pwa-cliente', deixando tokens OTP ('pwa-cliente-otp') e recovery
+        // ('pwa-cliente-recovery') vivos — token OTP vazado sobrevivia ao
+        // login com senha, contra a expectativa do usuário de "nova sessão limpa".
+        $cliente->tokens()
+            ->whereIn('name', ['pwa-cliente', 'pwa-cliente-otp', 'pwa-cliente-recovery'])
+            ->delete();
         $token = $cliente->createToken('pwa-cliente')->plainTextToken;
 
         return response()->json([

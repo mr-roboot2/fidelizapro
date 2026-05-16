@@ -39,7 +39,9 @@ class UserController extends Controller
             'empresa_id' => 'nullable|exists:empresas,id',
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:6',
+            // min:8 alinhado com cliente/install/admin — antes era min:6,
+            // permitindo super malicioso criar contas com senha trivial.
+            'password' => 'required|string|min:8',
             'role' => 'required|in:super_admin,admin,gerente,atendente',
         ]);
 
@@ -63,7 +65,7 @@ class UserController extends Controller
             'empresa_id' => 'nullable|exists:empresas,id',
             'name' => 'required|string|max:255',
             'email' => "required|email|unique:users,email,{$user->id}",
-            'password' => 'nullable|string|min:6',
+            'password' => 'nullable|string|min:8',
             'role' => 'required|in:super_admin,admin,gerente,atendente',
             'ativo' => 'boolean',
         ]);

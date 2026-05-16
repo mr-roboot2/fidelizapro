@@ -106,10 +106,26 @@ class LojaController extends Controller
         $empresaId = $request->user()->empresa_id;
         $dados = $request->validate([
             'nome'            => ['required','string','max:120','regex:/^[\p{L}\p{N}\s\.\-\']+$/u'],
-            'telefone'        => "required|string|max:20|unique:clientes,telefone,NULL,id,empresa_id,{$empresaId}",
-            'cpf'             => 'nullable|string|max:14',
+            'telefone'        => ['required','string','max:20', new \App\Rules\TelefoneBr(),
+                "unique:clientes,telefone,NULL,id,empresa_id,{$empresaId}"],
+            // CPF agora valida formato + unicidade por empresa (consistente com
+            // Admin/CaixaController::criar). Antes aceitava CPF lixo e permitia
+            // duplicação na mesma empresa — operador podia criar 2 clientes com
+            // mesmo CPF e burlar AtividadeSuspeita.
+            'cpf'             => ['nullable','string', new \App\Rules\CpfValido()],
             'data_nascimento' => 'nullable|date',
         ]);
+
+        // Normaliza CPF e re-checa duplicata
+        if (!empty($dados['cpf'])) {
+            $cpfNorm = preg_replace('/\D/', '', $dados['cpf']);
+            if (Cliente::where('empresa_id', $empresaId)->where('cpf', $cpfNorm)->exists()) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'cpf' => 'Já existe cliente com este CPF nesta empresa.',
+                ]);
+            }
+            $dados['cpf'] = $cpfNorm;
+        }
 
         // Senha inicial = últimos 6 dígitos do telefone (fácil de explicar para
         // o cliente). Risco mitigado por senha_temporaria=true: o PWA força
