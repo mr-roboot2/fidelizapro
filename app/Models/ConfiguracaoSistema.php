@@ -25,7 +25,7 @@ class ConfiguracaoSistema extends Model
         'pix_provider', 'pix_ambiente', 'pix_api_key', 'pix_webhook_token', 'pix_ativo',
         'asaas_webhook_token',
         'cobranca_avisos_antes', 'cobranca_avisos_depois',
-        'trial_dias_padrao', 'plano_padrao_id',
+        'trial_dias_padrao', 'plano_padrao_id', 'cadastro_publico_ativo',
         'captcha_provider', 'captcha_site_key', 'captcha_secret_key',
     ];
 
@@ -57,6 +57,7 @@ class ConfiguracaoSistema extends Model
     protected $casts = [
         'whatsapp_ativo' => 'boolean',
         'pix_ativo' => 'boolean',
+        'cadastro_publico_ativo' => 'boolean',
         'pix_api_key' => 'encrypted',
         'pix_webhook_token' => 'encrypted',
         'asaas_webhook_token' => 'encrypted',

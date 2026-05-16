@@ -41,6 +41,16 @@ class CadastroEmpresaController extends Controller
             return redirect()->route('admin.dashboard');
         }
 
+        $config = ConfiguracaoSistema::instancia();
+
+        // Super admin pode desligar o signup público em /super/configuracoes
+        // quando quiser triar empresas manualmente. Mostra a tela amigável
+        // ao invés de 404 pra não confundir lojista que clicou num link
+        // antigo divulgado.
+        if (!($config->cadastro_publico_ativo ?? true)) {
+            return view('cadastro.indisponivel', ['sistema' => $config]);
+        }
+
         $planos = Plano::where('ativo', true)
             ->orderBy('preco_mensal')
             ->get();
@@ -48,10 +58,8 @@ class CadastroEmpresaController extends Controller
         // Sem planos ativos não dá pra se cadastrar — super admin precisa
         // criar pelo menos um plano público antes de divulgar /cadastro.
         if ($planos->isEmpty()) {
-            return view('cadastro.indisponivel');
+            return view('cadastro.indisponivel', ['sistema' => $config]);
         }
-
-        $config = ConfiguracaoSistema::instancia();
 
         return view('cadastro.empresa', [
             'planos' => $planos,
@@ -63,6 +71,13 @@ class CadastroEmpresaController extends Controller
     public function processar(Request $request, AssinaturaService $assinaturas)
     {
         $config = ConfiguracaoSistema::instancia();
+
+        // Mesmo flag do GET — defesa em profundidade. Atacante que guardou
+        // POST antigo (ou bot que tem URL hardcoded) não cria empresa
+        // depois que super admin desligou o signup.
+        if (!($config->cadastro_publico_ativo ?? true)) {
+            abort(403, 'Cadastro público desativado no momento.');
+        }
 
         $dados = $request->validate([
             // Dados da empresa

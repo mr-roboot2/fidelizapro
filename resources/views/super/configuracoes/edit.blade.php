@@ -293,6 +293,23 @@
                            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
                     <p class="text-[11px] text-slate-500 mt-1">Dias de teste gratuito antes da primeira cobrança. 0 = sem trial.</p>
                 </div>
+
+                <div class="sm:col-span-2 pt-3 border-t border-slate-200">
+                    <label class="flex items-start gap-3 cursor-pointer">
+                        <input type="checkbox" name="cadastro_publico_ativo" value="1"
+                               @checked(old('cadastro_publico_ativo', $config->cadastro_publico_ativo ?? true))
+                               class="mt-0.5 w-5 h-5 rounded border-slate-300 text-rose-600 focus:ring-rose-500">
+                        <span>
+                            <span class="block text-sm font-medium text-slate-800">Cadastro público de empresa</span>
+                            <span class="block text-[11px] text-slate-500 mt-0.5">
+                                Quando ligado, lojistas se cadastram sozinhos em
+                                <code class="text-rose-600">{{ url('/cadastro') }}</code> escolhendo um plano ativo
+                                e ganham o trial acima automaticamente. Desligue se quiser triar empresas manualmente
+                                (cadastro só via super admin) — a página fica acessível mas mostra "indisponível".
+                            </span>
+                        </span>
+                    </label>
+                </div>
             </div>
 
             <div class="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
