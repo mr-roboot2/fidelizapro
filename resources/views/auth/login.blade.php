@@ -67,7 +67,11 @@
             </button>
         </form>
 
-        <div class="mt-6 text-center text-sm text-slate-500">
+        <div class="mt-6 pt-4 border-t border-slate-100 text-center text-sm text-slate-600">
+            Ainda não tem conta?
+            <a href="{{ route('cadastro.empresa.form') }}" class="text-indigo-600 hover:underline font-semibold">Criar grátis</a>
+        </div>
+        <div class="mt-3 text-center text-xs text-slate-500">
             Acesso de cliente? <a href="/app/" class="text-indigo-600 hover:underline font-medium">App do cliente</a>
         </div>
 

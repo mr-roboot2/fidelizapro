@@ -48,6 +48,7 @@ use App\Http\Controllers\SuperAdmin\CampanhaController as SuperCampanhaControlle
 use App\Http\Controllers\SuperAdmin\WhatsappLogController as SuperWhatsappLogController;
 use App\Http\Controllers\SuperAdmin\TutorialController as SuperTutorialController;
 use App\Http\Controllers\Admin\AjudaController;
+use App\Http\Controllers\CadastroEmpresaController;
 
 // Instalador web (auto-trava após concluir via storage/installed.lock).
 // `/install/complete` agora está DENTRO do gate — antes ficava acessível
@@ -73,6 +74,17 @@ Route::get('/admin/login', [LoginController::class, 'showLogin'])->name('admin.l
 Route::post('/admin/login', [LoginController::class, 'login'])
     ->middleware(['throttle:admin-login', 'captcha']);
 Route::post('/admin/logout', [LoginController::class, 'logout'])->name('admin.logout');
+
+// Cadastro público de empresa (self-service signup).
+// Lojista cria a conta sozinho, escolhe plano, ganha trial automático e
+// cai no /admin/setup (checklist guiado já existente).
+//   - throttle:cadastro-empresa (3/h + 10/dia/IP) impede flooding
+//   - captcha (se super admin ligou) impede botnet
+//   - CSRF embutido no grupo `web`
+Route::get('/cadastro', [CadastroEmpresaController::class, 'form'])->name('cadastro.empresa.form');
+Route::post('/cadastro', [CadastroEmpresaController::class, 'processar'])
+    ->middleware(['throttle:cadastro-empresa', 'captcha'])
+    ->name('cadastro.empresa.processar');
 
 // PWA cliente — modo genérico (seleção de empresa, branding via super admin)
 Route::get('/app', fn() => redirect('/app/'));

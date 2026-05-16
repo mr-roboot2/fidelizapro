@@ -108,6 +108,19 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(10)->by('ip:'.$request->ip());
         });
 
+        // cadastro-empresa: signup público em /cadastro. Sem throttle, bot
+        // cria N empresas/min poluindo a base e consumindo trials. Limites
+        // bem agressivos pq cadastro real é evento raro (1 empresa/lojista):
+        //   - 3/hora/IP: barra automação rápida
+        //   - 10/dia/IP: dificulta atacante alugar mil IPs por dia
+        // Captcha (se ligado) e CSRF reforçam.
+        RateLimiter::for('cadastro-empresa', function (Request $request) {
+            return [
+                Limit::perHour(3)->by('ip:'.$request->ip()),
+                Limit::perDay(10)->by('ip:'.$request->ip()),
+            ];
+        });
+
         // Mesma instância pra start e finish, pra preservar o array static
         // de execucoes ativas entre os dois eventos.
         $cronListener = new RegistrarCronExecucao();
