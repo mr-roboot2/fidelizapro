@@ -13,10 +13,27 @@
                 <input type="text" name="nome" required value="{{ old('nome', $plano->nome) }}"
                        class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg">
             </div>
-            <div>
+            <div x-data="{
+                    centavos: {{ (int) round(((float) old('preco_mensal', $plano->preco_mensal ?? 0)) * 100) }},
+                    get formatado() {
+                        return (this.centavos / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    },
+                    get numerico() {
+                        return (this.centavos / 100).toFixed(2);
+                    },
+                    digitar(e) {
+                        const apenas = e.target.value.replace(/\D/g, '');
+                        this.centavos = parseInt(apenas || '0', 10);
+                    }
+                 }">
                 <label class="text-sm font-medium">Preço mensal (R$) *</label>
-                <input type="number" name="preco_mensal" required step="0.01" min="0" value="{{ old('preco_mensal', $plano->preco_mensal) }}"
-                       class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg">
+                {{-- Input visual mostra "R$ 97,00" formatado conforme digita.
+                     O valor real (97.00) vai no hidden abaixo pra não quebrar
+                     o backend que espera decimal. --}}
+                <input type="text" inputmode="numeric" required
+                       :value="formatado" @input="digitar($event)"
+                       class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg font-mono">
+                <input type="hidden" name="preco_mensal" :value="numerico">
             </div>
             <div class="sm:col-span-2">
                 <label class="text-sm font-medium">Descrição</label>
