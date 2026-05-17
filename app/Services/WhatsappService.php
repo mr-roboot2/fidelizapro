@@ -152,7 +152,27 @@ class WhatsappService
         return $this->driver()->testar($this->config(), $telefoneDestino);
     }
 
+    /**
+     * Dispara campanha em background via Job (queue). O super admin
+     * recebe response imediata; o envio acontece em
+     * `App\Jobs\EnviarCampanha`. Quando QUEUE_CONNECTION=sync (dev), o
+     * dispatch executa em-linha — mesmo comportamento de antes.
+     *
+     * O status já foi setado pra 'enviando' pelo CampanhaController
+     * antes do dispatch (lock atômico contra duplo-clique). O job
+     * transiciona pra 'concluida' ao terminar, ou 'rascunho' se falhar.
+     */
     public function dispararCampanha(Campanha $campanha): void
+    {
+        \App\Jobs\EnviarCampanha::dispatch($campanha);
+    }
+
+    /**
+     * Método interno chamado pelo Job — faz o envio síncrono real
+     * dentro do worker. Não chamar direto do request HTTP em campanhas
+     * grandes (estoura max_execution_time).
+     */
+    public function dispararCampanhaImediato(Campanha $campanha): void
     {
         $clientes = $this->buscarClientesPorSegmento($campanha);
 

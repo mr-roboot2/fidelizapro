@@ -9,7 +9,9 @@
         <link rel="icon" href="{{ $sistema->faviconUrl() }}">
     @endif
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="{{ "https://cdn.jsdelivr.net/npm/remixicon" }}@4.2.0/fonts/remixicon.css">
+    <link rel="stylesheet" href="{{ "https://cdn.jsdelivr.net/npm/remixicon" }}@4.2.0/fonts/remixicon.css"
+          integrity="sha384-6FSSi597BTd6QcnsBNoLclRKxTOyyYqkaucRjFgCNr8wHVCp0COLClSPY4Vy/bjh"
+          crossorigin="anonymous">
     @inject('_captcha', 'App\Services\CaptchaService')
     @if ($_captcha->isEnabled())
         <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
