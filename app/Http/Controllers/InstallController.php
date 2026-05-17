@@ -203,13 +203,17 @@ class InstallController extends Controller
             'ativo'    => true,
         ]);
 
-        try { Artisan::call('storage:link'); } catch (Throwable $e) {}
+        try { Artisan::call('storage:link'); } catch (Throwable $e) { \Log::warning('[Install] storage:link falhou: '.$e->getMessage()); }
 
+        // Cache de config/route/view: se falhar silencioso, instalação
+        // termina "ok" mas caches corruptos quebram tudo no primeiro
+        // request. Log de warning permite ao operador detectar e
+        // re-rodar manualmente sem assumir que tudo foi OK.
         try {
             Artisan::call('config:cache');
             Artisan::call('route:cache');
             Artisan::call('view:cache');
-        } catch (Throwable $e) {}
+        } catch (Throwable $e) { \Log::warning('[Install] cache build falhou: '.$e->getMessage()); }
 
         $this->marcarInstalado();
 
@@ -225,13 +229,17 @@ class InstallController extends Controller
             ]);
         }
 
-        try { Artisan::call('storage:link'); } catch (Throwable $e) {}
+        try { Artisan::call('storage:link'); } catch (Throwable $e) { \Log::warning('[Install] storage:link falhou: '.$e->getMessage()); }
 
+        // Cache de config/route/view: se falhar silencioso, instalação
+        // termina "ok" mas caches corruptos quebram tudo no primeiro
+        // request. Log de warning permite ao operador detectar e
+        // re-rodar manualmente sem assumir que tudo foi OK.
         try {
             Artisan::call('config:cache');
             Artisan::call('route:cache');
             Artisan::call('view:cache');
-        } catch (Throwable $e) {}
+        } catch (Throwable $e) { \Log::warning('[Install] cache build falhou: '.$e->getMessage()); }
 
         $this->marcarInstalado();
 

@@ -21,6 +21,11 @@ class AuditoriaService
         'whatsapp_api_token', 'whatsapp_client_token',
         'whatsapp_webhook_verify_token', 'whatsapp_app_secret',
         'captcha_secret_key',
+        // Endereçamento de contas em gateways externos: não são segredos
+        // mas dão a um leaker o link direto pra contas Asaas/Meta. Redact
+        // por princípio de menor exposição.
+        'whatsapp_phone_id', 'whatsapp_waba_id',
+        'gateway_subscription_id', 'gateway_customer_id',
     ];
 
     public function registrar(

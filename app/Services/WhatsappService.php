@@ -134,7 +134,11 @@ class WhatsappService
                 'erro'       => $sucesso ? null : 'Falha no envio (verifique log do driver)',
             ]);
         } catch (Throwable $e) {
-            // ignora silenciosamente — não pode derrubar o fluxo principal
+            // Não derruba o fluxo principal, mas reporta pro logger
+            // global pra não perder observability — sem isso, mensagem
+            // entregue ao cliente mas registro de envio sumia. Relatórios
+            // de KPI ficavam subnotificados.
+            report($e);
         }
     }
 

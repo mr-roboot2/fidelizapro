@@ -67,12 +67,26 @@ class Empresa extends Model
 
     public function marcarPassoVisto(string $chave): void
     {
-        $vistos = $this->setup_passos_vistos ?? [];
-        if (!in_array($chave, $vistos, true)) {
+        // Race write em JSON: 2 requests paralelos (AIGrowthController e
+        // PwaShareController marcando passos diferentes) faziam
+        // read-modify-write sem lock — um dos passos era perdido.
+        // lockForUpdate + re-read dentro da transaction força
+        // serialização.
+        \Illuminate\Support\Facades\DB::transaction(function () use ($chave) {
+            $lockada = static::lockForUpdate()->find($this->id);
+            if (!$lockada) return;
+
+            $vistos = $lockada->setup_passos_vistos ?? [];
+            if (in_array($chave, $vistos, true)) return;
+
             $vistos[] = $chave;
+            $lockada->setup_passos_vistos = $vistos;
+            $lockada->save();
+
+            // Sync model em memória (caller espera que $this->passoVisto()
+            // retorne true em seguida).
             $this->setup_passos_vistos = $vistos;
-            $this->save();
-        }
+        });
     }
 
     protected static function booted(): void
