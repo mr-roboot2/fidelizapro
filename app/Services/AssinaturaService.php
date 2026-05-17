@@ -120,15 +120,34 @@ class AssinaturaService
         });
     }
 
+    /**
+     * Cancela a assinatura no gateway externo + grava status local. O
+     * cancelamento no gateway ACONTECE antes do DB update mas a ordem é
+     * deliberada: marcar 'cancelada' localmente antes de confirmar com o
+     * gateway pode deixar empresa sem acesso enquanto o gateway ainda
+     * cobra. Pra fechar a janela de inconsistência (gateway cancelou mas DB
+     * crashou no update), usamos DB::transaction + lockForUpdate — outro
+     * processo concorrente não pode mexer na linha enquanto a transação
+     * roda. Se o driver lança (RuntimeException), nada é gravado e o
+     * super-admin retenta. Se o DB falha após o gateway confirmar, o retry
+     * é idempotente pq o cancelar do Asaas tolera "já cancelada".
+     */
     public function cancelar(Assinatura $assinatura): void
     {
-        $driver = $this->gateway($assinatura->gateway);
-        $driver->cancelarAssinatura($assinatura);
+        DB::transaction(function () use ($assinatura) {
+            $lockada = Assinatura::lockForUpdate()->find($assinatura->id);
+            if (!$lockada || $lockada->status === 'cancelada') {
+                return;
+            }
 
-        $assinatura->update([
-            'status' => 'cancelada',
-            'cancelada_em' => now(),
-        ]);
+            $driver = $this->gateway($lockada->gateway);
+            $driver->cancelarAssinatura($lockada);
+
+            $lockada->update([
+                'status'       => 'cancelada',
+                'cancelada_em' => now(),
+            ]);
+        });
     }
 
     /**

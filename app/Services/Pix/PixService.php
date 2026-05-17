@@ -67,7 +67,10 @@ class PixService
      * Race fix: dois webhooks paralelos pro mesmo charge_id (Asaas faz retry
      * agressivo) liam status='pendente' simultâneo e aplicavam upgrade 2x.
      * Mesmo padrão do AssinaturaService::marcarPaga — lockForUpdate no
-     * Cobranca + early-return idempotente.
+     * Cobranca + early-return idempotente. A Assinatura também é lockada e
+     * o proximo_vencimento usa max(atual, candidato) pra preservar
+     * monotonicidade (webhook atrasado de cobrança antiga não retroage o
+     * vencimento — bug que existia aqui mas não em AssinaturaService).
      */
     public function confirmarPagamento(Cobranca $cobranca): void
     {
@@ -86,14 +89,19 @@ class PixService
             // pra que o update da assinatura (valor_mensal, etc.) pegue.
             (new \App\Services\AplicarUpgradePlano())->executar($lockada->fresh());
 
-            $assinatura = $lockada->fresh()->assinatura;
+            // Lock + monotonicidade. Sem o lock, 2 webhooks de cobranças
+            // distintas da mesma assinatura avançam só 1 mês ao invés de 2.
+            // Sem max(), webhook PIX de cobrança vencida (atrasado) reescreve
+            // o vencimento pra now+1m, encurtando o ciclo já ativo do cliente.
+            $assinatura = \App\Models\Assinatura::lockForUpdate()->find($lockada->fresh()->assinatura_id);
             if ($assinatura) {
-                $venc = $assinatura->proximo_vencimento && $assinatura->proximo_vencimento->isFuture()
-                    ? $assinatura->proximo_vencimento->copy()->addMonth()
-                    : now()->addMonth();
+                $base = $lockada->vencimento ?? now();
+                $candidato = $base->copy()->addMonth();
+                $atual = $assinatura->proximo_vencimento;
+                $novoVencimento = ($atual && $atual->gt($candidato)) ? $atual : $candidato;
                 $assinatura->update([
                     'status'             => 'ativa',
-                    'proximo_vencimento' => $venc,
+                    'proximo_vencimento' => $novoVencimento,
                 ]);
             }
         });
