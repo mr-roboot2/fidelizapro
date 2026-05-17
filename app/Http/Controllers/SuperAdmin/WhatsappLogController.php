@@ -40,8 +40,12 @@ class WhatsappLogController extends Controller
         $envios = $query->latest('created_at')->paginate(30)->withQueryString();
 
         $empresas = Empresa::orderBy('nome')->get(['id', 'nome']);
-        $eventos  = WhatsappEnvio::distinct()->pluck('evento')->filter()->sort()->values();
-        $origens  = WhatsappEnvio::distinct()->pluck('origem')->filter()->sort()->values();
+        // Listas finitas — antes faziam DISTINCT na tabela inteira (que
+        // cresce sem teto, podendo ter 100k+ rows). DISTINCT em TEXT
+        // sem índice fulltext é full scan. Listas constantes ou
+        // consts do model resolvem.
+        $eventos = collect(array_keys(\App\Models\WhatsappTemplate::EVENTOS ?? []));
+        $origens = collect(['manual', 'automacao', 'campanha', 'otp', 'sistema', 'evento', 'resgate', 'sorteio']);
 
         $resumo = [
             'total'   => WhatsappEnvio::count(),

@@ -54,9 +54,26 @@ class IndicacaoController extends Controller
         $telefoneProprio = preg_replace('/\D/', '', $cliente->telefone);
 
         // Antifraude #1: não indicar a si mesmo (fechava loop de cashback/pontos).
+        // Bloqueia tanto por telefone igual quanto por cliente existente
+        // com o mesmo `codigo_indicacao` do próprio cliente — atacante
+        // criava conta nova com telefone diferente mas usando o próprio
+        // codigo_indicacao pra burlar.
         if ($telefoneDigits === $telefoneProprio) {
             throw ValidationException::withMessages([
                 'telefone_indicado' => 'Você não pode indicar seu próprio número.',
+            ]);
+        }
+        $jaCliente = \App\Models\Cliente::where('empresa_id', $cliente->empresa_id)
+            ->whereTelefone($dados['telefone_indicado'])
+            ->where('id', '!=', $cliente->id)
+            ->where(function ($q) use ($cliente) {
+                $q->where('indicado_por_id', $cliente->id)
+                  ->orWhere('codigo_indicacao', $cliente->codigo_indicacao);
+            })
+            ->exists();
+        if ($jaCliente) {
+            throw ValidationException::withMessages([
+                'telefone_indicado' => 'Esse telefone já está vinculado à sua conta.',
             ]);
         }
 

@@ -21,7 +21,12 @@ Route::prefix('v1')->group(function () {
     // scraping da base de clientes do SaaS por concorrentes.
     Route::get('empresas', [EmpresaController::class, 'publicas'])
         ->middleware('throttle:empresas-publica');
-    Route::get('qr/{codigo}', [ClienteController::class, 'qr'])->where('codigo', '[A-Za-z0-9-]+');
+    // throttle dedicado: rota pública renderiza SVG do QR de qualquer
+    // codigo. Sem teto, brute force de codigos curtos + abuse
+    // computacional (SVG geração).
+    Route::get('qr/{codigo}', [ClienteController::class, 'qr'])
+        ->where('codigo', '[A-Za-z0-9-]+')
+        ->middleware('throttle:30,1');
 
     // Auth com throttle anti brute-force. Limite por empresa (campo
     // rate_limit_auth) — default 10/min/IP se a empresa não for resolvida.
@@ -39,8 +44,14 @@ Route::prefix('v1')->group(function () {
         // em mensagens WhatsApp: 3/min/IP+telefone + 20/hora/IP fecha bomb.
         Route::post('auth/otp/solicitar', [OtpController::class, 'solicitar'])
             ->middleware('throttle:otp-solicitar');
-        Route::post('auth/otp/validar', [OtpController::class, 'validar']);
-        Route::post('auth/recuperar-senha', [OtpController::class, 'recuperarSenha']);
+        // throttle:otp-validar fecha brute force do código de 6 dígitos.
+        // O lock interno do OTP (max_tentativas) tranca o código mas
+        // atacante varia IP, faz 3 tentativas, vai pra outro código.
+        // 10/min/IP+telefone bloqueia o caminho automatizado.
+        Route::post('auth/otp/validar', [OtpController::class, 'validar'])
+            ->middleware('throttle:otp-validar');
+        Route::post('auth/recuperar-senha', [OtpController::class, 'recuperarSenha'])
+            ->middleware('throttle:otp-validar');
         Route::post('loja/login', [LojaController::class, 'login']);
     });
 

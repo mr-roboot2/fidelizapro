@@ -34,3 +34,7 @@ Schedule::command('cashback:liberar')->dailyAt($horarioCashback)->withoutOverlap
 Schedule::command('automacoes:executar')->dailyAt($horarioAutomacoes)->withoutOverlapping();
 Schedule::command('roleta:processar-gatilhos')->dailyAt('06:00')->withoutOverlapping();
 Schedule::command('assinaturas:processar')->dailyAt('07:00')->withoutOverlapping();
+// Cleanup diário às 02h (horário de menor uso) — purga otp_codigos,
+// whatsapp_envios, auditoria_logs, cron_execucoes e automacao_logs
+// pra evitar tabelas crescendo indefinidamente.
+Schedule::command('limpar:logs-antigos')->dailyAt('02:00')->withoutOverlapping();

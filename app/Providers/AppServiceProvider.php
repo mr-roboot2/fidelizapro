@@ -59,6 +59,18 @@ class AppServiceProvider extends ServiceProvider
                 : Limit::perMinute(30)->by('ip:'.$request->ip());
         });
 
+        // otp-validar: brute force do código de 6 dígitos. Sem isso o
+        // atacante varia IP entre tentativas e tenta milhares de códigos
+        // por hora. 10/min/IP+telefone serializa as tentativas. O lock
+        // interno do OTP (max_tentativas) tranca o código específico.
+        RateLimiter::for('otp-validar', function (Request $request) {
+            $telefone = preg_replace('/\D/', '', (string) $request->input('telefone', ''));
+            return [
+                Limit::perMinute(10)->by('ip:'.$request->ip().'|tel:'.$telefone),
+                Limit::perHour(30)->by('ip:'.$request->ip()),
+            ];
+        });
+
         // otp-solicitar: limites dedicados ao endpoint /auth/otp/solicitar.
         // Anti-WhatsApp-bomb: cada OTP enviado custa $$ pro lojista (gateway
         // de WhatsApp paga por mensagem). Sem isso, atacante varre 10000

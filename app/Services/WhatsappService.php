@@ -185,9 +185,14 @@ class WhatsappService
 
     public function buscarClientesPorSegmento(Campanha $campanha)
     {
-        // Campanha global (empresa_id = null) atinge clientes de todas empresas
+        // Campanha global (empresa_id = null) atinge clientes de todas empresas.
+        // whereNotNull('telefone'): cliente sem telefone crashava drivers em
+        // preg_replace('/\D/', '', null) (deprecated PHP 8.1+) e bate na
+        // API do Meta com `to: ''` retornando erro pouco descritivo.
         $query = Cliente::where('ativo', true)
-            ->where('aceita_whatsapp', true);
+            ->where('aceita_whatsapp', true)
+            ->whereNotNull('telefone')
+            ->where('telefone', '!=', '');
 
         if ($campanha->empresa_id) {
             $query->where('empresa_id', $campanha->empresa_id);

@@ -77,7 +77,18 @@ class CompraService
                 try {
                     $regraInd = $empresa->regrasPontuacao()
                         ->where('tipo', 'indicacao')->where('ativo', true)->first();
-                    if ($regraInd && $regraInd->vigente() && $regraInd->pontos_fixos > 0) {
+                    // Valor mínimo da compra pra creditar indicação. Sem
+                    // isso, atacante criava conta fake, lançava compra de
+                    // R$ 0,01 (via PDV/admin) e ganhava o bônus do
+                    // indicador. Default R$ 10 — configurável via
+                    // `regrasPontuacao.valor_minimo`. Zero = aceita
+                    // qualquer compra (comportamento antigo).
+                    $valorMinimo = (float) ($regraInd?->valor_minimo ?? 10.00);
+                    $valorCompra = (float) ($dados['valor'] ?? 0);
+
+                    if ($regraInd && $regraInd->vigente()
+                        && $regraInd->pontos_fixos > 0
+                        && $valorCompra >= $valorMinimo) {
                         $indicador = Cliente::find($cliente->indicado_por_id);
                         if ($indicador && $indicador->empresa_id === $empresa->id) {
                             $this->pontuacaoService->creditar(

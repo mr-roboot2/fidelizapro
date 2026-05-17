@@ -181,11 +181,21 @@ class ImportacaoController extends Controller
                     $criados++;
                 }
 
+                // Anti formula injection: campos de texto que viram CSV
+                // de novo (extração admin → Excel/LibreOffice) executam
+                // fórmula se começam com =, +, -, @ ou TAB. Prefixar com
+                // apóstrofe quebra a interpretação como fórmula sem
+                // alterar visualmente o texto.
+                $descricao = trim($linhaDados['descricao'] ?? '') ?: 'Importado de CSV';
+                if (preg_match('/^[=+\-@\t\r]/', $descricao)) {
+                    $descricao = "'".$descricao;
+                }
+
                 try {
                     $compraService->registrar($cliente, [
                         'valor' => $valor,
                         'codigo' => $linhaDados['codigo'] ?? null,
-                        'descricao' => $linhaDados['descricao'] ?? 'Importado de CSV',
+                        'descricao' => $descricao,
                         'origem' => 'manual',
                         'user_id' => Auth::id(),
                     ]);
