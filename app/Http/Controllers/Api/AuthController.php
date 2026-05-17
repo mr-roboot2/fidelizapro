@@ -87,7 +87,7 @@ class AuthController extends Controller
             'telefone' => ['required', 'string', 'max:20', new TelefoneBr()],
             'cpf' => ['required', 'string', new CpfValido()],
             'email' => 'nullable|email',
-            'data_nascimento' => 'nullable|date',
+            'data_nascimento' => 'nullable|date|before:today',
             'password' => 'required|string|min:8',
             'codigo_indicacao' => 'nullable|string',
         ]);

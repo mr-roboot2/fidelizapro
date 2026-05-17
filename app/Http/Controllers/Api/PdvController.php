@@ -41,7 +41,7 @@ class PdvController extends Controller
             'cpf' => 'nullable|string|max:14',
             'codigo_qr' => 'nullable|string|max:64',
             'nome' => ['nullable','string','max:120','regex:/^[\p{L}\p{N}\s\.\-\']+$/u'],
-            'data_nascimento' => 'nullable|date',
+            'data_nascimento' => 'nullable|date|before:today',
             'valor' => 'required|numeric|min:0.01',
             'desconto' => 'nullable|numeric|min:0',
             'codigo' => 'nullable|string|max:50',

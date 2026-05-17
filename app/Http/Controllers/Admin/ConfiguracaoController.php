@@ -26,7 +26,9 @@ class ConfiguracaoController extends Controller
             'endereco' => 'nullable|string|max:255',
             'cor_primaria' => 'required|string|regex:/^#[0-9a-fA-F]{6}$/',
             'cor_secundaria' => 'required|string|regex:/^#[0-9a-fA-F]{6}$/',
-            'pontos_por_real' => 'required|numeric|min:0',
+            // max:100 cap defensivo igual ao CadastroEmpresaController — admin
+            // não deve setar 999999 pontos por R$1 (inflação descontrolada).
+            'pontos_por_real' => 'required|numeric|min:0|max:100',
             'cashback_percentual' => 'required|numeric|min:0|max:100',
             'dias_liberar_cashback' => 'required|integer|min:0|max:365',
             'validade_pontos_dias' => 'required|integer|min:30',

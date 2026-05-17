@@ -166,7 +166,7 @@ class CaixaController extends Controller
             'nome' => 'required|string|max:255',
             'telefone' => ['required', 'string', 'max:20', new TelefoneBr(), "unique:clientes,telefone,NULL,id,empresa_id,{$empresaId}"],
             'cpf' => ['required', 'string', new CpfValido()],
-            'data_nascimento' => 'nullable|date',
+            'data_nascimento' => 'nullable|date|before:today',
         ]);
 
         $cpfNorm = preg_replace('/\D/', '', $dados['cpf']);

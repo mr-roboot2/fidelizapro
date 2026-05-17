@@ -98,7 +98,9 @@ class SorteioController extends Controller
 
     public function store(Request $request)
     {
-        $dados = $this->validar($request);
+        // Store sempre exige data futura — sorteio novo nascendo com data
+        // passada não tem propósito.
+        $dados = $this->validar($request, true);
         $dados['empresa_id'] = Auth::user()->empresa_id;
 
         if ($request->hasFile('imagem')) {
@@ -135,7 +137,10 @@ class SorteioController extends Controller
     public function update(Request $request, Sorteio $sorteio)
     {
         $this->autorizar($sorteio);
-        $dados = $this->validar($request);
+        // Update NÃO exige data futura — admin precisa poder editar
+        // (cancelar, mudar nome/imagem) sorteios já passados sem ser
+        // bloqueado por "data deve ser hoje ou futura".
+        $dados = $this->validar($request, false);
 
         if ($request->hasFile('imagem')) {
             if ($sorteio->imagem) Storage::disk('public')->delete($sorteio->imagem);
@@ -212,9 +217,13 @@ class SorteioController extends Controller
         return back()->with('success', "Criados {$criados} bilhete(s) para {$cliente->nome}.");
     }
 
-    protected function validar(Request $request): array
+    protected function validar(Request $request, bool $exigirDataFutura = true): array
     {
         $empresaId = Auth::user()->empresa_id;
+
+        $regraData = $exigirDataFutura
+            ? 'required|date|after_or_equal:today'
+            : 'required|date';
 
         return $request->validate([
             'nome'                     => 'required|string|max:120',
@@ -223,11 +232,7 @@ class SorteioController extends Controller
             // IDOR cross-tenant: recompensa precisa pertencer à mesma empresa
             'recompensa_id'            => ['nullable', Rule::exists('recompensas', 'id')->where(fn ($q) => $q->where('empresa_id', $empresaId))],
             'valor_estimado'           => 'nullable|numeric|min:0',
-            // after_or_equal:today bloqueia criar/editar sorteio com data
-            // já passada. Antes aceitava — sorteio nascia "morto"
-            // (Sorteio::aceitaBilhetes rejeita data passada) e admin
-            // reclamava sem entender o porquê.
-            'data_sorteio'             => 'required|date|after_or_equal:today',
+            'data_sorteio'             => $regraData,
             'status'                   => 'required|in:planejado,ativo,sorteado,cancelado',
             'max_bilhetes_por_cliente'   => 'nullable|integer|min:1|max:1000',
             'limite_bilhetes_dia_por_ip' => 'nullable|integer|min:1|max:200',

@@ -39,7 +39,11 @@ class EmpresaController extends Controller
     {
         $dados = $request->validate([
             'nome' => 'required|string|max:255',
-            'slug' => 'nullable|string|max:80|unique:empresas,slug',
+            // regex: só letras minúsculas, dígitos e hífen — vira parte do URL
+            // do PWA (/app/{slug}). Aceitar "Acme Corp" gera /app/Acme%20Corp,
+            // quebra o manifest.json e dificulta divulgação. Mesma regex
+            // usada em CadastroEmpresaController (consistência).
+            'slug' => 'nullable|string|max:80|regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/|unique:empresas,slug',
             'cnpj' => 'nullable|string|max:18',
             'telefone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:255',
@@ -47,7 +51,7 @@ class EmpresaController extends Controller
             'cor_primaria' => 'required|string|regex:/^#[0-9a-fA-F]{6}$/',
             'cor_secundaria' => 'required|string|regex:/^#[0-9a-fA-F]{6}$/',
             'modo_fidelidade' => 'required|in:pontos,cashback,ambos',
-            'pontos_por_real' => 'required_unless:modo_fidelidade,cashback|nullable|numeric|min:0',
+            'pontos_por_real' => 'required_unless:modo_fidelidade,cashback|nullable|numeric|min:0|max:100',
             'cashback_percentual' => 'required_unless:modo_fidelidade,pontos|nullable|numeric|min:0|max:100',
             'validade_pontos_dias' => 'required_unless:modo_fidelidade,cashback|nullable|integer|min:30',
             'dias_liberar_cashback' => 'nullable|integer|min:0',
@@ -119,7 +123,7 @@ class EmpresaController extends Controller
     {
         $dados = $request->validate([
             'nome' => 'required|string|max:255',
-            'slug' => "nullable|string|max:80|unique:empresas,slug,{$empresa->id}",
+            'slug' => "nullable|string|max:80|regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/|unique:empresas,slug,{$empresa->id}",
             'cnpj' => 'nullable|string|max:18',
             'telefone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:255',
@@ -127,7 +131,7 @@ class EmpresaController extends Controller
             'cor_primaria' => 'required|string|regex:/^#[0-9a-fA-F]{6}$/',
             'cor_secundaria' => 'required|string|regex:/^#[0-9a-fA-F]{6}$/',
             'modo_fidelidade' => 'required|in:pontos,cashback,ambos',
-            'pontos_por_real' => 'required_unless:modo_fidelidade,cashback|nullable|numeric|min:0',
+            'pontos_por_real' => 'required_unless:modo_fidelidade,cashback|nullable|numeric|min:0|max:100',
             'cashback_percentual' => 'required_unless:modo_fidelidade,pontos|nullable|numeric|min:0|max:100',
             'validade_pontos_dias' => 'required_unless:modo_fidelidade,cashback|nullable|integer|min:30',
             'dias_liberar_cashback' => 'nullable|integer|min:0',

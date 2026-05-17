@@ -54,7 +54,7 @@ class ClienteController extends Controller
             'telefone' => "required|string|max:20|unique:clientes,telefone,NULL,id,empresa_id,{$empresaId}",
             'email' => 'nullable|email|max:255',
             'cpf' => 'nullable|string|max:14',
-            'data_nascimento' => 'nullable|date',
+            'data_nascimento' => 'nullable|date|before:today',
             'aceita_whatsapp' => 'boolean',
         ]);
 
@@ -97,7 +97,7 @@ class ClienteController extends Controller
             'telefone' => "required|string|max:20|unique:clientes,telefone,{$cliente->id},id,empresa_id,{$empresaId}",
             'email' => 'nullable|email|max:255',
             'cpf' => 'nullable|string|max:14',
-            'data_nascimento' => 'nullable|date',
+            'data_nascimento' => 'nullable|date|before:today',
             'aceita_whatsapp' => 'boolean',
             'ativo' => 'boolean',
             'password' => 'nullable|string|min:8|confirmed',

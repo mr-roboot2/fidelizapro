@@ -46,15 +46,30 @@ class ProcessarAssinaturas extends Command
             ->get();
 
         foreach ($cobrancas as $c) {
-            $expiraEm = $c->meta['pix_expira_em'] ?? null;
-            if (!$expiraEm) continue;
-            if (!\Carbon\Carbon::parse($expiraEm)->isPast()) continue;
-
             try {
-                $meta = $c->meta;
-                unset($meta['pix_qr_code'], $meta['pix_qr_code_svg'], $meta['pix_copia_cola'], $meta['pix_expira_em']);
-                $c->update(['meta' => $meta, 'gateway_charge_id' => null]);
-                $pix->gerarParaCobranca($c->fresh(), $c->empresa);
+                $expiraEm = $c->meta['pix_expira_em'] ?? null;
+                if (!$expiraEm) continue;
+                // Carbon::parse num valor malformado (string vazia, "0000-00-00")
+                // lançava InvalidFormatException sem catch e DERRUBAVA todo o
+                // batch — 1 cobrança lixo travava centenas válidas. Try/catch
+                // por iteração isola falha por cobrança.
+                if (!\Carbon\Carbon::parse($expiraEm)->isPast()) continue;
+
+                // Race em cobranca.meta: cron lê meta, edita, salva. Webhook
+                // PIX concorrente fazendo o mesmo no mesmo intervalo perde
+                // updates (last write wins). lockForUpdate + fresh() força
+                // o cron a esperar e re-ler o estado pós-webhook.
+                \Illuminate\Support\Facades\DB::transaction(function () use ($c, $pix) {
+                    $lockada = Cobranca::lockForUpdate()->find($c->id);
+                    // Re-check após lock: status pode ter virado 'pago' pelo
+                    // webhook concorrente — nada a regerar.
+                    if (!$lockada || $lockada->status !== 'pendente') return;
+
+                    $meta = $lockada->meta ?? [];
+                    unset($meta['pix_qr_code'], $meta['pix_qr_code_svg'], $meta['pix_copia_cola'], $meta['pix_expira_em']);
+                    $lockada->update(['meta' => $meta, 'gateway_charge_id' => null]);
+                    $pix->gerarParaCobranca($lockada->fresh(), $c->empresa);
+                });
                 $n++;
             } catch (Throwable $e) {
                 report($e);
@@ -135,9 +150,8 @@ class ProcessarAssinaturas extends Command
                 $empresa = $c->empresa;
                 if (!$empresa?->telefone) continue;
 
-                $meta = $c->meta ?? [];
                 $marca = "notif_prox_{$dias}d";
-                if (!empty($meta[$marca])) continue;
+                if (!empty(($c->meta ?? [])[$marca])) continue;
 
                 try {
                     $whatsapp->enviarEvento(
@@ -145,8 +159,17 @@ class ProcessarAssinaturas extends Command
                         [$empresa->nome, number_format($c->valor, 2, ',', '.'), (string) $dias],
                         origem: 'cobranca'
                     );
-                    $meta[$marca] = now()->toDateTimeString();
-                    $c->update(['meta' => $meta]);
+                    // Race em meta JSON: lockForUpdate re-lê meta atual
+                    // (pode ter sido editado por webhook/regerarPix) antes
+                    // de merge. Sem isso, read antes do envio + write
+                    // depois perdia outros campos do meta.
+                    \Illuminate\Support\Facades\DB::transaction(function () use ($c, $marca) {
+                        $lockada = Cobranca::lockForUpdate()->find($c->id);
+                        if (!$lockada) return;
+                        $meta = $lockada->meta ?? [];
+                        $meta[$marca] = now()->toDateTimeString();
+                        $lockada->update(['meta' => $meta]);
+                    });
                     $n++;
                 } catch (Throwable $e) {
                     report($e);
@@ -177,9 +200,8 @@ class ProcessarAssinaturas extends Command
                 $empresa = $c->empresa;
                 if (!$empresa?->telefone) continue;
 
-                $meta = $c->meta ?? [];
                 $marca = "notif_venc_{$dias}d";
-                if (!empty($meta[$marca])) continue;
+                if (!empty(($c->meta ?? [])[$marca])) continue;
 
                 try {
                     $whatsapp->enviarEvento(
@@ -187,8 +209,14 @@ class ProcessarAssinaturas extends Command
                         [$empresa->nome, number_format($c->valor, 2, ',', '.'), (string) $dias],
                         origem: 'cobranca'
                     );
-                    $meta[$marca] = now()->toDateTimeString();
-                    $c->update(['meta' => $meta]);
+                    // Race em meta JSON — ver comentário em notificarProximas.
+                    \Illuminate\Support\Facades\DB::transaction(function () use ($c, $marca) {
+                        $lockada = Cobranca::lockForUpdate()->find($c->id);
+                        if (!$lockada) return;
+                        $meta = $lockada->meta ?? [];
+                        $meta[$marca] = now()->toDateTimeString();
+                        $lockada->update(['meta' => $meta]);
+                    });
                     $n++;
                 } catch (Throwable $e) {
                     report($e);

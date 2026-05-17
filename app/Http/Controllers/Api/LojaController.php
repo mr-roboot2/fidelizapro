@@ -117,7 +117,7 @@ class LojaController extends Controller
             // duplicação na mesma empresa — operador podia criar 2 clientes com
             // mesmo CPF e burlar AtividadeSuspeita.
             'cpf'             => ['nullable','string', new \App\Rules\CpfValido()],
-            'data_nascimento' => 'nullable|date',
+            'data_nascimento' => 'nullable|date|before:today',
         ]);
 
         // Normaliza CPF e re-checa duplicata

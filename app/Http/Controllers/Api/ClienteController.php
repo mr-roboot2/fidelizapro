@@ -103,7 +103,7 @@ class ClienteController extends Controller
             'nome' => ['sometimes','string','max:120','regex:/^[\p{L}\p{N}\s\.\-\']+$/u'],
             'email' => 'nullable|email',
             'cpf' => 'nullable|string|max:14',
-            'data_nascimento' => 'nullable|date',
+            'data_nascimento' => 'nullable|date|before:today',
             'aceita_whatsapp' => 'boolean',
         ]);
 

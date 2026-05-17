@@ -62,7 +62,7 @@ class RegraPontuacaoController extends Controller
             // ficava sem regra aplicável e caía no pontos_por_real global,
             // silencioso). Falha amigável agora.
             'valor_maximo' => 'nullable|numeric|min:0|gte:valor_minimo',
-            'pontos_por_real' => 'nullable|numeric|min:0',
+            'pontos_por_real' => 'nullable|numeric|min:0|max:100',
             'multiplicador' => 'nullable|numeric|min:1',
             'pontos_fixos' => 'nullable|integer|min:0',
             'data_inicio' => 'nullable|date',
