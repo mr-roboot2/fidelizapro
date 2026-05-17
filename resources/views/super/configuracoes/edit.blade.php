@@ -213,18 +213,21 @@
     </div>
 
     <div class="bg-white rounded-xl shadow-sm p-6">
-        <div class="flex items-center justify-between mb-1"
-             x-data="{ pixAtivo: {{ old('pix_ativo', $config->pix_ativo) ? 'true' : 'false' }} }">
+        <div class="flex items-center justify-between mb-1">
             <h2 class="font-semibold text-slate-800">Pagamentos PIX</h2>
             <label class="inline-flex items-center gap-2 cursor-pointer">
-                {{-- x-model mantém o texto em sincronia com o toggle (antes
-                     era server-side: clicava → ficava verde mas texto seguia
-                     "Desativado" até salvar, virando confusão de UX). --}}
-                <input type="checkbox" name="pix_ativo" value="1" x-model="pixAtivo" class="sr-only peer">
+                <input type="checkbox" name="pix_ativo" value="1" {{ old('pix_ativo', $config->pix_ativo) ? 'checked' : '' }} class="sr-only peer">
                 <div class="w-11 h-6 bg-slate-200 peer-checked:bg-emerald-500 rounded-full relative transition">
                     <div class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition peer-checked:translate-x-5"></div>
                 </div>
-                <span class="text-sm font-medium" x-text="pixAtivo ? 'Ativo' : 'Desativado'"></span>
+                {{-- Texto via CSS pseudo-elemento sincronizado com o checkbox
+                     (peer-checked do Tailwind). Antes era PHP server-side e
+                     ficava dessincronizado até salvar; depois usei Alpine
+                     x-model mas conflitava com algum hidrate na página
+                     deixando layout quebrado em prod. CSS puro é mais
+                     simples e robusto. --}}
+                <span class="text-sm font-medium text-slate-600 peer-checked:hidden">Desativado</span>
+                <span class="text-sm font-medium text-emerald-600 hidden peer-checked:inline">Ativo</span>
             </label>
         </div>
         <p class="text-xs text-slate-500 mb-5">Gateway pra cobrar as assinaturas das empresas via PIX. Sem ativar, fica em modo mock (QR fake só pra dev).</p>
@@ -271,19 +274,20 @@
                      (antes só aparecia depois de salvar o token — ovo/galinha
                      pq o user precisa da URL pra cadastrar no Asaas ANTES de
                      gerar o token). --}}
-                <div class="mt-3 p-3 bg-rose-50 border border-rose-200 rounded-lg"
-                     x-data="{ copiado: false }">
+                <div class="mt-3 p-3 bg-rose-50 border border-rose-200 rounded-lg">
                     <p class="text-xs font-semibold text-rose-700 uppercase tracking-wider mb-1.5">
                         <i class="ri-link"></i> URL do webhook Asaas
                     </p>
                     <div class="flex items-stretch gap-2">
-                        <code class="flex-1 bg-white border border-rose-200 px-3 py-2 rounded text-xs font-mono break-all"
-                              x-ref="urlAsaas">{{ url('/webhook/pagamento/asaas') }}</code>
+                        <code id="asaas-webhook-url" class="flex-1 bg-white border border-rose-200 px-3 py-2 rounded text-xs font-mono break-all">{{ url('/webhook/pagamento/asaas') }}</code>
+                        {{-- onclick inline em vez de Alpine x-data/x-ref — antes
+                             qualquer erro no Alpine dessa página deixava o
+                             layout quebrado até o usuário recarregar/salvar. --}}
                         <button type="button"
-                                @click="navigator.clipboard.writeText($refs.urlAsaas.innerText); copiado=true; setTimeout(()=>copiado=false,1500)"
+                                onclick="navigator.clipboard.writeText(document.getElementById('asaas-webhook-url').innerText); this.querySelector('span').innerText='Copiado!'; setTimeout(()=>this.querySelector('span').innerText='Copiar',1500)"
                                 class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded text-xs font-semibold whitespace-nowrap">
                             <i class="ri-file-copy-line"></i>
-                            <span x-text="copiado ? 'Copiado!' : 'Copiar'"></span>
+                            <span>Copiar</span>
                         </button>
                     </div>
                     <p class="text-[11px] text-rose-700 mt-2">
