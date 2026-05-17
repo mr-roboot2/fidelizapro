@@ -148,9 +148,20 @@ class AssinaturaService
             $driver = $this->gateway($lockada->gateway);
             $driver->cancelarAssinatura($lockada);
 
+            // Cancela cobranças pendentes (incluindo upgrades pendentes) e
+            // zera plano_id_pendente. Sem isso, cliente que paga uma
+            // cobrança antiga depois do cancelamento reativava a assinatura
+            // silenciosamente (AplicarUpgradePlano setava status='ativa') e
+            // ganhava o plano alvo "de graça" pq AssinaturaService::marcarPaga
+            // não filtrava assinatura cancelada.
+            Cobranca::where('assinatura_id', $lockada->id)
+                ->where('status', 'pendente')
+                ->update(['status' => 'cancelado']);
+
             $lockada->update([
-                'status'       => 'cancelada',
-                'cancelada_em' => now(),
+                'status'            => 'cancelada',
+                'cancelada_em'      => now(),
+                'plano_id_pendente' => null,
             ]);
         });
     }

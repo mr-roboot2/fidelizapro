@@ -43,23 +43,33 @@ class MeuPlanoController extends Controller
             return back()->with('error', 'Plano indisponível.');
         }
 
-        // Bloqueio: não permite trocar de plano se houver cobrança pendente
-        $assinaturaExistente = $empresa->assinatura;
-        if ($assinaturaExistente) {
-            $pendente = $assinaturaExistente->cobrancas()
-                ->where('status', 'pendente')->first();
-            if ($pendente) {
-                return back()->with('error',
-                    'Você tem uma cobrança pendente de R$ '
-                    .number_format($pendente->valor, 2, ',', '.')
-                    .' (vence '.$pendente->vencimento->format('d/m/Y')
-                    .'). Pague ou cancele essa cobrança antes de trocar de plano.'
-                );
-            }
-        }
+        // Race fix: o check `pendente !== null` ANTES da transaction
+        // permitia 2 cliques quase-simultâneos criarem 2 cobranças. Agora
+        // o check roda DENTRO da transaction com lockForUpdate na
+        // Assinatura — segundo clique espera o lock e vê o cancelamento
+        // do primeiro (se houve) ou a cobrança pendente recém-criada.
+        $cobranca = null;
+        $erro = null;
 
-        $cobranca = DB::transaction(function () use ($empresa, $plano) {
-            $assinatura = Assinatura::firstOrNew(
+        DB::transaction(function () use ($empresa, $plano, &$cobranca, &$erro) {
+            $assinatura = Assinatura::where('empresa_id', $empresa->id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($assinatura) {
+                $pendente = Cobranca::where('assinatura_id', $assinatura->id)
+                    ->where('status', 'pendente')
+                    ->first();
+                if ($pendente) {
+                    $erro = 'Você tem uma cobrança pendente de R$ '
+                        .number_format($pendente->valor, 2, ',', '.')
+                        .' (vence '.$pendente->vencimento->format('d/m/Y')
+                        .'). Pague ou cancele essa cobrança antes de trocar de plano.';
+                    return;
+                }
+            }
+
+            $assinatura = $assinatura ?: Assinatura::firstOrNew(
                 ['empresa_id' => $empresa->id],
             );
 
@@ -90,9 +100,11 @@ class MeuPlanoController extends Controller
                 'status'        => 'pendente',
                 'meta'          => ['upgrade' => ['plano_alvo_id' => $plano->id]],
             ]);
-
-            return $cobranca;
         });
+
+        if ($erro) {
+            return back()->with('error', $erro);
+        }
 
         // Gera PIX fora da transação (chamada HTTP externa)
         $pix->gerarParaCobranca($cobranca, $empresa);

@@ -62,7 +62,10 @@ class AssinaturaController extends Controller
     {
         $dados = $request->validate([
             'empresa_id' => 'required|exists:empresas,id',
-            'plano_id' => 'required|exists:planos,id',
+            // Aceita só plano ATIVO. Antes `exists:planos,id` aceitava
+            // qualquer plano (mesmo desativado), super admin criava
+            // assinatura num plano fora de catálogo.
+            'plano_id' => ['required', \Illuminate\Validation\Rule::exists('planos', 'id')->where('ativo', true)],
             'gateway' => 'required|in:mock,asaas',
             'dias_trial' => 'required|integer|min:0|max:60',
         ]);

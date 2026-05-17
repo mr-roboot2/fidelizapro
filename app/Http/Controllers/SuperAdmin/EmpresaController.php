@@ -141,10 +141,24 @@ class EmpresaController extends Controller
         // Se mudou de plano e a empresa tem assinatura ativa, atualiza também
         $planoNovo = !empty($dados['plano_id']) ? \App\Models\Plano::find($dados['plano_id']) : null;
         if ($planoNovo && (int) $empresa->plano_id !== (int) $planoNovo->id) {
-            $empresa->assinatura?->update([
-                'plano_id'     => $planoNovo->id,
-                'valor_mensal' => $planoNovo->preco_mensal,
-            ]);
+            $assinatura = $empresa->assinatura;
+            if ($assinatura) {
+                // Zera plano_id_pendente + cancela cobranças de upgrade
+                // pendentes. Sem isso, super admin que troca o plano direto
+                // (sem passar pelo fluxo de cobrança) deixava uma cobrança
+                // antiga apontando pra outro plano — quando cliente pagava,
+                // AplicarUpgradePlano rebaixava a empresa pro plano antigo.
+                \App\Models\Cobranca::where('assinatura_id', $assinatura->id)
+                    ->where('status', 'pendente')
+                    ->whereJsonContains('meta->upgrade', ['plano_alvo_id' => $assinatura->plano_id_pendente])
+                    ->update(['status' => 'cancelado']);
+
+                $assinatura->update([
+                    'plano_id'          => $planoNovo->id,
+                    'plano_id_pendente' => null,
+                    'valor_mensal'      => $planoNovo->preco_mensal,
+                ]);
+            }
         }
 
         if ($dados['modo_fidelidade'] === 'cashback') {
