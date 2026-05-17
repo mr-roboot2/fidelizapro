@@ -17,7 +17,7 @@ class RequireModulo
             return $next($request);
         }
 
-        $rotulo = Plano::MODULOS_DISPONIVEIS[$modulo] ?? $modulo;
+        $rotulo = Plano::rotulosModulos()[$modulo] ?? $modulo;
 
         if (!$empresa->temModulo($modulo)) {
             return redirect()

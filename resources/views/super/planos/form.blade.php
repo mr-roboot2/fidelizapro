@@ -85,7 +85,7 @@
         <p class="text-xs text-slate-500 mb-3">Marque os recursos que a empresa terá acesso. Os não marcados ficam ocultos no menu admin dela.</p>
         @php $modulosAtuais = old('modulos', $plano->modulos ?? []); @endphp
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            @foreach (\App\Models\Plano::MODULOS_DISPONIVEIS as $chave => $rotulo)
+            @foreach (\App\Models\Plano::rotulosModulos() as $chave => $rotulo)
                 <label class="flex items-center gap-2 p-3 bg-slate-50 hover:bg-slate-100 rounded-lg cursor-pointer transition border border-transparent has-[:checked]:border-rose-400 has-[:checked]:bg-rose-50">
                     <input type="checkbox" name="modulos[]" value="{{ $chave }}" {{ in_array($chave, $modulosAtuais, true) ? 'checked' : '' }} class="text-rose-600 rounded">
                     <span class="text-sm">{{ $rotulo }}</span>

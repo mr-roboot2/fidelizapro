@@ -59,7 +59,7 @@
 
                 <h3 class="font-semibold text-sm mb-2 text-slate-700">Módulos habilitados</h3>
                 <div class="flex flex-wrap gap-1.5 mb-5">
-                    @foreach (\App\Models\Plano::MODULOS_DISPONIVEIS as $chave => $rotulo)
+                    @foreach (\App\Models\Plano::rotulosModulos() as $chave => $rotulo)
                         @if ($planoAtual->temModulo($chave))
                             <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 text-xs rounded-full border border-emerald-200">
                                 <i class="ri-check-line"></i> {{ $rotulo }}
@@ -393,7 +393,7 @@
                             @if ($p->limite_clientes)<li>· Até {{ number_format($p->limite_clientes, 0, ',', '.') }} clientes</li>@else<li>· Clientes ilimitados</li>@endif
                             @php $mods = array_slice($p->modulos ?? [], 0, 5); @endphp
                             @foreach ($mods as $m)
-                                <li>· {{ \App\Models\Plano::MODULOS_DISPONIVEIS[$m] ?? $m }}</li>
+                                <li>· {{ \App\Models\Plano::rotulosModulos()[$m] ?? $m }}</li>
                             @endforeach
                             @if (count($p->modulos ?? []) > 5)
                                 <li class="text-slate-400">+ {{ count($p->modulos) - 5 }} módulos</li>

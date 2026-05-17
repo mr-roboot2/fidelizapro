@@ -46,6 +46,12 @@ class Plano extends Model
         'campanhas', 'antifraude', 'ai_growth',
     ];
 
+    /**
+     * `:sistema` é placeholder pro nome configurado em ConfiguracaoSistema
+     * (default "FidelizaPro"). Use rotulosModulos() pra obter o array com o
+     * placeholder já substituído; use MODULOS_DISPONIVEIS direto só pra
+     * validação (array_keys) ou quando o rótulo for irrelevante.
+     */
     public const MODULOS_DISPONIVEIS = [
         'roleta'      => 'Roleta da Sorte',
         'sorteio'     => 'Sorteios',
@@ -57,8 +63,18 @@ class Plano extends Model
         'indicacoes'  => 'Indicações entre clientes',
         'antifraude'  => 'Painel antifraude',
         'ai_growth'   => 'AI Growth (análise avançada de vendas e clientes)',
-        'white_label' => 'White label completo (sem marca FidelizaPro)',
+        'white_label' => 'White label completo (sem marca :sistema)',
     ];
+
+    /**
+     * Mesma estrutura de MODULOS_DISPONIVEIS, porém com `:sistema` já trocado
+     * pelo nome configurado. Use sempre que for renderizar pra UI.
+     */
+    public static function rotulosModulos(): array
+    {
+        $nome = ConfiguracaoSistema::instancia()->nome_sistema ?? 'FidelizaPro';
+        return array_map(fn ($rotulo) => str_replace(':sistema', $nome, $rotulo), self::MODULOS_DISPONIVEIS);
+    }
 
     public function temModulo(string $chave): bool
     {

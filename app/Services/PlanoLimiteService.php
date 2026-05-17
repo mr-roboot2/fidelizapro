@@ -142,7 +142,7 @@ class PlanoLimiteService
         $modulosAtuais = $empresa->plano?->modulos ?? [];
         $modulosAlvo = $planoAlvo->modulos ?? [];
         foreach (array_diff($modulosAtuais, $modulosAlvo) as $mod) {
-            $rotulo = \App\Models\Plano::MODULOS_DISPONIVEIS[$mod] ?? $mod;
+            $rotulo = \App\Models\Plano::rotulosModulos()[$mod] ?? $mod;
             $resultado['informativos'][] = "Perderá acesso: {$rotulo}";
         }
 
