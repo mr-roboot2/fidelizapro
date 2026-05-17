@@ -15,11 +15,11 @@ use Illuminate\Support\Facades\Log;
  */
 class MetaCloudDriver implements WhatsappDriverInterface
 {
-    public function enviar(ConfiguracaoSistema $config, string $telefone, string $mensagem): bool
+    public function enviar(ConfiguracaoSistema $config, string $telefone, string $mensagem): array
     {
         if (!$config->whatsapp_api_token || !$config->whatsapp_phone_id) {
             Log::warning("[Meta Cloud] Configuração global incompleta");
-            return false;
+            return ['ok' => false, 'external_id' => null, 'erro' => 'Config global incompleta'];
         }
 
         try {
@@ -37,12 +37,13 @@ class MetaCloudDriver implements WhatsappDriverInterface
                     'tel'  => \App\Support\LogScrubber::scrub($telefone),
                     'body' => \App\Support\LogScrubber::scrub($response->body()),
                 ]);
-                return false;
+                return ['ok' => false, 'external_id' => null, 'erro' => $response->json('error.message') ?? 'HTTP '.$response->status()];
             }
-            return true;
+            // wamid extraído pra correlação com webhook de status
+            return ['ok' => true, 'external_id' => $response->json('messages.0.id'), 'erro' => null];
         } catch (\Throwable $e) {
             Log::error('[Meta Cloud] Exceção: '.$e->getMessage());
-            return false;
+            return ['ok' => false, 'external_id' => null, 'erro' => $e->getMessage()];
         }
     }
 
@@ -100,11 +101,11 @@ class MetaCloudDriver implements WhatsappDriverInterface
      * Envia mensagem usando um template aprovado pela Meta.
      * Os parâmetros devem estar na mesma ordem dos {{1}}, {{2}}... do template.
      */
-    public function enviarTemplate(ConfiguracaoSistema $config, string $telefone, string $nomeTemplate, string $idioma, array $parametros): bool
+    public function enviarTemplate(ConfiguracaoSistema $config, string $telefone, string $nomeTemplate, string $idioma, array $parametros): array
     {
         if (!$config->whatsapp_api_token || !$config->whatsapp_phone_id) {
             Log::warning("[Meta Cloud] Config global incompleta");
-            return false;
+            return ['ok' => false, 'external_id' => null, 'erro' => 'Config global incompleta'];
         }
 
         $components = [];
@@ -135,12 +136,12 @@ class MetaCloudDriver implements WhatsappDriverInterface
                     'tel'      => \App\Support\LogScrubber::scrub($telefone),
                     'body'     => \App\Support\LogScrubber::scrub($response->body()),
                 ]);
-                return false;
+                return ['ok' => false, 'external_id' => null, 'erro' => $response->json('error.message') ?? 'HTTP '.$response->status()];
             }
-            return true;
+            return ['ok' => true, 'external_id' => $response->json('messages.0.id'), 'erro' => null];
         } catch (\Throwable $e) {
             Log::error('[Meta Cloud] Exceção template: '.$e->getMessage());
-            return false;
+            return ['ok' => false, 'external_id' => null, 'erro' => $e->getMessage()];
         }
     }
 
@@ -148,7 +149,7 @@ class MetaCloudDriver implements WhatsappDriverInterface
      * Meta Cloud não envia botões fora de templates aprovados — fallback
      * pra texto puro com o código/URL anexado no corpo.
      */
-    public function enviarComBotoes(ConfiguracaoSistema $config, string $telefone, string $mensagem, array $botoes): bool
+    public function enviarComBotoes(ConfiguracaoSistema $config, string $telefone, string $mensagem, array $botoes): array
     {
         return $this->enviar($config, $telefone, $this->fallbackTexto($mensagem, $botoes));
     }

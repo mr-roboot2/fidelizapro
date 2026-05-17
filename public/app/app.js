@@ -2924,11 +2924,35 @@ $('#install-btn').addEventListener('click', async () => {
 // ============ SERVICE WORKER ============
 if ('serviceWorker' in navigator) {
     // Em white label, usa SW dinâmico (gerado pelo Laravel) com escopo da empresa
-    if (window.WHITELABEL_SW) {
-        navigator.serviceWorker.register(window.WHITELABEL_SW, { scope: './' }).catch(() => {});
-    } else {
-        navigator.serviceWorker.register('sw.js', { scope: './' }).catch(() => {});
-    }
+    const swUrl = window.WHITELABEL_SW || 'sw.js';
+    navigator.serviceWorker.register(swUrl, { scope: './' }).catch(() => {});
+
+    // Detecta quando o SW ativou versão nova (deploy aconteceu durante a
+    // sessão). Sem isso, usuário com aba aberta continuava em versão
+    // antiga indefinidamente — bugfixes não chegavam. O SW já força
+    // skipWaiting+clients.claim, então o controllerchange dispara
+    // automaticamente; aqui só avisamos o usuário pra recarregar.
+    let firstControllerLoad = true;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        // Skip a primeira ativação (acontece no boot inicial); só prompta
+        // em mudanças posteriores (versão nova trocou o controller).
+        if (firstControllerLoad) {
+            firstControllerLoad = false;
+            return;
+        }
+        // Toast clicável: avisa sem forçar reload (usuário no meio de uma
+        // ação não perde o que tava fazendo). Próximo refresh natural já
+        // pega a versão nova de qualquer jeito.
+        try {
+            toast('Nova versão disponível! Toque pra atualizar.', 'info');
+            setTimeout(() => {
+                document.querySelectorAll('[data-toast]').forEach((el) => {
+                    el.style.cursor = 'pointer';
+                    el.addEventListener('click', () => location.reload());
+                });
+            }, 100);
+        } catch (e) { /* toast indisponível, ignora */ }
+    });
 }
 
 // ============ BOOT ============

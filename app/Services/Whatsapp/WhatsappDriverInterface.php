@@ -4,28 +4,35 @@ namespace App\Services\Whatsapp;
 
 use App\Models\ConfiguracaoSistema;
 
+/**
+ * Interface dos drivers WhatsApp.
+ *
+ * Retorno de `enviar()` e `enviarComBotoes()` é um array:
+ *   ['ok' => bool, 'external_id' => ?string, 'erro' => ?string]
+ *
+ * external_id é o ID da mensagem no provider (Meta wamid, Z-API
+ * messageId, Evolution key.id) — usado pelo webhook de status pra
+ * correlacionar `sent/delivered/read/failed` com a linha em
+ * `whatsapp_envios`. Mantido null quando o provider não fornece.
+ */
 interface WhatsappDriverInterface
 {
     /**
-     * Envia uma mensagem de texto via WhatsApp.
-     * Retorna true se enviou com sucesso, false em caso de falha.
+     * Envia mensagem de texto.
+     * @return array{ok: bool, external_id: ?string, erro: ?string}
      */
-    public function enviar(ConfiguracaoSistema $config, string $telefone, string $mensagem): bool;
+    public function enviar(ConfiguracaoSistema $config, string $telefone, string $mensagem): array;
 
     /**
-     * Testa a conexão com o provider (envia mensagem de teste).
-     * Retorna ['ok' => bool, 'mensagem' => string].
+     * Testa a conexão (envia mensagem de teste).
+     * @return array{ok: bool, mensagem: string}
      */
     public function testar(ConfiguracaoSistema $config, string $telefoneDestino): array;
 
     /**
-     * Envia mensagem com botões de ação (URL, COPY, CALL, REPLY).
-     * Quando o provider não suporta, faz fallback pra texto puro com o
-     * código/URL embutido no corpo da mensagem.
-     *
-     * Cada botão é um array com:
-     *   ['type' => 'COPY'|'URL'|'CALL'|'REPLY', 'label' => string,
-     *    'value' => string]   // codigo a copiar / url / telefone / id de resposta
+     * Envia mensagem com botões (COPY/URL/CALL/REPLY). Drivers que não
+     * suportam fazem fallback pra texto.
+     * @return array{ok: bool, external_id: ?string, erro: ?string}
      */
-    public function enviarComBotoes(ConfiguracaoSistema $config, string $telefone, string $mensagem, array $botoes): bool;
+    public function enviarComBotoes(ConfiguracaoSistema $config, string $telefone, string $mensagem, array $botoes): array;
 }

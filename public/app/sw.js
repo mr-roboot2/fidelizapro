@@ -1,4 +1,4 @@
-const CACHE = 'fidelizapro-v8';
+const CACHE = 'fidelizapro-v9';
 
 // Caminhos relativos ao escopo do SW (a própria pasta /app/).
 // O index e o manifest são servidos dinamicamente pelo Laravel — não pré-cachear

@@ -45,9 +45,9 @@ class WhatsappService
 
     public function enviar(Empresa $empresa, string $telefone, string $mensagem, string $origem = 'manual', string $evento = 'livre'): bool
     {
-        $sucesso = $this->driver()->enviar($this->config(), $telefone, $mensagem);
-        $this->registrarEnvio($empresa, $telefone, $mensagem, $sucesso, $evento, $origem);
-        return $sucesso;
+        $r = $this->driver()->enviar($this->config(), $telefone, $mensagem);
+        $this->registrarEnvio($empresa, $telefone, $mensagem, $r, $evento, $origem);
+        return $r['ok'];
     }
 
     /**
@@ -57,10 +57,10 @@ class WhatsappService
      */
     public function enviarComBotoes(Empresa $empresa, string $telefone, string $mensagem, array $botoes, string $origem = 'sistema', string $evento = 'livre'): bool
     {
-        $sucesso = $this->driver()->enviarComBotoes($this->config(), $telefone, $mensagem, $botoes);
+        $r = $this->driver()->enviarComBotoes($this->config(), $telefone, $mensagem, $botoes);
         $resumoBotoes = collect($botoes)->map(fn($b) => "[{$b['type']}:{$b['value']}]")->implode(' ');
-        $this->registrarEnvio($empresa, $telefone, $mensagem.($resumoBotoes ? "\n".$resumoBotoes : ''), $sucesso, $evento, $origem);
-        return $sucesso;
+        $this->registrarEnvio($empresa, $telefone, $mensagem.($resumoBotoes ? "\n".$resumoBotoes : ''), $r, $evento, $origem);
+        return $r['ok'];
     }
 
     /**
@@ -83,10 +83,9 @@ class WhatsappService
                 ->first();
 
             if ($tpl && $driver instanceof MetaCloudDriver) {
-                $sucesso = $driver->enviarTemplate($config, $telefone, $tpl->nome_template, $tpl->idioma, $parametros);
-                $usouTemplate = true;
-                $this->registrarEnvio($empresa, $telefone, "[template:{$tpl->nome_template}] ".implode(' | ', $parametros), $sucesso, $evento, $origem);
-                return $sucesso;
+                $r = $driver->enviarTemplate($config, $telefone, $tpl->nome_template, $tpl->idioma, $parametros);
+                $this->registrarEnvio($empresa, $telefone, "[template:{$tpl->nome_template}] ".implode(' | ', $parametros), $r, $evento, $origem);
+                return $r['ok'];
             }
         }
 
@@ -101,9 +100,9 @@ class WhatsappService
             }
         }
 
-        $sucesso = $driver->enviar($config, $telefone, $textoFallback);
-        $this->registrarEnvio($empresa, $telefone, $textoFallback, $sucesso, $evento, $origem);
-        return $sucesso;
+        $r = $driver->enviar($config, $telefone, $textoFallback);
+        $this->registrarEnvio($empresa, $telefone, $textoFallback, $r, $evento, $origem);
+        return $r['ok'];
     }
 
     /**
@@ -111,7 +110,10 @@ class WhatsappService
      * propagam — mensagem já foi enviada (ou tentativa já foi feita) e o
      * fluxo principal não deve cair por causa do registro.
      */
-    protected function registrarEnvio(?Empresa $empresa, string $telefone, ?string $mensagem, bool $sucesso, string $evento, string $origem): void
+    /**
+     * @param array{ok: bool, external_id: ?string, erro: ?string} $r
+     */
+    protected function registrarEnvio(?Empresa $empresa, string $telefone, ?string $mensagem, array $r, string $evento, string $origem): void
     {
         try {
             $config = $this->config();
@@ -130,8 +132,11 @@ class WhatsappService
                 'origem'     => $origem,
                 'mensagem'   => $mensagem,
                 'provider'   => $config->whatsapp_ativo ? $config->whatsapp_provider : 'mock',
-                'sucesso'    => $sucesso,
-                'erro'       => $sucesso ? null : 'Falha no envio (verifique log do driver)',
+                'sucesso'    => (bool) $r['ok'],
+                // external_id persistido pra correlação com webhook de status
+                // (delivered/read/failed do Meta/Z-API/Evolution).
+                'external_id'=> $r['external_id'] ?? null,
+                'erro'       => $r['ok'] ? null : ($r['erro'] ?? 'Falha no envio'),
             ]);
         } catch (Throwable $e) {
             // Não derruba o fluxo principal, mas reporta pro logger

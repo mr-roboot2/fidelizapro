@@ -12,11 +12,11 @@ use Illuminate\Support\Facades\Log;
  */
 class ZapiDriver implements WhatsappDriverInterface
 {
-    public function enviar(ConfiguracaoSistema $config, string $telefone, string $mensagem): bool
+    public function enviar(ConfiguracaoSistema $config, string $telefone, string $mensagem): array
     {
         if (!$config->whatsapp_instance || !$config->whatsapp_api_token) {
             Log::warning("[Z-API] Configuração global incompleta");
-            return false;
+            return ['ok' => false, 'external_id' => null, 'erro' => 'Config global incompleta'];
         }
 
         $base = $config->whatsapp_api_url ?: 'https://api.z-api.io';
@@ -40,21 +40,26 @@ class ZapiDriver implements WhatsappDriverInterface
                     'tel'  => \App\Support\LogScrubber::scrub($telefone),
                     'body' => \App\Support\LogScrubber::scrub($response->body()),
                 ]);
-                return false;
+                return ['ok' => false, 'external_id' => null, 'erro' => 'HTTP '.$response->status()];
             }
-            return true;
+            // Z-API retorna messageId ou id no payload — varia por versão
+            return [
+                'ok' => true,
+                'external_id' => $response->json('messageId') ?? $response->json('id'),
+                'erro' => null,
+            ];
         } catch (\Throwable $e) {
             Log::error("[Z-API] Exceção: ".$e->getMessage());
-            return false;
+            return ['ok' => false, 'external_id' => null, 'erro' => $e->getMessage()];
         }
     }
 
     public function testar(ConfiguracaoSistema $config, string $telefoneDestino): array
     {
-        $ok = $this->enviar($config, $telefoneDestino, "[Teste de conexão WhatsApp via Z-API - {$config->nome_sistema}]");
+        $r = $this->enviar($config, $telefoneDestino, "[Teste de conexão WhatsApp via Z-API - {$config->nome_sistema}]");
         return [
-            'ok' => $ok,
-            'mensagem' => $ok ? 'Mensagem de teste enviada!' : 'Falha — confira instance ID e token nos logs.',
+            'ok' => $r['ok'],
+            'mensagem' => $r['ok'] ? 'Mensagem de teste enviada!' : 'Falha — confira instance ID e token nos logs.',
         ];
     }
 
@@ -62,11 +67,11 @@ class ZapiDriver implements WhatsappDriverInterface
      * Z-API: /send-button-actions — botões interativos com ações:
      * COPY (copia código), URL (abre link), CALL (liga). Limite Z-API: 3 botões.
      */
-    public function enviarComBotoes(ConfiguracaoSistema $config, string $telefone, string $mensagem, array $botoes): bool
+    public function enviarComBotoes(ConfiguracaoSistema $config, string $telefone, string $mensagem, array $botoes): array
     {
         if (!$config->whatsapp_instance || !$config->whatsapp_api_token) {
             Log::warning("[Z-API] Configuração global incompleta (botões)");
-            return false;
+            return ['ok' => false, 'external_id' => null, 'erro' => 'Config global incompleta'];
         }
         if (empty($botoes)) {
             return $this->enviar($config, $telefone, $mensagem);
@@ -112,7 +117,11 @@ class ZapiDriver implements WhatsappDriverInterface
                 // Fallback: texto puro com os valores dos botões anexados
                 return $this->enviar($config, $telefone, $this->fallbackTexto($mensagem, $botoes));
             }
-            return true;
+            return [
+                'ok' => true,
+                'external_id' => $response->json('messageId') ?? $response->json('id'),
+                'erro' => null,
+            ];
         } catch (\Throwable $e) {
             Log::error("[Z-API] Exceção (botões): ".$e->getMessage());
             return $this->enviar($config, $telefone, $this->fallbackTexto($mensagem, $botoes));

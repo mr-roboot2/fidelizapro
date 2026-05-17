@@ -12,11 +12,11 @@ use Illuminate\Support\Facades\Log;
  */
 class EvolutionDriver implements WhatsappDriverInterface
 {
-    public function enviar(ConfiguracaoSistema $config, string $telefone, string $mensagem): bool
+    public function enviar(ConfiguracaoSistema $config, string $telefone, string $mensagem): array
     {
         if (!$config->whatsapp_api_url || !$config->whatsapp_api_token || !$config->whatsapp_instance) {
             Log::warning("[Evolution] Configuração global incompleta");
-            return false;
+            return ['ok' => false, 'external_id' => null, 'erro' => 'Config global incompleta'];
         }
 
         try {
@@ -36,21 +36,26 @@ class EvolutionDriver implements WhatsappDriverInterface
                     'tel'  => \App\Support\LogScrubber::scrub($telefone),
                     'body' => \App\Support\LogScrubber::scrub($response->body()),
                 ]);
-                return false;
+                return ['ok' => false, 'external_id' => null, 'erro' => 'HTTP '.$response->status()];
             }
-            return true;
+            // Evolution retorna `key.id` no payload de sucesso
+            return [
+                'ok' => true,
+                'external_id' => $response->json('key.id'),
+                'erro' => null,
+            ];
         } catch (\Throwable $e) {
             Log::error("[Evolution] Exceção: ".$e->getMessage());
-            return false;
+            return ['ok' => false, 'external_id' => null, 'erro' => $e->getMessage()];
         }
     }
 
     public function testar(ConfiguracaoSistema $config, string $telefoneDestino): array
     {
-        $ok = $this->enviar($config, $telefoneDestino, "[Teste de conexão WhatsApp via Evolution - {$config->nome_sistema}]");
+        $r = $this->enviar($config, $telefoneDestino, "[Teste de conexão WhatsApp via Evolution - {$config->nome_sistema}]");
         return [
-            'ok' => $ok,
-            'mensagem' => $ok ? 'Mensagem de teste enviada com sucesso!' : 'Falha — confira URL, token e instance nos logs.',
+            'ok' => $r['ok'],
+            'mensagem' => $r['ok'] ? 'Mensagem de teste enviada com sucesso!' : 'Falha — confira URL, token e instance nos logs.',
         ];
     }
 
@@ -58,7 +63,7 @@ class EvolutionDriver implements WhatsappDriverInterface
      * Evolution não tem endpoint padronizado pra botões — fallback pra texto
      * com o código/URL anexados.
      */
-    public function enviarComBotoes(ConfiguracaoSistema $config, string $telefone, string $mensagem, array $botoes): bool
+    public function enviarComBotoes(ConfiguracaoSistema $config, string $telefone, string $mensagem, array $botoes): array
     {
         return $this->enviar($config, $telefone, $this->fallbackTexto($mensagem, $botoes));
     }
