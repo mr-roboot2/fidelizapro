@@ -67,7 +67,7 @@
                 <label class="text-sm font-medium">Atendentes</label>
                 <input type="number" name="limite_users" min="1" value="{{ old('limite_users', $plano->limite_users) }}"
                        class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg">
-                <p class="text-[11px] text-slate-500 mt-1">Limite de membros da equipe (gerentes + atendentes + dono).</p>
+                <p class="text-[11px] text-slate-500 mt-1">Quantos gerentes + atendentes a empresa pode cadastrar. O dono (admin) não entra na conta.</p>
             </div>
             <div>
                 <label class="text-sm font-medium">Campanhas/mês</label>

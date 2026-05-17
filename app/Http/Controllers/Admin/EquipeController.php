@@ -41,7 +41,7 @@ class EquipeController extends Controller
         $usuarios = $query->orderBy('role')->orderBy('name')->paginate(20)->withQueryString();
         // Consumo do limite de atendentes do plano — mostra "3/5" no topo
         // pra dono saber quando precisa fazer upgrade. consumo['users'] conta
-        // todos os users da empresa (admin + gerente + atendente).
+        // SÓ gerente + atendente (o admin dono não entra no limite).
         $consumoUsers = $limites->consumo($empresa)['users'];
         return view('admin.equipe.index', compact('usuarios', 'consumoUsers'));
     }

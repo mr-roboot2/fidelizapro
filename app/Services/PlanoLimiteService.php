@@ -25,7 +25,11 @@ class PlanoLimiteService
             ->whereYear('created_at', now()->year)->count();
         $recompensasAtivas = Recompensa::where('empresa_id', $empresa->id)->where('ativo', true)->count();
         $parceirosAtivos = Parceiro::where('empresa_id', $empresa->id)->where('ativo', true)->count();
-        $usersAtivos = User::where('empresa_id', $empresa->id)->count();
+        // Conta SÓ gerentes + atendentes — o admin "dono" da empresa não
+        // entra no limite (já pagou o plano, não é parte da equipe operacional).
+        // super_admin nunca tem empresa_id, então fica de fora naturalmente.
+        $usersAtivos = User::where('empresa_id', $empresa->id)
+            ->whereIn('role', ['gerente', 'atendente'])->count();
         $campanhasMes = Campanha::where('empresa_id', $empresa->id)
             ->whereMonth('created_at', now()->month)
             ->whereYear('created_at', now()->year)->count();
