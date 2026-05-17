@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Cliente;
 use App\Models\Compra;
 use App\Services\CompraService;
+use App\Services\PlanoLimiteService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -36,7 +37,7 @@ class CompraController extends Controller
         return view('admin.compras.form', compact('clientes', 'clienteSelecionado'));
     }
 
-    public function store(Request $request, CompraService $service)
+    public function store(Request $request, CompraService $service, PlanoLimiteService $limites)
     {
         $empresaId = Auth::user()->empresa_id;
         $dados = $request->validate([
@@ -51,6 +52,14 @@ class CompraController extends Controller
             'descricao' => 'nullable|string|max:255',
             'codigo' => 'nullable|string|max:50',
         ]);
+
+        // Limite mensal de compras do plano. Bloqueia ANTES de validar o
+        // cliente porque cliente inativo ainda gastaria recurso de DB.
+        try {
+            $limites->garantirCapacidade(Auth::user()->empresa, 'compras_mes');
+        } catch (\DomainException $e) {
+            return back()->withInput()->with('error', $e->getMessage());
+        }
 
         // Cliente ativo only — defesa simétrica aos outros lançadores
         // (Caixa, Api\Loja). Operador não lança compra em cliente

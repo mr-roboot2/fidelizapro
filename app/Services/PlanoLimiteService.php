@@ -69,7 +69,24 @@ class PlanoLimiteService
     }
 
     /**
-     * Lança DomainException se o limite estiver atingido.
+     * Rótulo amigável + se é limite mensal (zera no dia 1) ou persistente.
+     * Usado pra montar a mensagem de erro do garantirCapacidade.
+     */
+    private const META_RECURSOS = [
+        'clientes'      => ['rotulo' => 'clientes cadastrados',     'mensal' => false],
+        'compras_mes'   => ['rotulo' => 'compras este mês',         'mensal' => true],
+        'recompensas'   => ['rotulo' => 'recompensas ativas',       'mensal' => false],
+        'parceiros'     => ['rotulo' => 'parceiros ativos',         'mensal' => false],
+        'users'         => ['rotulo' => 'atendentes',               'mensal' => false],
+        'campanhas_mes' => ['rotulo' => 'campanhas este mês',       'mensal' => true],
+    ];
+
+    /**
+     * Lança DomainException se o limite estiver atingido. Mensagem diferencia:
+     *  - Recurso mensal (compras_mes, campanhas_mes): sugere "espere virar o
+     *    mês OU faça upgrade" (contador zera dia 1).
+     *  - Recurso persistente (clientes, recompensas, parceiros, users): só
+     *    upgrade resolve, ou apagar registros pra abrir vaga.
      */
     public function garantirCapacidade(Empresa $empresa, string $recurso): void
     {
@@ -78,9 +95,18 @@ class PlanoLimiteService
 
         $atual = $consumo[$recurso]['atual'];
         $limite = $consumo[$recurso]['limite'];
-        if ($limite !== null && $atual >= $limite) {
-            throw new \DomainException("Limite do plano atingido para {$recurso}: {$atual}/{$limite}. Faça upgrade do plano para continuar.");
+        if ($limite === null || $atual < $limite) return;
+
+        $meta = self::META_RECURSOS[$recurso] ?? ['rotulo' => $recurso, 'mensal' => false];
+        $rotulo = $meta['rotulo'];
+
+        if ($meta['mensal']) {
+            $proximoMes = now()->addMonthNoOverflow()->startOfMonth()->format('d/m');
+            $extra = "O contador zera em {$proximoMes}. Faça upgrade do plano pra liberar agora ou aguarde virar o mês.";
+        } else {
+            $extra = "Faça upgrade do plano pra liberar mais vagas.";
         }
+        throw new \DomainException("Limite do plano atingido: {$atual}/{$limite} {$rotulo}. {$extra}");
     }
 
     public function recursoDisponivel(Empresa $empresa, string $flag): bool

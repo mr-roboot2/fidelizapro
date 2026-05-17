@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Cliente;
 use App\Models\Empresa;
 use App\Services\CompraService;
+use App\Services\PlanoLimiteService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -18,7 +19,7 @@ class PdvController extends Controller
      *
      * Se cliente não existir e enviar nome+telefone, cria automaticamente.
      */
-    public function lancarCompra(Request $request, string $slug, CompraService $compraService)
+    public function lancarCompra(Request $request, string $slug, CompraService $compraService, PlanoLimiteService $limites)
     {
         $empresa = Empresa::where('slug', $slug)->where('ativo', true)->firstOrFail();
 
@@ -38,6 +39,17 @@ class PdvController extends Controller
                 'error' => 'empresa_bloqueada',
                 'message' => 'Esta empresa está com a assinatura bloqueada.',
             ], 403);
+        }
+
+        // Limite mensal de compras do plano. PDV recebe 429 (Too Many) com
+        // mensagem clara — PDV deve retentar no próximo mês ou avisar dono.
+        try {
+            $limites->garantirCapacidade($empresa, 'compras_mes');
+        } catch (\DomainException $e) {
+            return response()->json([
+                'error' => 'limite_plano_excedido',
+                'message' => $e->getMessage(),
+            ], 429);
         }
 
         $dados = $request->validate([

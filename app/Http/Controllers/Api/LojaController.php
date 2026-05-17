@@ -148,7 +148,7 @@ class LojaController extends Controller
         return response()->json(['cliente' => $this->serializarCliente($cliente)], 201);
     }
 
-    public function lancarCompra(Request $request, CompraService $compraService, CashbackService $cashbackService)
+    public function lancarCompra(Request $request, CompraService $compraService, CashbackService $cashbackService, \App\Services\PlanoLimiteService $limites)
     {
         $dados = $request->validate([
             'cliente_id'    => 'required|exists:clientes,id',
@@ -161,6 +161,14 @@ class LojaController extends Controller
         ]);
 
         $user = $request->user();
+
+        // Bloqueia ao bater o limite mensal de compras do plano. PWA da loja
+        // recebe 422 com a mensagem completa — frontend deve mostrar em alerta.
+        try {
+            $limites->garantirCapacidade($user->empresa, 'compras_mes');
+        } catch (\DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
         // Cliente inativo NÃO recebe compra. Antes o filtro ativo só estava
         // em buscar/QR; lancarCompra aceitava se operador soubesse o id —
         // permitia reativação "fantasma" de cliente que foi inativado.

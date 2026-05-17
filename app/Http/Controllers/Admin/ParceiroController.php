@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Beneficio;
 use App\Models\Cupom;
 use App\Models\Parceiro;
+use App\Services\PlanoLimiteService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -27,11 +28,20 @@ class ParceiroController extends Controller
         return view('admin.parceiros.form', ['parceiro' => new Parceiro()]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, PlanoLimiteService $limites)
     {
         $dados = $this->validar($request);
         $dados['empresa_id'] = Auth::user()->empresa_id;
         $dados['ativo'] = $request->boolean('ativo', true);
+
+        if ($dados['ativo']) {
+            try {
+                $limites->garantirCapacidade(Auth::user()->empresa, 'parceiros');
+            } catch (\DomainException $e) {
+                return back()->withInput()->with('error', $e->getMessage());
+            }
+        }
+
         if ($request->hasFile('logo')) {
             $dados['logo'] = $request->file('logo')->store('parceiros', 'public');
         }
@@ -57,11 +67,20 @@ class ParceiroController extends Controller
         return view('admin.parceiros.form', compact('parceiro'));
     }
 
-    public function update(Request $request, Parceiro $parceiro)
+    public function update(Request $request, Parceiro $parceiro, PlanoLimiteService $limites)
     {
         $this->autorizar($parceiro);
         $dados = $this->validar($request);
         $dados['ativo'] = $request->boolean('ativo');
+
+        if (!$parceiro->ativo && $dados['ativo']) {
+            try {
+                $limites->garantirCapacidade(Auth::user()->empresa, 'parceiros');
+            } catch (\DomainException $e) {
+                return back()->withInput()->with('error', $e->getMessage());
+            }
+        }
+
         if ($request->hasFile('logo')) {
             if ($parceiro->logo) Storage::disk('public')->delete($parceiro->logo);
             $dados['logo'] = $request->file('logo')->store('parceiros', 'public');

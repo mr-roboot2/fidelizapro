@@ -25,10 +25,26 @@ class CampanhaController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, \App\Services\PlanoLimiteService $limites)
     {
         $dados = $this->validar($request);
         $dados['status'] = $request->input('status', 'rascunho');
+
+        // Limite mensal de campanhas do plano da empresa-alvo. Campanhas globais
+        // (empresa_id=null = broadcast pra todas) não passam pelo limite — não
+        // pertencem a nenhuma empresa. Conta o que JÁ existe no created_at do
+        // mês corrente (mesma lógica do PlanoLimiteService::consumo).
+        if (!empty($dados['empresa_id'])) {
+            $empresa = \App\Models\Empresa::find($dados['empresa_id']);
+            if ($empresa) {
+                try {
+                    $limites->garantirCapacidade($empresa, 'campanhas_mes');
+                } catch (\DomainException $e) {
+                    return back()->withInput()->with('error', $e->getMessage());
+                }
+            }
+        }
+
         Campanha::create($dados);
         return redirect()->route('super.campanhas.index')->with('success', 'Campanha criada!');
     }

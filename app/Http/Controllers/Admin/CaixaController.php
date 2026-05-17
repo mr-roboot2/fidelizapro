@@ -9,6 +9,7 @@ use App\Rules\CpfValido;
 use App\Rules\TelefoneBr;
 use App\Services\CashbackService;
 use App\Services\CompraService;
+use App\Services\PlanoLimiteService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -79,7 +80,7 @@ class CaixaController extends Controller
     /**
      * AJAX: lança compra rapidamente (com possível uso de cashback).
      */
-    public function lancar(Request $request, CompraService $compraService, CashbackService $cashbackService)
+    public function lancar(Request $request, CompraService $compraService, CashbackService $cashbackService, PlanoLimiteService $limites)
     {
         $dados = $request->validate([
             'cliente_id' => 'required|exists:clientes,id',
@@ -89,6 +90,15 @@ class CaixaController extends Controller
             'usar_cashback' => 'nullable|numeric|min:0',
             'descricao' => 'nullable|string|max:255',
         ]);
+
+        // Bloqueia se a empresa estourou o limite mensal de compras do plano.
+        // Atendente vê 422 com mensagem "X/Y compras este mês. Aguarde virar
+        // o mês ou faça upgrade."
+        try {
+            $limites->garantirCapacidade(Auth::user()->empresa, 'compras_mes');
+        } catch (\DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
 
         $empresaId = Auth::user()->empresa_id;
         // Cliente ativo only — defesa simétrica ao Api\LojaController.

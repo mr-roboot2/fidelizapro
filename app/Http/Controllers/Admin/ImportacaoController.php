@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Cliente;
 use App\Services\CompraService;
+use App\Services\PlanoLimiteService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -25,7 +26,7 @@ class ImportacaoController extends Controller
         return view('admin.importacao.index');
     }
 
-    public function processar(Request $request, CompraService $compraService)
+    public function processar(Request $request, CompraService $compraService, PlanoLimiteService $limites)
     {
         $request->validate([
             'arquivo' => 'required|file|mimes:csv,txt|max:5120',
@@ -34,6 +35,20 @@ class ImportacaoController extends Controller
 
         $empresaId = Auth::user()->empresa_id;
         $criarClientes = $request->boolean('criar_clientes');
+
+        // Pré-checa limite mensal de compras. Se já no teto, rejeita ANTES de
+        // abrir o arquivo. Se tem espaço parcial, calcula quantas linhas ainda
+        // cabem e passa pro chunk (que decrementa conforme registra).
+        try {
+            $limites->garantirCapacidade(Auth::user()->empresa, 'compras_mes');
+        } catch (\DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+        $consumoCompras = $limites->consumo(Auth::user()->empresa)['compras_mes'];
+        // null = ilimitado. Senão calcula folga e passa por referência.
+        $espacoDisponivel = $consumoCompras['limite'] === null
+            ? null
+            : max(0, $consumoCompras['limite'] - $consumoCompras['atual']);
 
         $arquivo = $request->file('arquivo');
         $handle = fopen($arquivo->getRealPath(), 'r');
@@ -73,13 +88,13 @@ class ImportacaoController extends Controller
             $chunk[] = ['linha' => $linha, 'dados' => array_combine($cabecalho, array_slice($row, 0, count($cabecalho)))];
 
             if (count($chunk) >= self::CHUNK_SIZE) {
-                $this->processarChunk($chunk, $empresaId, $criarClientes, $compraService, $sucesso, $criados, $erros);
+                $this->processarChunk($chunk, $empresaId, $criarClientes, $compraService, $sucesso, $criados, $erros, $espacoDisponivel);
                 $chunk = [];
             }
         }
 
         if (!empty($chunk)) {
-            $this->processarChunk($chunk, $empresaId, $criarClientes, $compraService, $sucesso, $criados, $erros);
+            $this->processarChunk($chunk, $empresaId, $criarClientes, $compraService, $sucesso, $criados, $erros, $espacoDisponivel);
         }
 
         fclose($handle);
@@ -92,7 +107,9 @@ class ImportacaoController extends Controller
     }
 
     /**
-     * Processa um lote de linhas dentro de uma única transaction.
+     * Processa um lote de linhas dentro de uma única transaction. O parâmetro
+     * $espacoDisponivel (null = ilimitado) decrementa por sucesso e bloqueia
+     * novas linhas quando chega a zero, pra respeitar limite mensal do plano.
      */
     protected function processarChunk(
         array $chunk,
@@ -101,9 +118,10 @@ class ImportacaoController extends Controller
         CompraService $compraService,
         int &$sucesso,
         int &$criados,
-        array &$erros
+        array &$erros,
+        ?int &$espacoDisponivel
     ): void {
-        DB::transaction(function () use ($chunk, $empresaId, $criarClientes, $compraService, &$sucesso, &$criados, &$erros) {
+        DB::transaction(function () use ($chunk, $empresaId, $criarClientes, $compraService, &$sucesso, &$criados, &$erros, &$espacoDisponivel) {
             foreach ($chunk as $item) {
                 $linha = $item['linha'];
                 $linhaDados = $item['dados'];
@@ -191,6 +209,13 @@ class ImportacaoController extends Controller
                     $descricao = "'".$descricao;
                 }
 
+                // Espaço esgotado antes do registrar — pula a linha com aviso.
+                // $espacoDisponivel = null significa plano ilimitado (não bloqueia).
+                if ($espacoDisponivel !== null && $espacoDisponivel <= 0) {
+                    $erros[] = "Linha {$linha}: limite mensal de compras do plano atingido. Restante não importado — faça upgrade ou aguarde virar o mês.";
+                    continue;
+                }
+
                 try {
                     // origem='import' faz CompraService pular o disparo
                     // de WhatsApp pos_compra (10k linhas não viram 10k
@@ -203,6 +228,7 @@ class ImportacaoController extends Controller
                         'user_id' => Auth::id(),
                     ]);
                     $sucesso++;
+                    if ($espacoDisponivel !== null) $espacoDisponivel--;
                 } catch (\Throwable $e) {
                     $erros[] = "Linha {$linha}: ".$e->getMessage();
                 }
