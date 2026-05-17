@@ -43,21 +43,25 @@ class CaptchaService
     {
         $db = $this->config('captcha_provider');
         if (!empty($db)) return $db;
-        return (string) env('CAPTCHA_PROVIDER', 'disabled');
+        // config('services.captcha.*') em vez de env() direto. env() fora
+        // de config/ retorna null quando config:cache está ativo
+        // (php-fpm não tem $_ENV populado) — captcha desligava
+        // silenciosamente em produção com cache.
+        return (string) config('services.captcha.provider', 'disabled');
     }
 
     public function siteKey(): ?string
     {
         $db = $this->config('captcha_site_key');
         if (!empty($db)) return $db;
-        return env('TURNSTILE_SITE_KEY');
+        return config('services.captcha.site_key');
     }
 
     public function secretKey(): ?string
     {
         $db = $this->config('captcha_secret_key');
         if (!empty($db)) return $db;
-        return env('TURNSTILE_SECRET_KEY');
+        return config('services.captcha.secret_key');
     }
 
     /**

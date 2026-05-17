@@ -83,8 +83,18 @@ class MeuPlanoController extends Controller
             } else {
                 // Primeira assinatura: criamos sem plano ativo (lojista
                 // não ganha acesso até pagar a primeira cobrança).
+                // assinaturas.plano_id é NOT NULL no schema — antes
+                // tentava criar com null e quebrava com SQLSTATE 23000
+                // pra empresas sem assinatura prévia (caso raro: super
+                // admin não configurou plano_padrao_id e admin clica
+                // "Mudar plano"). Usa o plano alvo como placeholder do
+                // plano_id e mantém plano_id_pendente igual; só após
+                // pagamento o AplicarUpgradePlano transição completa o
+                // upgrade (sem efeito prático pq status='inadimplente'
+                // bloqueia recursos do plano pelo middleware
+                // verifica.pagamento).
                 $assinatura->fill([
-                    'plano_id'           => null,
+                    'plano_id'           => $plano->id,
                     'plano_id_pendente'  => $plano->id,
                     'status'             => 'inadimplente',
                     'gateway'            => \App\Models\ConfiguracaoSistema::instancia()->pix_provider ?: 'mock',

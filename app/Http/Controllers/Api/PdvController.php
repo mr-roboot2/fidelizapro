@@ -23,7 +23,11 @@ class PdvController extends Controller
         $empresa = Empresa::where('slug', $slug)->where('ativo', true)->firstOrFail();
 
         $secretEnviado = $request->header('X-Pdv-Secret');
-        if (!$secretEnviado || !hash_equals($empresa->pdv_secret, $secretEnviado)) {
+        // hash_equals com null lança TypeError em PHP 8.x. Empresa::booted
+        // gera pdv_secret no creating event, mas seeds/fixtures legados
+        // ou inserts crus podem deixar a coluna NULL — defesa em
+        // profundidade aqui.
+        if (!$secretEnviado || empty($empresa->pdv_secret) || !hash_equals((string) $empresa->pdv_secret, (string) $secretEnviado)) {
             return response()->json(['message' => 'Credencial PDV inválida.'], 401);
         }
 

@@ -61,7 +61,22 @@ class AIGrowthController extends Controller
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ];
 
-        return response()->stream(function () use ($compras) {
+        // Formula injection: campos vindos do DB (nome cliente, telefone,
+        // descrição) que começam com =, +, -, @, TAB ou CR executam
+        // fórmula quando Excel/LibreOffice abre o CSV. ImportacaoController
+        // já prefixa apóstrofe no descricao na ENTRADA, mas CaixaController
+        // e PdvController gravam descricao cru — sanitize também na
+        // SAÍDA pra cobrir os dados legados/outras origens.
+        $escapar = function ($valor): string {
+            $s = (string) ($valor ?? '');
+            if ($s === '') return $s;
+            if (preg_match('/^[=+\-@\t\r]/', $s)) {
+                return "'".$s;
+            }
+            return $s;
+        };
+
+        return response()->stream(function () use ($compras, $escapar) {
             $out = fopen('php://output', 'w');
             fwrite($out, "\xEF\xBB\xBF");
             fputcsv($out, ['Data', 'Hora', 'Cliente', 'Telefone', 'Valor (R$)', 'Pontos', 'Cashback (R$)', 'Origem', 'Descrição'], ';');
@@ -69,13 +84,13 @@ class AIGrowthController extends Controller
                 fputcsv($out, [
                     $c->created_at->format('d/m/Y'),
                     $c->created_at->format('H:i'),
-                    $c->cliente->nome ?? '—',
-                    $c->cliente->telefone ?? '',
+                    $escapar($c->cliente->nome ?? '—'),
+                    $escapar($c->cliente->telefone ?? ''),
                     number_format($c->valor, 2, ',', '.'),
                     number_format($c->pontos_gerados, 2, ',', '.'),
                     number_format($c->cashback_gerado, 2, ',', '.'),
-                    $c->origem,
-                    $c->descricao,
+                    $escapar($c->origem),
+                    $escapar($c->descricao),
                 ], ';');
             }
             fclose($out);

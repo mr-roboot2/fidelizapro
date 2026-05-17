@@ -26,7 +26,11 @@ class AsaasGateway implements GatewayInterface
     protected function baseUrl(): string
     {
         $cfg = ConfiguracaoSistema::instancia();
-        $ambiente = $cfg->pix_ambiente ?: env('ASAAS_ENV', 'sandbox');
+        // config('services.asaas.env') em vez de env() direto. env() fora
+        // de config/ retorna null quando config:cache está ativo
+        // (php-fpm não tem $_ENV populado) — pagamento Asaas quebrava
+        // silenciosamente em produção com cache.
+        $ambiente = $cfg->pix_ambiente ?: config('services.asaas.env', 'sandbox');
         return $ambiente === 'producao'
             ? 'https://api.asaas.com/v3'
             : 'https://sandbox.asaas.com/api/v3';
@@ -35,7 +39,7 @@ class AsaasGateway implements GatewayInterface
     protected function http()
     {
         $cfg = ConfiguracaoSistema::instancia();
-        $key = $cfg->pix_api_key ?: env('ASAAS_API_KEY');
+        $key = $cfg->pix_api_key ?: config('services.asaas.api_key');
         if (!$key) {
             throw new RuntimeException(
                 'Chave Asaas não configurada. Vá em Configurações → Integrações → PIX e cadastre a API key.'
