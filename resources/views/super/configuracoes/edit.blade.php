@@ -215,11 +215,15 @@
     <div class="bg-white rounded-xl shadow-sm p-6">
         <div class="flex items-center justify-between mb-1">
             <h2 class="font-semibold text-slate-800">Pagamentos PIX</h2>
-            <label class="inline-flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" name="pix_ativo" value="1" {{ old('pix_ativo', $config->pix_ativo) ? 'checked' : '' }} class="sr-only peer">
-                <div class="w-11 h-6 bg-slate-200 peer-checked:bg-emerald-500 rounded-full relative transition">
-                    <div class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition peer-checked:translate-x-5"></div>
-                </div>
+            {{-- Toggle visual usando appearance-none direto no checkbox.
+                 Antes usava `sr-only peer` + 2 divs decorativos: ao clicar,
+                 browser fazia scrollIntoView no input (que tem margin:-1px
+                 + clip:rect via sr-only) dentro do nested scroll do layout
+                 (main overflow-y-auto + div overflow-y-auto), gerando scroll
+                 errático que dava ilusão de "conteúdo abaixo sumiu". --}}
+            <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                <input type="checkbox" name="pix_ativo" value="1" {{ old('pix_ativo', $config->pix_ativo) ? 'checked' : '' }}
+                       class="appearance-none w-5 h-5 rounded border border-slate-300 checked:bg-emerald-600 checked:border-emerald-600 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 relative cursor-pointer checked:after:content-['✓'] checked:after:text-white checked:after:text-xs checked:after:absolute checked:after:inset-0 checked:after:flex checked:after:items-center checked:after:justify-center">
                 <span class="text-sm font-medium">{{ $config->pix_ativo ? 'Ativo' : 'Desativado' }}</span>
             </label>
         </div>
