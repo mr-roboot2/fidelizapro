@@ -165,7 +165,7 @@
                     'compras_mes' => 'Compras este mês',
                     'recompensas' => 'Recompensas ativas',
                     'parceiros' => 'Parceiros ativos',
-                    'users' => 'Usuários administradores',
+                    'users' => 'Atendentes',
                     'campanhas_mes' => 'Campanhas este mês',
                 ] as $k => $rotulo)
                     @php $c = $consumo[$k]; $pct = $c['percentual']; @endphp

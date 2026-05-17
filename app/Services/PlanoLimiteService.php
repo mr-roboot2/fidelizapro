@@ -107,7 +107,7 @@ class PlanoLimiteService
             'clientes'    => ['campo' => 'limite_clientes',    'label' => 'clientes'],
             'recompensas' => ['campo' => 'limite_recompensas', 'label' => 'recompensas ativas'],
             'parceiros'   => ['campo' => 'limite_parceiros',   'label' => 'parceiros ativos'],
-            'users'       => ['campo' => 'limite_users',       'label' => 'operadores'],
+            'users'       => ['campo' => 'limite_users',       'label' => 'atendentes'],
         ];
 
         // Recursos "do mês" — só avisa, não bloqueia

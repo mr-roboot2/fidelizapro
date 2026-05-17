@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\PlanoLimiteService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -26,9 +27,10 @@ class EquipeController extends Controller
 {
     private const ROLES_PERMITIDAS = ['gerente', 'atendente'];
 
-    public function index(Request $request)
+    public function index(Request $request, PlanoLimiteService $limites)
     {
-        $query = User::where('empresa_id', Auth::user()->empresa_id);
+        $empresa = Auth::user()->empresa;
+        $query = User::where('empresa_id', $empresa->id);
 
         if ($busca = trim((string) $request->input('busca'))) {
             $query->where(function ($q) use ($busca) {
@@ -37,7 +39,11 @@ class EquipeController extends Controller
         }
 
         $usuarios = $query->orderBy('role')->orderBy('name')->paginate(20)->withQueryString();
-        return view('admin.equipe.index', compact('usuarios'));
+        // Consumo do limite de atendentes do plano — mostra "3/5" no topo
+        // pra dono saber quando precisa fazer upgrade. consumo['users'] conta
+        // todos os users da empresa (admin + gerente + atendente).
+        $consumoUsers = $limites->consumo($empresa)['users'];
+        return view('admin.equipe.index', compact('usuarios', 'consumoUsers'));
     }
 
     public function create()
@@ -48,7 +54,7 @@ class EquipeController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, PlanoLimiteService $limites)
     {
         $dados = $request->validate([
             'name' => 'required|string|max:255',
@@ -56,6 +62,14 @@ class EquipeController extends Controller
             'password' => 'required|string|min:8',
             'role' => 'required|in:'.implode(',', self::ROLES_PERMITIDAS),
         ]);
+
+        // Garante limite do plano ANTES de criar. Lança DomainException com
+        // mensagem "Limite do plano atingido para users: X/Y" se cheio.
+        try {
+            $limites->garantirCapacidade(Auth::user()->empresa, 'users');
+        } catch (\DomainException $e) {
+            return back()->withInput()->with('error', $e->getMessage());
+        }
 
         User::create([
             'empresa_id' => Auth::user()->empresa_id,

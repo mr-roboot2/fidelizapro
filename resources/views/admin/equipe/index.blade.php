@@ -2,14 +2,33 @@
 @section('title', 'Equipe')
 @section('content')
 
-<div class="flex items-center justify-between mb-4">
+@php
+    $limiteAtingido = $consumoUsers['limite'] !== null && $consumoUsers['atual'] >= $consumoUsers['limite'];
+@endphp
+
+<div class="flex items-center justify-between mb-4 gap-4">
     <div>
         <h2 class="text-lg font-semibold text-slate-800">Equipe</h2>
         <p class="text-xs text-slate-500">Cadastre gerentes e atendentes da sua loja. O atendente acessa o PWA da loja e o caixa rápido; o gerente tem acesso quase total (igual admin pra fins operacionais).</p>
     </div>
-    <a href="{{ route('admin.equipe.create') }}" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium">
-        <i class="ri-user-add-line"></i> Novo membro
-    </a>
+    <div class="flex items-center gap-3">
+        <div class="text-right">
+            <p class="text-[11px] text-slate-500 uppercase tracking-wider">Atendentes</p>
+            <p class="text-sm font-semibold {{ $limiteAtingido ? 'text-rose-600' : 'text-slate-800' }}">
+                {{ $consumoUsers['atual'] }}{{ $consumoUsers['limite'] !== null ? '/'.$consumoUsers['limite'] : '' }}
+                <span class="text-[11px] text-slate-500 font-normal">{{ $consumoUsers['limite'] === null ? '(ilimitado)' : 'do plano' }}</span>
+            </p>
+        </div>
+        @if ($limiteAtingido)
+            <a href="{{ route('admin.meu-plano.index') }}" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-sm font-medium" title="Limite atingido — faça upgrade pra adicionar mais">
+                <i class="ri-vip-crown-line"></i> Upgrade do plano
+            </a>
+        @else
+            <a href="{{ route('admin.equipe.create') }}" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium">
+                <i class="ri-user-add-line"></i> Novo membro
+            </a>
+        @endif
+    </div>
 </div>
 
 <form method="GET" class="mb-4">
