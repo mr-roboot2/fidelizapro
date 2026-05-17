@@ -58,7 +58,10 @@ class RegraPontuacaoController extends Controller
             'nome' => 'required|string|max:255',
             'tipo' => 'required|in:compra,aniversario,indicacao,primeira_compra,cadastro,avaliacao',
             'valor_minimo' => 'nullable|numeric|min:0',
-            'valor_maximo' => 'nullable|numeric|min:0',
+            // gte:valor_minimo: regra com max < min nunca casava (cliente
+            // ficava sem regra aplicável e caía no pontos_por_real global,
+            // silencioso). Falha amigável agora.
+            'valor_maximo' => 'nullable|numeric|min:0|gte:valor_minimo',
             'pontos_por_real' => 'nullable|numeric|min:0',
             'multiplicador' => 'nullable|numeric|min:1',
             'pontos_fixos' => 'nullable|integer|min:0',

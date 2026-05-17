@@ -78,10 +78,14 @@ class UserController extends Controller
         if ($dados['role'] === 'super_admin') $dados['empresa_id'] = null;
 
         // Detecta o que muda ANTES de qualquer write — define se precisamos
-        // revogar tokens.
+        // revogar tokens. Email muda também invalida tokens: troca de
+        // email é fluxo crítico de account recovery (admin trocou pra
+        // conter conta comprometida) e tokens antigos não podem
+        // sobreviver à mudança.
         $roleMudou    = isset($dados['role'])  && $dados['role']  !== $user->role;
+        $emailMudou   = isset($dados['email']) && $dados['email'] !== $user->email;
         $foiInativado = $user->ativo && !$dados['ativo'];
-        $precisaRevogar = $senhaTrocada || $roleMudou || $foiInativado;
+        $precisaRevogar = $senhaTrocada || $roleMudou || $emailMudou || $foiInativado;
 
         // Revoga tokens PRIMEIRO (antes do update). Se algo falhar no update,
         // os tokens já foram invalidados — estado conservador. Antes a

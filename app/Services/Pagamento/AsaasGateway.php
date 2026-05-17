@@ -109,6 +109,13 @@ class AsaasGateway implements GatewayInterface
 
     public function cancelarAssinatura(Assinatura $assinatura): bool
     {
+        // Sem gateway_subscription_id, a URL ficava /subscriptions/ (sem
+        // id) e o DELETE batia em endpoint genérico — comportamento
+        // indefinido. Considera "cancelado com sucesso" pq não há nada
+        // no gateway pra cancelar (assinatura local sem espelhamento).
+        if (empty($assinatura->gateway_subscription_id)) {
+            return true;
+        }
         $r = $this->http()->delete($this->baseUrl().'/subscriptions/'.$assinatura->gateway_subscription_id);
         return $r->successful();
     }

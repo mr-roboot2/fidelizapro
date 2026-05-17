@@ -46,7 +46,7 @@
                     <input type="radio" name="tipo_video" value="upload" x-model="tipo" class="mt-1">
                     <div>
                         <p class="text-sm font-medium">Upload de arquivo</p>
-                        <p class="text-xs text-slate-500">MP4/WebM/MOV até 200 MB.</p>
+                        <p class="text-xs text-slate-500">MP4/WebM/MOV até 40 MB.</p>
                     </div>
                 </label>
             </div>
@@ -82,7 +82,7 @@
                 @if ($tutorial->video_arquivo)
                     Envie um novo arquivo só se quiser substituir.
                 @else
-                    Formatos aceitos: MP4, WebM, OGG, MOV. Tamanho máximo 200 MB.
+                    Formatos aceitos: MP4, WebM, OGG, MOV. Tamanho máximo 40 MB.
                 @endif
             </p>
         </div>

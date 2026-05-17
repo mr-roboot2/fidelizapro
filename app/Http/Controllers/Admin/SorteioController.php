@@ -223,7 +223,11 @@ class SorteioController extends Controller
             // IDOR cross-tenant: recompensa precisa pertencer à mesma empresa
             'recompensa_id'            => ['nullable', Rule::exists('recompensas', 'id')->where(fn ($q) => $q->where('empresa_id', $empresaId))],
             'valor_estimado'           => 'nullable|numeric|min:0',
-            'data_sorteio'             => 'required|date',
+            // after_or_equal:today bloqueia criar/editar sorteio com data
+            // já passada. Antes aceitava — sorteio nascia "morto"
+            // (Sorteio::aceitaBilhetes rejeita data passada) e admin
+            // reclamava sem entender o porquê.
+            'data_sorteio'             => 'required|date|after_or_equal:today',
             'status'                   => 'required|in:planejado,ativo,sorteado,cancelado',
             'max_bilhetes_por_cliente'   => 'nullable|integer|min:1|max:1000',
             'limite_bilhetes_dia_por_ip' => 'nullable|integer|min:1|max:200',

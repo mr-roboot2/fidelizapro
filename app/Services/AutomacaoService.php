@@ -6,16 +6,24 @@ use App\Models\Automacao;
 use App\Models\AutomacaoLog;
 use App\Models\Cliente;
 use App\Models\Empresa;
-use App\Models\Resgate;
-use Illuminate\Support\Collection;
+use Illuminate\Database\Eloquent\Builder;
 
 class AutomacaoService
 {
+    /**
+     * Tamanho do chunk em batch. 500 é equilíbrio entre roundtrips ao DB
+     * (querys de bulk-fetch por chunk) e memory peak por iteração.
+     */
+    protected const CHUNK_SIZE = 500;
+
     public function __construct(protected WhatsappService $whatsapp) {}
 
     /**
-     * Executa todas as automações ativas de todas as empresas.
-     * Chamado pelo command `automacoes:executar` (diariamente).
+     * Executa todas as automações ativas. Chamado pelo cron
+     * `automacoes:executar` (diariamente). Antes carregava TODOS os
+     * clientes elegíveis em memória + 1 query `jaEnviadoParaCliente`
+     * por cliente — em base com 100k clientes ativos virava OOM.
+     * Agora chunkById(500) + 1 query bulk de logs por chunk.
      */
     public function executarTodas(): array
     {
@@ -26,16 +34,33 @@ class AutomacaoService
             // pelo botão "Executar agora".
             if ($auto->personalizada && $auto->gatilho === 'manual') return;
 
-            $clientes = $this->buscarClientesAlvo($auto);
-            if ($clientes->isEmpty()) return;
+            $builder = $this->buscarClientesAlvoQuery($auto);
+            if ($builder === null) return;
 
-            foreach ($clientes as $cliente) {
-                if ($this->jaEnviadoParaCliente($auto, $cliente)) continue;
+            $unicaVez = $auto->personalizada && in_array($auto->gatilho, Automacao::GATILHOS_UNICA_VEZ, true);
 
-                $sucesso = $this->enviarMensagemAutomacao($auto, $cliente);
-                $sucesso ? $resumo['enviados']++ : $resumo['falhas']++;
-                if ($sucesso) $auto->increment('total_enviados');
-            }
+            // Eager load `empresa` pra evitar N+1 dentro do envio.
+            $builder->with('empresa')->chunkById(self::CHUNK_SIZE, function ($chunk) use ($auto, $unicaVez, &$resumo) {
+                $ids = $chunk->pluck('id')->all();
+
+                // 1 query: ids de clientes do chunk que já receberam a automação.
+                $logQuery = AutomacaoLog::where('automacao_id', $auto->id)
+                    ->whereIn('cliente_id', $ids);
+
+                $jaEnviados = $unicaVez
+                    ? $logQuery->where('sucesso', true)->pluck('cliente_id')->all()
+                    : $logQuery->whereDate('created_at', today())->pluck('cliente_id')->all();
+
+                $jaSet = array_flip($jaEnviados);
+
+                foreach ($chunk as $cliente) {
+                    if (isset($jaSet[$cliente->id])) continue;
+
+                    $sucesso = $this->enviarMensagemAutomacao($auto, $cliente);
+                    $sucesso ? $resumo['enviados']++ : $resumo['falhas']++;
+                    if ($sucesso) $auto->increment('total_enviados');
+                }
+            });
 
             $auto->update(['ultima_execucao' => now()]);
             $resumo['automacoes']++;
@@ -49,22 +74,27 @@ class AutomacaoService
      */
     public function executarUma(Automacao $auto): array
     {
-        // Pra gatilho manual, ignora gatilhos automáticos: dispara
-        // pra todos os clientes ativos com whatsapp.
-        $clientes = $auto->personalizada && $auto->gatilho === 'manual'
-            ? Cliente::where('ativo', true)->where('aceita_whatsapp', true)->get()
-            : $this->buscarClientesAlvo($auto);
+        $builder = ($auto->personalizada && $auto->gatilho === 'manual')
+            ? Cliente::where('ativo', true)->where('aceita_whatsapp', true)->whereNotNull('telefone')
+            : $this->buscarClientesAlvoQuery($auto);
 
-        $enviados = 0; $falhas = 0;
-
-        foreach ($clientes as $cliente) {
-            $sucesso = $this->enviarMensagemAutomacao($auto, $cliente);
-            $sucesso ? $enviados++ : $falhas++;
-            if ($sucesso) $auto->increment('total_enviados');
+        if ($builder === null) {
+            return ['enviados' => 0, 'falhas' => 0, 'total' => 0];
         }
 
+        $enviados = 0; $falhas = 0; $total = 0;
+
+        $builder->with('empresa')->chunkById(self::CHUNK_SIZE, function ($chunk) use ($auto, &$enviados, &$falhas, &$total) {
+            foreach ($chunk as $cliente) {
+                $sucesso = $this->enviarMensagemAutomacao($auto, $cliente);
+                $sucesso ? $enviados++ : $falhas++;
+                if ($sucesso) $auto->increment('total_enviados');
+                $total++;
+            }
+        });
+
         $auto->update(['ultima_execucao' => now()]);
-        return ['enviados' => $enviados, 'falhas' => $falhas, 'total' => $clientes->count()];
+        return ['enviados' => $enviados, 'falhas' => $falhas, 'total' => $total];
     }
 
     /**
@@ -130,12 +160,8 @@ class AutomacaoService
 
         // Idempotência: duplo clique no caixa /admin/caixa/lancar resulta
         // em 2 chamadas a CompraService::registrar dentro do mesmo segundo.
-        // O lockForUpdate de Cliente serializa as 2 transactions mas ambas
-        // chamam disparar() → 2 WhatsApp "obrigado pela compra" pro mesmo
-        // cliente. Janela curta (2min) bloqueia spam de duplo clique sem
-        // impedir eventos legítimos repetidos (cliente faz outra compra
-        // 3min depois recebe normalmente). boas_vindas tem janela maior
-        // (1 dia) pq tecnicamente só roda 1x na vida do cliente.
+        // Janela curta (2min) bloqueia spam sem impedir eventos legítimos
+        // repetidos. boas_vindas tem janela 1 dia (só roda 1x na vida).
         $janela = $tipo === 'boas_vindas' ? now()->subDay() : now()->subMinutes(2);
         $jaDisparou = AutomacaoLog::where('automacao_id', $auto->id)
             ->where('cliente_id', $cliente->id)
@@ -156,87 +182,64 @@ class AutomacaoService
         return $sucesso;
     }
 
-    protected function buscarClientesAlvo(Automacao $auto): Collection
+    /**
+     * Retorna Builder pronto pra chunkById (ou null se essa automação
+     * não roda em batch). Antes retornava Collection pré-carregada —
+     * causa raiz do OOM em base grande.
+     */
+    protected function buscarClientesAlvoQuery(Automacao $auto): ?Builder
     {
-        // Automações são globais — busca em todas empresas
+        // Automações são globais — busca em todas empresas.
+        // whereNotNull(telefone): cliente sem telefone crashava drivers.
         $base = Cliente::where('ativo', true)
-            ->where('aceita_whatsapp', true);
+            ->where('aceita_whatsapp', true)
+            ->whereNotNull('telefone')
+            ->where('telefone', '!=', '');
 
         if ($auto->personalizada) {
-            return $this->buscarPorGatilho($auto, $base);
+            return $this->buscarPorGatilhoQuery($auto, $base);
         }
 
         return match ($auto->tipo) {
             'aniversario' => $base->whereMonth('data_nascimento', now()->month)
-                ->whereDay('data_nascimento', now()->day)->get(),
+                ->whereDay('data_nascimento', now()->day),
 
             'pontos_vencendo' => $base->where('pontos_atual', '>', 0)
                 ->whereHas('transacoesPontos', function ($q) use ($auto) {
                     $q->where('tipo', 'credito')
                       ->whereNotNull('expira_em')
-                      ->whereBetween('expira_em', [now(), now()->addDays(max($auto->dias_offset, 7))]);
-                })->get(),
+                      ->whereBetween('expira_em', [now(), now()->addDays(max((int) $auto->dias_offset, 7))]);
+                }),
 
-            'inativo_30d' => $base->where(function ($q) {
-                $q->where('ultima_compra', '<', now()->subDays(30))
-                  ->where('ultima_compra', '>=', now()->subDays(31));
-            })->get(),
+            'inativo_30d' => $base->where('ultima_compra', '<', now()->subDays(30))
+                ->where('ultima_compra', '>=', now()->subDays(31)),
 
-            'inativo_60d' => $base->where(function ($q) {
-                $q->where('ultima_compra', '<', now()->subDays(60))
-                  ->where('ultima_compra', '>=', now()->subDays(61));
-            })->get(),
+            'inativo_60d' => $base->where('ultima_compra', '<', now()->subDays(60))
+                ->where('ultima_compra', '>=', now()->subDays(61)),
 
             // Tipos de evento individual: não rodam em batch
-            default => collect(),
+            default => null,
         };
     }
 
-    protected function buscarPorGatilho(Automacao $auto, $base): Collection
+    protected function buscarPorGatilhoQuery(Automacao $auto, Builder $base): ?Builder
     {
         return match ($auto->gatilho) {
-            'manual' => collect(),
+            'manual' => null,
 
             'inativo_dias' => $base->whereNotNull('ultima_compra')
-                ->where('ultima_compra', '<=', now()->subDays((int) ($auto->dias_offset ?: 30)))->get(),
+                ->where('ultima_compra', '<=', now()->subDays((int) ($auto->dias_offset ?: 30))),
 
-            'compras_total' => $base->where('total_compras', '>=', (int) ($auto->valor_referencia ?: 1))->get(),
+            'compras_total' => $base->where('total_compras', '>=', (int) ($auto->valor_referencia ?: 1)),
 
-            'gasto_total' => $base->where('total_gasto', '>=', (float) ($auto->valor_referencia ?: 0))->get(),
+            'gasto_total' => $base->where('total_gasto', '>=', (float) ($auto->valor_referencia ?: 0)),
 
             'cadastro_offset' => $base->whereDate('created_at', '=',
-                now()->subDays((int) ($auto->dias_offset ?: 7))->toDateString())->get(),
+                now()->subDays((int) ($auto->dias_offset ?: 7))->toDateString()),
 
-            'pontos_acumulados' => $base->where('pontos_atual', '>=', (float) ($auto->valor_referencia ?: 0))->get(),
+            'pontos_acumulados' => $base->where('pontos_atual', '>=', (float) ($auto->valor_referencia ?: 0)),
 
-            default => collect(),
+            default => null,
         };
-    }
-
-    /**
-     * Decide se já foi enviado pra esse cliente. Pra gatilhos de estado
-     * permanente (atingiu N compras, X pontos, etc.), checa o histórico
-     * inteiro. Pros demais, só evita repetição no mesmo dia.
-     */
-    protected function jaEnviadoParaCliente(Automacao $auto, Cliente $cliente): bool
-    {
-        $unicaVez = $auto->personalizada && in_array($auto->gatilho, Automacao::GATILHOS_UNICA_VEZ);
-
-        $query = AutomacaoLog::where('automacao_id', $auto->id)
-            ->where('cliente_id', $cliente->id);
-
-        if ($unicaVez) {
-            return $query->where('sucesso', true)->exists();
-        }
-
-        return $query->whereDate('created_at', today())->exists();
-    }
-
-    protected function jaEnviadoHoje(Automacao $auto, Cliente $cliente): bool
-    {
-        return AutomacaoLog::where('automacao_id', $auto->id)
-            ->where('cliente_id', $cliente->id)
-            ->whereDate('created_at', today())
-            ->exists();
     }
 }

@@ -50,13 +50,15 @@ class PlanoController extends Controller
         $dados = $request->validate([
             'nome' => 'required|string|max:255',
             'descricao' => 'nullable|string',
-            'preco_mensal' => 'required|numeric|min:0',
-            'limite_clientes' => 'nullable|integer|min:1',
-            'limite_compras_mes' => 'nullable|integer|min:1',
-            'limite_recompensas' => 'nullable|integer|min:1',
-            'limite_parceiros' => 'nullable|integer|min:1',
-            'limite_users' => 'nullable|integer|min:1',
-            'limite_campanhas_mes' => 'nullable|integer|min:1',
+            // max: caps razoáveis pra impedir overflow do INT da coluna
+            // (~4.29bi). preco_mensal cap em 99999.99 (DECIMAL típico SaaS).
+            'preco_mensal' => 'required|numeric|min:0|max:99999.99',
+            'limite_clientes' => 'nullable|integer|min:1|max:10000000',
+            'limite_compras_mes' => 'nullable|integer|min:1|max:10000000',
+            'limite_recompensas' => 'nullable|integer|min:1|max:100000',
+            'limite_parceiros' => 'nullable|integer|min:1|max:100000',
+            'limite_users' => 'nullable|integer|min:1|max:10000',
+            'limite_campanhas_mes' => 'nullable|integer|min:1|max:100000',
             'modulos' => 'nullable|array',
             'modulos.*' => 'string|in:'.implode(',', array_keys(Plano::MODULOS_DISPONIVEIS)),
             'ativo' => 'boolean',

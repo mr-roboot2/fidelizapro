@@ -132,7 +132,10 @@ class ClienteController extends Controller
         $this->autorizar($cliente);
 
         $dados = $request->validate([
-            'valor'  => 'required|numeric|not_in:0',
+            // |max: cap defensivo. Sem ele, operador com erro de digitação
+            // (999999999) ou malicioso credita valor absurdo. 1 milhão de
+            // pontos/cashback num único ajuste já é claramente operacional.
+            'valor'  => 'required|numeric|not_in:0|between:-1000000,1000000',
             'motivo' => 'required|string|max:255',
         ]);
 
@@ -159,7 +162,10 @@ class ClienteController extends Controller
         $this->autorizar($cliente);
 
         $dados = $request->validate([
-            'valor'  => 'required|numeric|not_in:0',
+            // |max: cap defensivo. Sem ele, operador com erro de digitação
+            // (999999999) ou malicioso credita valor absurdo. 1 milhão de
+            // pontos/cashback num único ajuste já é claramente operacional.
+            'valor'  => 'required|numeric|not_in:0|between:-1000000,1000000',
             'motivo' => 'required|string|max:255',
         ]);
 

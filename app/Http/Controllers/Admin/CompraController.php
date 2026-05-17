@@ -41,13 +41,24 @@ class CompraController extends Controller
         $empresaId = Auth::user()->empresa_id;
         $dados = $request->validate([
             'cliente_id' => 'required|exists:clientes,id',
-            'valor' => 'required|numeric|min:0.01',
-            'desconto' => 'nullable|numeric|min:0',
+            // |max: cap defensivo da coluna DECIMAL(10,2).
+            'valor' => 'required|numeric|min:0.01|max:99999999.99',
+            // |lte:valor: desconto não pode ser maior que o valor da compra.
+            // Antes aceitava — gravava compra com pontos calculados sobre
+            // valor cheio mesmo com desconto "negativo" (operador
+            // creditava pontos via desconto fake).
+            'desconto' => 'nullable|numeric|min:0|lte:valor',
             'descricao' => 'nullable|string|max:255',
             'codigo' => 'nullable|string|max:50',
         ]);
 
-        $cliente = Cliente::where('id', $dados['cliente_id'])->where('empresa_id', $empresaId)->firstOrFail();
+        // Cliente ativo only — defesa simétrica aos outros lançadores
+        // (Caixa, Api\Loja). Operador não lança compra em cliente
+        // inativo via "criar compra manual" também.
+        $cliente = Cliente::where('id', $dados['cliente_id'])
+            ->where('empresa_id', $empresaId)
+            ->where('ativo', true)
+            ->firstOrFail();
         $compra = $service->registrar($cliente, array_merge($dados, [
             'user_id' => Auth::id(),
             'origem' => 'manual',

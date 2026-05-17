@@ -50,16 +50,31 @@ class CronController extends Controller
             return back()->with('error', 'Comando não monitorado.');
         }
 
+        // Lock atômico pra evitar 2 execuções concorrentes do mesmo
+        // comando. Os schedules em routes/console.php já têm
+        // withoutOverlapping(); o botão manual do super não tinha — super
+        // clicava 2x ou clicava durante a janela do cron oficial (ex:
+        // 07h `assinaturas:processar`) e disparava execuções paralelas
+        // que geravam cobranças duplicadas / notificações WhatsApp 2x.
+        // Cache::lock garante exclusão mútua entre manual e schedule.
+        $lock = \Illuminate\Support\Facades\Cache::lock("cron:cmd:{$comando}", 60 * 60);
+
+        if (!$lock->get()) {
+            return back()->with('error',
+                "Comando {$comando} já está rodando (manual ou schedule). Aguarde terminar.");
+        }
+
         try {
             $output = new BufferedOutput();
             Artisan::call($comando, [], $output);
-            // O listener já registrou a execução. Marca como manual.
             CronExecucao::where('comando', $comando)
                 ->latest('id')->limit(1)
                 ->update(['origem' => 'manual']);
             return back()->with('success', "Comando {$comando} executado.");
         } catch (Throwable $e) {
             return back()->with('error', 'Erro: '.$e->getMessage());
+        } finally {
+            $lock->release();
         }
     }
 }

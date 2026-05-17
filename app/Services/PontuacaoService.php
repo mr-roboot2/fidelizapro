@@ -61,7 +61,13 @@ class PontuacaoService
                 'referencia_type' => $referencia ? get_class($referencia) : null,
                 'referencia_id' => $referencia?->id,
                 'descricao' => $descricao ?? "Crédito de {$pontos} pontos ({$origem})",
-                'expira_em' => now()->addDays($cliente->empresa->validade_pontos_dias),
+                // null/0 → 365 dias padrão. Antes `addDays(null)` retornava
+                // now() (Carbon trata null como 0), criando pontos JÁ
+                // EXPIRADOS — empresa em modo cashback que migra pra pontos
+                // sem setar validade_pontos_dias gerava saldo zerado pelo
+                // job de expiração na mesma execução. NOT NULL no banco
+                // protege INSERTs, mas defesa em profundidade aqui.
+                'expira_em' => now()->addDays((int) ($cliente->empresa->validade_pontos_dias ?: 365)),
             ]);
         });
     }
