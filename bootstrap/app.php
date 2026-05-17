@@ -77,6 +77,13 @@ return Application::configure(basePath: dirname(__DIR__))
         // em rotas admin).
         $middleware->append(SecurityHeaders::class);
 
+        // Laravel 11 tirou ConvertEmptyStringsToNull do default. Sem isso, forms
+        // que deixam campos opcionais vazios mandam "" pro INSERT — colunas
+        // INTEGER nullable (limite_clientes/parceiros/users etc.) rejeitam:
+        // "SQLSTATE[22007]: Incorrect integer value: '' for column ...".
+        // Aplicado globalmente; webhooks/api usam JSON e não passam por aqui.
+        $middleware->convertEmptyStringsToNull();
+
         // API consumida via Bearer token (sem cookies/CSRF). Não usar statefulApi(),
         // que marcaria requests do mesmo domínio como SPA e exigiria X-XSRF-TOKEN.
 
