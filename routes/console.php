@@ -23,7 +23,14 @@ try {
     // banco indisponível durante artisan list/install
 }
 
-Schedule::command('cashback:liberar')->dailyAt($horarioCashback);
-Schedule::command('automacoes:executar')->dailyAt($horarioAutomacoes);
-Schedule::command('roleta:processar-gatilhos')->dailyAt('06:00');
-Schedule::command('assinaturas:processar')->dailyAt('07:00');
+// withoutOverlapping() evita 2 instâncias do mesmo cron rodando ao mesmo
+// tempo (cron antigo atrasado encontra o novo do dia seguinte). Sem isso,
+// assinaturas:processar (que faz HTTP calls pro gateway PIX e pode
+// estender) chocava com a próxima execução: UPDATEs concorrentes em
+// `cobrancas.meta` perdiam updates (read-modify-write sem lock JSON), e
+// notificações WhatsApp disparavam em duplicata pra mesma cobrança.
+// O lock expira em 24h por default (suficiente pra todos os jobs).
+Schedule::command('cashback:liberar')->dailyAt($horarioCashback)->withoutOverlapping();
+Schedule::command('automacoes:executar')->dailyAt($horarioAutomacoes)->withoutOverlapping();
+Schedule::command('roleta:processar-gatilhos')->dailyAt('06:00')->withoutOverlapping();
+Schedule::command('assinaturas:processar')->dailyAt('07:00')->withoutOverlapping();

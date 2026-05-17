@@ -39,13 +39,18 @@ class WhatsappWebhookController extends Controller
         $config = ConfiguracaoSistema::instancia();
         $appSecret = (string) ($config->whatsapp_app_secret ?? '');
 
-        // Validação obrigatória da assinatura HMAC SHA256 do Meta. Sem isso
-        // qualquer um forja POST e o handler aceita. O endpoint só loga hoje,
-        // mas estamos fechando a porta antes de adicionar processamento.
-        //
-        // Em ambientes ainda não configurados (app_secret vazio), aceitamos
-        // o request mas anotamos um warning bem visível pro operador notar.
-        if ($appSecret !== '') {
+        // Validação obrigatória da assinatura HMAC SHA256 do Meta. Sem
+        // app_secret configurado o handler antes aceitava qualquer POST
+        // (só logava warning) — janela de exposição entre instalação e
+        // primeira config do super admin. Fail-closed em produção: sem
+        // secret = 503. Em local/dev aceita pra facilitar testes.
+        if ($appSecret === '') {
+            if (!app()->environment('local')) {
+                Log::warning('[Meta Webhook] App secret NÃO configurado — webhook rejeitado em produção. Configure configuracoes_sistema.whatsapp_app_secret pra ativar HMAC.');
+                return response()->json(['error' => 'webhook_not_configured'], 503);
+            }
+            Log::warning('[Meta Webhook] App secret vazio (env=local) — aceito sem HMAC apenas em dev.');
+        } else {
             $assinatura = (string) $request->header('X-Hub-Signature-256', '');
             $payload = $request->getContent();
             $esperado = 'sha256='.hash_hmac('sha256', $payload, $appSecret);
@@ -57,8 +62,6 @@ class WhatsappWebhookController extends Controller
                 ]);
                 return response()->json(['error' => 'invalid_signature'], 401);
             }
-        } else {
-            Log::warning('[Meta Webhook] App secret NÃO configurado — webhook aceito sem validação. Configure configuracoes_sistema.whatsapp_app_secret pra ativar verificação HMAC.');
         }
 
         // Logamos apenas metadados — payloads de WhatsApp contêm PII (telefone, texto)

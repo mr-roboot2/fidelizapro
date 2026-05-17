@@ -48,8 +48,14 @@ class AuthController extends Controller
         // quando cliente existe, atacante mede tempo de resposta e enumera
         // telefones cadastrados (cadastrado=200ms vs não-cadastrado=0ms).
         // Roda hash dummy quando cliente=null pra normalizar a janela.
+        //
+        // Hash dummy precisa ser BCRYPT VÁLIDO — antes era string "invalid..."
+        // que disparava RuntimeException "does not use the Bcrypt algorithm"
+        // virando HTTP 500 (regredia o anti-timing: sucesso=422 rápido,
+        // fail=500 lento, atacante enumerava por status code). Este é
+        // password_hash('placeholder', BCRYPT, cost=12), nunca bate.
         $hashAlvo = $cliente?->password
-            ?? '$2y$12$invalidinvalidinvalidinvalidinvalidinvalidinvalidinvali';
+            ?? '$2y$12$/17LnvEzN5f9qw/Ke//0lepSYqGDnPmdsMsDDT4pXhKxBvrVAaW.u';
         $senhaConfere = Hash::check($dados['password'], $hashAlvo);
 
         if (!$cliente || !$senhaConfere) {

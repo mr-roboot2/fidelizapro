@@ -25,7 +25,11 @@ class AIGrowthController extends Controller
     {
         $empresaId = Auth::user()->empresa_id;
         Auth::user()->empresa?->marcarPassoVisto('ai_growth');
-        [$de, $ate] = $this->parsePeriodo($request);
+        // Antes index() não tinha cap de período baseado num comentário
+        // desatualizado ("só agregados"). dados() carrega compras +
+        // resgates do range completo em memória — period de 5 anos com 50k
+        // compras = OOM. Mesmo cap das exports (90 dias) aplicado aqui.
+        [$de, $ate] = $this->parsePeriodoLimitado($request);
         return view('admin.ai_growth.index', $this->dados($empresaId, $de, $ate));
     }
 

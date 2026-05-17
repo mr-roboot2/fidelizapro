@@ -83,14 +83,19 @@ class CaixaController extends Controller
     {
         $dados = $request->validate([
             'cliente_id' => 'required|exists:clientes,id',
-            'valor' => 'required|numeric|min:0.01',
+            // max: cap da coluna compras.valor DECIMAL(10,2) — sem isso
+            // valor acima virava SQLSTATE 22003 → 500 sem mensagem.
+            'valor' => 'required|numeric|min:0.01|max:99999999.99',
             'usar_cashback' => 'nullable|numeric|min:0',
             'descricao' => 'nullable|string|max:255',
         ]);
 
         $empresaId = Auth::user()->empresa_id;
+        // Cliente ativo only — defesa simétrica ao Api\LojaController.
         $cliente = Cliente::where('id', $dados['cliente_id'])
-            ->where('empresa_id', $empresaId)->firstOrFail();
+            ->where('empresa_id', $empresaId)
+            ->where('ativo', true)
+            ->firstOrFail();
 
         $valorBruto = round((float) $dados['valor'], 2);
         $usarCashback = round((float) ($dados['usar_cashback'] ?? 0), 2);

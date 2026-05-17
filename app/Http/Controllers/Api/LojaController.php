@@ -28,8 +28,12 @@ class LojaController extends Controller
         // Anti-timing: roda Hash::check sempre, mesmo sem user, contra hash
         // dummy. Antes, email inexistente respondia ~5ms vs ~200ms quando
         // existia — atacante enumerava operadores via timing.
+        //
+        // Hash dummy precisa ser BCRYPT VÁLIDO — antes era string "invalid..."
+        // que disparava RuntimeException virando HTTP 500. Este é um hash
+        // bcrypt real pré-computado (cost=12), nunca bate com senha real.
         $hashAlvo = $user?->password
-            ?? '$2y$12$invalidinvalidinvalidinvalidinvalidinvalidinvalidinvali';
+            ?? '$2y$12$/17LnvEzN5f9qw/Ke//0lepSYqGDnPmdsMsDDT4pXhKxBvrVAaW.u';
         $senhaConfere = Hash::check($dados['password'], $hashAlvo);
 
         if (!$user || !$senhaConfere) {
@@ -148,14 +152,22 @@ class LojaController extends Controller
     {
         $dados = $request->validate([
             'cliente_id'    => 'required|exists:clientes,id',
-            'valor'         => 'required|numeric|min:0.01',
+            // max: 99999999.99 = cap da coluna compras.valor DECIMAL(10,2).
+            // Sem max, valor além disso explodia em PDOException SQLSTATE
+            // 22003 → 500 pra operador sem mensagem clara.
+            'valor'         => 'required|numeric|min:0.01|max:99999999.99',
             'usar_cashback' => 'nullable|numeric|min:0',
             'descricao'     => 'nullable|string|max:255',
         ]);
 
         $user = $request->user();
+        // Cliente inativo NÃO recebe compra. Antes o filtro ativo só estava
+        // em buscar/QR; lancarCompra aceitava se operador soubesse o id —
+        // permitia reativação "fantasma" de cliente que foi inativado.
         $cliente = Cliente::where('id', $dados['cliente_id'])
-            ->where('empresa_id', $user->empresa_id)->firstOrFail();
+            ->where('empresa_id', $user->empresa_id)
+            ->where('ativo', true)
+            ->firstOrFail();
 
         $valorBruto    = round((float) $dados['valor'], 2);
         $usarCashback  = round((float) ($dados['usar_cashback'] ?? 0), 2);

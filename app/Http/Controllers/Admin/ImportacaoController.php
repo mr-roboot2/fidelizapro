@@ -110,13 +110,26 @@ class ImportacaoController extends Controller
 
                 $telefone = trim($linhaDados['telefone'] ?? '');
                 $valor = (float) str_replace(',', '.', trim($linhaDados['valor'] ?? '0'));
+                $telefoneDigits = preg_replace('/\D/', '', $telefone);
 
-                if (!$telefone || $valor <= 0) {
+                // Telefone precisa ter dígitos válidos. Antes só checava
+                // truthy — "a", "0", emoji passavam e criavam cliente lixo.
+                if (!$telefone || strlen($telefoneDigits) < 10 || strlen($telefoneDigits) > 11 || $valor <= 0) {
                     $erros[] = "Linha {$linha}: telefone ou valor inválido.";
                     continue;
                 }
+                if ($valor > 99999999.99) {
+                    $erros[] = "Linha {$linha}: valor acima do cap (R\$ 99.999.999,99).";
+                    continue;
+                }
 
-                $cliente = Cliente::where('empresa_id', $empresaId)->where('telefone', $telefone)->first();
+                // Lookup via scopeWhereTelefone (telefone_digits indexado).
+                // Antes o where literal `->where('telefone', $telefone)`
+                // não casava com cliente já cadastrado em formato diferente
+                // (DB tinha "(11) 9..."; CSV mandava "11..." → duplicava).
+                $cliente = Cliente::where('empresa_id', $empresaId)
+                    ->whereTelefone($telefone)
+                    ->first();
                 if (!$cliente) {
                     if (!$criarClientes) {
                         $erros[] = "Linha {$linha}: cliente {$telefone} não encontrado (marque 'criar clientes novos').";
@@ -134,14 +147,34 @@ class ImportacaoController extends Controller
                         $erros[] = "Linha {$linha}: nome contém caracteres inválidos.";
                         continue;
                     }
+
+                    // CPF (opcional): valida formato + dígitos verificadores
+                    // como os outros endpoints. Antes aceitava lixo cru (max
+                    // não aplicado) e duplicava no DB com formatação variada.
+                    $cpfNorm = null;
+                    if (!empty($linhaDados['cpf'])) {
+                        $cpfNorm = preg_replace('/\D/', '', $linhaDados['cpf']);
+                        $regra = new \App\Rules\CpfValido();
+                        $valido = true;
+                        $regra->validate('cpf', $cpfNorm, function() use (&$valido) { $valido = false; });
+                        if (!$valido) {
+                            $erros[] = "Linha {$linha}: CPF inválido.";
+                            continue;
+                        }
+                        if (Cliente::where('empresa_id', $empresaId)->where('cpf', $cpfNorm)->exists()) {
+                            $erros[] = "Linha {$linha}: já existe cliente com este CPF.";
+                            continue;
+                        }
+                    }
+
                     // Senha inicial = últimos 6 dígitos do telefone (UX simples
                     // de explicar). senha_temporaria=true exige troca no primeiro acesso.
                     $cliente = Cliente::create([
                         'empresa_id' => $empresaId,
                         'nome' => $nome,
                         'telefone' => $telefone,
-                        'cpf' => $linhaDados['cpf'] ?? null,
-                        'password' => Hash::make(substr(preg_replace('/\D/', '', $telefone), -6)),
+                        'cpf' => $cpfNorm,
+                        'password' => Hash::make(substr($telefoneDigits, -6)),
                         'senha_temporaria' => true,
                         'aceita_whatsapp' => true,
                     ]);
