@@ -213,14 +213,18 @@
     </div>
 
     <div class="bg-white rounded-xl shadow-sm p-6">
-        <div class="flex items-center justify-between mb-1">
+        <div class="flex items-center justify-between mb-1"
+             x-data="{ pixAtivo: {{ old('pix_ativo', $config->pix_ativo) ? 'true' : 'false' }} }">
             <h2 class="font-semibold text-slate-800">Pagamentos PIX</h2>
             <label class="inline-flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" name="pix_ativo" value="1" {{ old('pix_ativo', $config->pix_ativo) ? 'checked' : '' }} class="sr-only peer">
+                {{-- x-model mantém o texto em sincronia com o toggle (antes
+                     era server-side: clicava → ficava verde mas texto seguia
+                     "Desativado" até salvar, virando confusão de UX). --}}
+                <input type="checkbox" name="pix_ativo" value="1" x-model="pixAtivo" class="sr-only peer">
                 <div class="w-11 h-6 bg-slate-200 peer-checked:bg-emerald-500 rounded-full relative transition">
                     <div class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition peer-checked:translate-x-5"></div>
                 </div>
-                <span class="text-sm font-medium">{{ $config->pix_ativo ? 'Ativo' : 'Desativado' }}</span>
+                <span class="text-sm font-medium" x-text="pixAtivo ? 'Ativo' : 'Desativado'"></span>
             </label>
         </div>
         <p class="text-xs text-slate-500 mb-5">Gateway pra cobrar as assinaturas das empresas via PIX. Sem ativar, fica em modo mock (QR fake só pra dev).</p>
