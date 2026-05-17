@@ -20,6 +20,19 @@ class SorteioService
      */
     public function criarBilhete(Sorteio $sorteio, Cliente $cliente, string $origem = 'manual', ?string $referencia = null, ?string $ip = null): ?SorteioBilhete
     {
+        // Cross-tenant: cliente de outra empresa NÃO pode receber bilhete.
+        // Antes o service não validava — defesa estava só no controller,
+        // mas o service é chamado de múltiplos pontos (roleta_premio
+        // tipo=sorteio_bilhete, importação, jobs futuros). Cliente
+        // desativado também não recebe (sorteio termina entregando pra
+        // ninguém — UX confusa).
+        if ($cliente->empresa_id !== $sorteio->empresa_id) {
+            throw new \DomainException('Cliente não pertence à empresa do sorteio.');
+        }
+        if (!$cliente->ativo) {
+            return null;
+        }
+
         if (!$sorteio->aceitaBilhetes()) {
             return null;
         }
@@ -85,13 +98,19 @@ class SorteioService
                 throw new DomainException('Sorteio cancelado não pode ser sorteado.');
             }
 
+            // Filtra clientes desativados na seleção do bilhete vencedor.
+            // Sem isso o sorteio podia premiar cliente inativo e criar
+            // Resgate que não dava pra entregar (Resgate::entregar valida
+            // expira_em mas não checa cliente.ativo). Quando todos os
+            // bilhetes são de inativos, cai no DomainException abaixo.
             $bilhete = SorteioBilhete::where('sorteio_id', $sorteio->id)
+                ->whereHas('cliente', fn ($q) => $q->where('ativo', true))
                 ->inRandomOrder()
                 ->lockForUpdate()
                 ->first();
 
             if (!$bilhete) {
-                throw new DomainException('Sorteio sem bilhetes — ninguém pra sortear.');
+                throw new DomainException('Sorteio sem bilhetes elegíveis — ninguém pra sortear (verifique se há clientes ativos com bilhetes).');
             }
 
             $vencedor = Cliente::findOrFail($bilhete->cliente_id);

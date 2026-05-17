@@ -18,6 +18,16 @@ class ImpersonateController extends Controller
      */
     public function entrar(Request $request, Empresa $empresa)
     {
+        // Bloqueia re-impersonate: super entra em A, clica impersonate de B
+        // sem sair → Auth::id() é o admin A. session()->put sobrescreve
+        // impersonate_origem_id com admin_a, perdendo o super original. No
+        // sair, valida que origemId é super (admin_a não é) → logout
+        // total, super preso na tela de login.
+        if ($request->session()->has('impersonate_origem_id')) {
+            return back()->with('error',
+                'Você já está impersonando outra empresa. Saia primeiro pra entrar em outra.');
+        }
+
         $admin = User::where('empresa_id', $empresa->id)
             ->where('role', 'admin')
             ->where('ativo', true)

@@ -141,7 +141,7 @@ class TutorialController extends Controller
             'video_url.required_if' => 'Cole a URL do YouTube/Vimeo.',
             'video_arquivo.required'  => 'Envie o arquivo de vídeo.',
             'video_arquivo.mimetypes' => 'Use MP4, WebM, OGG ou MOV.',
-            'video_arquivo.max'       => 'Arquivo muito grande (máx. 200 MB).',
+            'video_arquivo.max'       => 'Arquivo muito grande (máx. 40 MB).',
         ]);
     }
 }

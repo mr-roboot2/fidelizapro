@@ -3,13 +3,22 @@
 namespace App\Services\Whatsapp;
 
 use App\Models\ConfiguracaoSistema;
+use App\Support\LogScrubber;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * Driver mock pra dev/testes. Pode cair aqui em PRODUÇÃO quando
+ * whatsapp_ativo=false ou provider desconhecido — por isso os logs
+ * passam por LogScrubber igual aos drivers reais (Meta/Z-API/Evolution).
+ * Antes o telefone e a mensagem (que pode conter OTP, saldo, etc) iam
+ * crus pro storage/logs/laravel.log — vazamento de PII confirmado em
+ * auditoria.
+ */
 class MockDriver implements WhatsappDriverInterface
 {
     public function enviar(ConfiguracaoSistema $config, string $telefone, string $mensagem): bool
     {
-        Log::info("[WhatsApp MOCK] → {$telefone}: {$mensagem}");
+        Log::info('[WhatsApp MOCK] → '.LogScrubber::scrub($telefone).': '.LogScrubber::scrub($mensagem));
         return true;
     }
 
@@ -22,7 +31,7 @@ class MockDriver implements WhatsappDriverInterface
     public function enviarComBotoes(ConfiguracaoSistema $config, string $telefone, string $mensagem, array $botoes): bool
     {
         $rotulos = implode(' | ', array_map(fn($b) => "[{$b['type']}:{$b['label']}={$b['value']}]", $botoes));
-        Log::info("[WhatsApp MOCK] → {$telefone}: {$mensagem}  botões: {$rotulos}");
+        Log::info('[WhatsApp MOCK] → '.LogScrubber::scrub($telefone).': '.LogScrubber::scrub($mensagem).'  botões: '.$rotulos);
         return true;
     }
 }

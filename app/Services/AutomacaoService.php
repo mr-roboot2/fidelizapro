@@ -128,10 +128,24 @@ class AutomacaoService
         $auto = Automacao::where('tipo', $tipo)->where('ativo', true)->first();
         if (!$auto) return false;
 
-        // Eventos pontuais (pos_compra, agradecimento_resgate) precisam
-        // disparar A CADA ocorrência — o caller já garante 1 chamada por
-        // evento. Boas_vindas só roda 1x na vida (no cadastro), então
-        // também não tem risco de spam.
+        // Idempotência: duplo clique no caixa /admin/caixa/lancar resulta
+        // em 2 chamadas a CompraService::registrar dentro do mesmo segundo.
+        // O lockForUpdate de Cliente serializa as 2 transactions mas ambas
+        // chamam disparar() → 2 WhatsApp "obrigado pela compra" pro mesmo
+        // cliente. Janela curta (2min) bloqueia spam de duplo clique sem
+        // impedir eventos legítimos repetidos (cliente faz outra compra
+        // 3min depois recebe normalmente). boas_vindas tem janela maior
+        // (1 dia) pq tecnicamente só roda 1x na vida do cliente.
+        $janela = $tipo === 'boas_vindas' ? now()->subDay() : now()->subMinutes(2);
+        $jaDisparou = AutomacaoLog::where('automacao_id', $auto->id)
+            ->where('cliente_id', $cliente->id)
+            ->where('sucesso', true)
+            ->where('created_at', '>=', $janela)
+            ->exists();
+        if ($jaDisparou) {
+            return false;
+        }
+
         $sucesso = $this->enviarMensagemAutomacao($auto, $cliente, $extras);
 
         if ($sucesso) {

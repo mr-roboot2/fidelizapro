@@ -60,6 +60,12 @@ class Sorteio extends Model
 
     public function aceitaBilhetes(): bool
     {
-        return $this->status === 'ativo';
+        // Status=ativo + data_sorteio ainda no futuro (inclusivo do
+        // próprio dia via endOfDay). Antes só checava status — cliente
+        // continuava ganhando bilhete depois da data prometida porque
+        // ninguém move automaticamente o status pra 'sorteado'.
+        if ($this->status !== 'ativo') return false;
+        if ($this->data_sorteio && $this->data_sorteio->copy()->endOfDay()->isPast()) return false;
+        return true;
     }
 }
