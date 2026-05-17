@@ -48,34 +48,33 @@ class CampanhaController extends Controller
 
     public function disparar(Campanha $campanha, WhatsappService $service)
     {
-        // Bloqueia re-disparo: campanha já enviada não pode ser disparada
-        // de novo (super clicava 2x e duplicava mensagens pra base toda).
-        // Status 'rascunho'/'agendada' permitido — 'enviada'/'cancelada'
-        // não. Use Campanha::lockForUpdate pra fechar race entre 2 cliques
-        // simultâneos.
+        // Bloqueia re-disparo. Status do enum (migration
+        // 2026_01_01_000008): rascunho, agendada, enviando, concluida,
+        // falhou. Antes eu usava 'enviada'/'disparada_em' (ambos
+        // inexistentes no schema) — o update silenciava em prod com
+        // MariaDB lax mode e quebrava com strict. Alinhado pra
+        // 'enviando' como flag de "em curso" e 'enviada_em' como
+        // timestamp. WhatsappService::dispararCampanha já transiciona
+        // 'enviando' → 'concluida' ao fim.
         $atualizada = \Illuminate\Support\Facades\DB::transaction(function () use ($campanha) {
             $lockada = Campanha::lockForUpdate()->find($campanha->id);
-            if (!$lockada || in_array($lockada->status, ['enviada', 'cancelada'], true)) {
+            if (!$lockada || in_array($lockada->status, ['enviando', 'concluida'], true)) {
                 return null;
             }
-            // Marca como "enviando" pra serializar; o service pode levar
-            // tempo (Whatsapp HTTP por cliente). Após o disparo completar,
-            // o próprio service atualiza pra 'enviada'.
-            $lockada->update(['status' => 'enviada', 'disparada_em' => now()]);
+            $lockada->update(['status' => 'enviando']);
             return $lockada;
         });
 
         if (!$atualizada) {
-            return back()->with('error', 'Esta campanha já foi disparada ou cancelada.');
+            return back()->with('error', 'Esta campanha já foi disparada (ou está em curso).');
         }
 
         try {
             $service->dispararCampanha($atualizada);
         } catch (\Throwable $e) {
-            // Falha do gateway/serviço — devolve a campanha pra rascunho
-            // pra super tentar de novo. Sem isso, status='enviada' impedia
-            // retry após erro de rede.
-            $atualizada->update(['status' => 'rascunho', 'disparada_em' => null]);
+            // Falha do gateway/serviço — devolve pra rascunho pra
+            // super tentar de novo.
+            $atualizada->update(['status' => 'rascunho']);
             throw $e;
         }
 

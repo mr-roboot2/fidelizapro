@@ -44,7 +44,13 @@ class EmpresaObserver
                 'trial_ate'          => $trialDias > 0 ? now()->addDays($trialDias) : null,
             ]);
 
-            $empresa->update(['plano_id' => $plano->id]);
+            // Só seta plano padrão se empresa não veio com plano explícito.
+            // Antes sobrescrevia sempre — super admin criando empresa
+            // com plano específico via store() era forçado pro plano
+            // padrão.
+            if (empty($empresa->plano_id)) {
+                $empresa->update(['plano_id' => $plano->id]);
+            }
         } catch (Throwable $e) {
             report($e);
         }

@@ -36,7 +36,10 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $dados = $request->validate([
-            'empresa_id' => 'nullable|exists:empresas,id',
+            // empresa_id required quando role != super_admin. Antes
+            // aceitava admin/gerente/atendente sem empresa — user ficava
+            // órfão e middleware admin.auth + empresa.scope quebrava.
+            'empresa_id' => 'required_unless:role,super_admin|nullable|exists:empresas,id',
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             // min:8 alinhado com cliente/install/admin — antes era min:6,

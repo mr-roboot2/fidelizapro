@@ -90,7 +90,13 @@ class CompraService
                         && $regraInd->pontos_fixos > 0
                         && $valorCompra >= $valorMinimo) {
                         $indicador = Cliente::find($cliente->indicado_por_id);
-                        if ($indicador && $indicador->empresa_id === $empresa->id) {
+                        // Self-referral: cliente com indicado_por_id = id próprio
+                        // (via update direto, CSV, ou mass-assignment futuro)
+                        // ganhava bônus em si mesmo. indicado_por_id está em
+                        // $guarded mas defesa em profundidade aqui.
+                        if ($indicador
+                            && $indicador->empresa_id === $empresa->id
+                            && $indicador->id !== $cliente->id) {
                             $this->pontuacaoService->creditar(
                                 $indicador,
                                 $regraInd->pontos_fixos,
