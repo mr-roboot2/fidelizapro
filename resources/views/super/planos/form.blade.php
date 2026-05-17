@@ -47,21 +47,25 @@
                 <label class="text-sm font-medium">Clientes</label>
                 <input type="number" name="limite_clientes" min="1" value="{{ old('limite_clientes', $plano->limite_clientes) }}"
                        class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg">
+                <p class="text-[11px] text-slate-500 mt-1">Quantos clientes finais a empresa pode ter cadastrados no programa de fidelidade.</p>
             </div>
             <div>
                 <label class="text-sm font-medium">Compras/mês</label>
                 <input type="number" name="limite_compras_mes" min="1" value="{{ old('limite_compras_mes', $plano->limite_compras_mes) }}"
                        class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg">
+                <p class="text-[11px] text-slate-500 mt-1">Quantas compras podem ser lançadas no caixa por mês. Contador zera no dia 1.</p>
             </div>
             <div>
                 <label class="text-sm font-medium">Recompensas ativas</label>
                 <input type="number" name="limite_recompensas" min="1" value="{{ old('limite_recompensas', $plano->limite_recompensas) }}"
                        class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg">
+                <p class="text-[11px] text-slate-500 mt-1">Quantas recompensas podem estar publicadas no catálogo ao mesmo tempo.</p>
             </div>
             <div>
                 <label class="text-sm font-medium">Parceiros</label>
                 <input type="number" name="limite_parceiros" min="1" value="{{ old('limite_parceiros', $plano->limite_parceiros) }}"
                        class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg">
+                <p class="text-[11px] text-slate-500 mt-1">Quantos parceiros (lojas amigas) podem estar ativos pra cross-promoção. Requer módulo Parceiros.</p>
             </div>
             <div>
                 <label class="text-sm font-medium">Atendentes</label>
@@ -73,6 +77,7 @@
                 <label class="text-sm font-medium">Campanhas/mês</label>
                 <input type="number" name="limite_campanhas_mes" min="1" value="{{ old('limite_campanhas_mes', $plano->limite_campanhas_mes) }}"
                        class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg">
+                <p class="text-[11px] text-slate-500 mt-1">Quantas campanhas WhatsApp pode disparar por mês. Contador zera no dia 1.</p>
             </div>
         </div>
 
