@@ -61,6 +61,32 @@
             </p>
         </div>
 
+        @if (!empty($workerCommands))
+            @php $blocoWorker = implode("\n", $workerCommands); @endphp
+            <div class="bg-amber-50 border-2 border-amber-300 text-amber-900 px-4 py-3 rounded-lg text-sm text-left mb-3"
+                 x-data="{ copiado: false }">
+                <p class="font-semibold mb-2"><i class="ri-cpu-line"></i> Importante: ative o worker da fila WhatsApp</p>
+                <p class="text-amber-800 text-xs mb-2">
+                    O arquivo systemd foi gerado em <code class="bg-white px-1 rounded">{{ $workerServicePath }}</code>.
+                    Sem o worker rodando, <strong>campanhas WhatsApp ficam empilhadas e não enviam</strong>.
+                    Logue como root via SSH e cole os comandos abaixo:
+                </p>
+                <div class="flex items-stretch gap-2">
+                    <pre class="flex-1 bg-white border border-amber-200 rounded px-2 py-1.5 text-xs font-mono whitespace-pre overflow-x-auto"
+                         x-ref="worker">{{ $blocoWorker }}</pre>
+                    <button type="button"
+                            @click="navigator.clipboard.writeText($refs.worker.innerText); copiado=true; setTimeout(()=>copiado=false,2000)"
+                            class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded text-xs font-semibold whitespace-nowrap">
+                        <i class="ri-file-copy-line"></i>
+                        <span x-text="copiado ? 'Copiado!' : 'Copiar'"></span>
+                    </button>
+                </div>
+                <p class="text-amber-700 text-xs mt-2">
+                    Após deploys futuros: <code>sudo systemctl restart fidelizapro-queue</code> pra worker pegar o código novo.
+                </p>
+            </div>
+        @endif
+
         <div class="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg text-sm text-left">
             <p class="font-semibold mb-1"><i class="ri-shield-check-line"></i> Outros próximos passos</p>
             <ul class="list-disc list-inside space-y-1 text-amber-700">

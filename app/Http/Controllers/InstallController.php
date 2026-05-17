@@ -215,6 +215,11 @@ class InstallController extends Controller
             Artisan::call('view:cache');
         } catch (Throwable $e) { \Log::warning('[Install] cache build falhou: '.$e->getMessage()); }
 
+        // Gera o arquivo systemd unit do queue worker em
+        // storage/app/deploy/. Operador finaliza a instalação rodando
+        // os comandos sudo mostrados na tela /install/complete.
+        $this->dadosDeployWorker();
+
         $this->marcarInstalado();
 
         return redirect('/install/complete')->with('admin_email', $data['email']);
@@ -241,6 +246,11 @@ class InstallController extends Controller
             Artisan::call('view:cache');
         } catch (Throwable $e) { \Log::warning('[Install] cache build falhou: '.$e->getMessage()); }
 
+        // Gera o arquivo systemd unit do queue worker em
+        // storage/app/deploy/. Operador finaliza a instalação rodando
+        // os comandos sudo mostrados na tela /install/complete.
+        $this->dadosDeployWorker();
+
         $this->marcarInstalado();
 
         return redirect('/install/complete')->with('admin_email', $existing->email);
@@ -248,9 +258,95 @@ class InstallController extends Controller
 
     public function complete()
     {
+        $deploy = $this->dadosDeployWorker();
+
         return view('install.complete', [
-            'admin_email' => session('admin_email'),
+            'admin_email'        => session('admin_email'),
+            'workerServicePath'  => $deploy['arquivo_gerado'],
+            'workerServiceFinal' => $deploy['destino_final'],
+            'workerCommands'     => $deploy['comandos'],
         ]);
+    }
+
+    /**
+     * Gera o arquivo systemd unit do queue worker em
+     * storage/app/deploy/fidelizapro-queue.service e retorna os
+     * comandos prontos pra operador rodar como root. Sem isso, o
+     * worker WhatsApp/campanha não roda em produção — campanha
+     * dispatchada via Job fica empilhada na tabela `jobs`
+     * indefinidamente.
+     *
+     * Detecta automaticamente:
+     *   - base_path da app (workdir do unit)
+     *   - User Linux atual (dono do diretório da app)
+     *   - Binário PHP (PHP_BINARY)
+     */
+    protected function dadosDeployWorker(): array
+    {
+        $basePath = base_path();
+        $phpBin   = PHP_BINARY ?: '/usr/bin/php';
+
+        // Tenta detectar o user que possui o diretório (estável vs.
+        // posix_getpwuid que retorna o user do php-fpm — pode ser
+        // root no instalador rodando manualmente).
+        $user = 'satisfy';
+        try {
+            if (function_exists('posix_getpwuid')) {
+                $stat = @stat($basePath);
+                if ($stat && isset($stat['uid'])) {
+                    $info = @posix_getpwuid($stat['uid']);
+                    if (!empty($info['name']) && $info['name'] !== 'root') {
+                        $user = $info['name'];
+                    }
+                }
+            }
+        } catch (Throwable $e) {
+            // mantém fallback
+        }
+
+        $conteudo = <<<INI
+[Unit]
+Description=FidelizaPro Queue Worker
+After=mysql.service
+
+[Service]
+Type=simple
+User={$user}
+WorkingDirectory={$basePath}
+ExecStart={$phpBin} artisan queue:work --tries=1 --timeout=1800 --sleep=3
+Restart=always
+RestartSec=5
+StandardOutput=append:{$basePath}/storage/logs/queue.log
+StandardError=append:{$basePath}/storage/logs/queue.log
+
+[Install]
+WantedBy=multi-user.target
+INI;
+
+        $dir = storage_path('app/deploy');
+        $arquivo = $dir.'/fidelizapro-queue.service';
+        $destino = '/etc/systemd/system/fidelizapro-queue.service';
+
+        try {
+            if (!is_dir($dir)) {
+                @mkdir($dir, 0775, true);
+            }
+            file_put_contents($arquivo, $conteudo);
+        } catch (Throwable $e) {
+            \Log::warning('[Install] falha ao gerar systemd unit: '.$e->getMessage());
+        }
+
+        return [
+            'arquivo_gerado' => $arquivo,
+            'destino_final' => $destino,
+            'comandos'      => [
+                "sudo cp {$arquivo} {$destino}",
+                'sudo systemctl daemon-reload',
+                'sudo systemctl enable fidelizapro-queue',
+                'sudo systemctl start fidelizapro-queue',
+                'sudo systemctl status fidelizapro-queue',
+            ],
+        ];
     }
 
     protected function readEnv(): array
