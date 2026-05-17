@@ -221,10 +221,11 @@
                  + clip:rect via sr-only) dentro do nested scroll do layout
                  (main overflow-y-auto + div overflow-y-auto), gerando scroll
                  errático que dava ilusão de "conteúdo abaixo sumiu". --}}
-            <label class="inline-flex items-center gap-2 cursor-pointer select-none">
-                <input type="checkbox" name="pix_ativo" value="1" {{ old('pix_ativo', $config->pix_ativo) ? 'checked' : '' }}
+            <label class="inline-flex items-center gap-2 cursor-pointer select-none"
+                   x-data="{ ativo: {{ old('pix_ativo', $config->pix_ativo) ? 'true' : 'false' }} }">
+                <input type="checkbox" name="pix_ativo" value="1" x-model="ativo"
                        class="appearance-none w-5 h-5 rounded border border-slate-300 checked:bg-emerald-600 checked:border-emerald-600 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 relative cursor-pointer checked:after:content-['✓'] checked:after:text-white checked:after:text-xs checked:after:absolute checked:after:inset-0 checked:after:flex checked:after:items-center checked:after:justify-center">
-                <span class="text-sm font-medium">{{ $config->pix_ativo ? 'Ativo' : 'Desativado' }}</span>
+                <span class="text-sm font-medium" x-text="ativo ? 'Ativo' : 'Desativado'"></span>
             </label>
         </div>
         <p class="text-xs text-slate-500 mb-5">Gateway pra cobrar as assinaturas das empresas via PIX. Sem ativar, fica em modo mock (QR fake só pra dev).</p>
