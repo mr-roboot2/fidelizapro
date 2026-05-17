@@ -100,8 +100,8 @@
                         </div>
                         <div class="flex items-center gap-2">
                             @if ($cobrancaPendente->link_pagamento)
-                                <a href="{{ $cobrancaPendente->link_pagamento }}" target="_blank"
-                                   class="px-3 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-semibold">
+                                <a href="{{ $cobrancaPendente->link_pagamento }}" target="_blank" rel="noopener noreferrer"
+   class="px-3 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-semibold">
                                     <i class="ri-external-link-line"></i> Abrir no gateway
                                 </a>
                             @endif
@@ -324,8 +324,8 @@
 
                                 <div class="flex flex-wrap gap-2 pt-3 border-t border-slate-100">
                                     @if ($c->link_pagamento)
-                                        <a href="{{ $c->link_pagamento }}" target="_blank"
-                                           class="px-3 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-semibold">
+                                        <a href="{{ $c->link_pagamento }}" target="_blank" rel="noopener noreferrer"
+           class="px-3 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-semibold">
                                             <i class="ri-external-link-line"></i> Abrir no gateway
                                         </a>
                                     @endif

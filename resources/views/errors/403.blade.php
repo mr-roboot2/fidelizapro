@@ -1,0 +1,5 @@
+@extends('errors.layout')
+@section('codigo', '403')
+@section('icone', 'ri-lock-line')
+@section('titulo', 'Acesso negado')
+@section('mensagem', 'Você não tem permissão pra acessar esta página. Verifique se está logado com a conta certa.')

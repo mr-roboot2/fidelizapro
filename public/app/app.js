@@ -117,7 +117,15 @@ async function api(path, opts = {}) {
     if (STATE.token) headers['Authorization'] = 'Bearer ' + STATE.token;
     const res = await fetch(API + path, { ...opts, headers: { ...headers, ...(opts.headers || {}) } });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.message || data.errors?.[Object.keys(data.errors)[0]]?.[0] || 'Erro de comunicação');
+    if (!res.ok) {
+        // Propaga status HTTP num campo dedicado pra caller distinguir
+        // 401 (sessão expirou — forçar logout) de 422 (validation) sem
+        // depender de match em string da mensagem ("Unauthenticated"
+        // vs "Não autenticado" varia por lang).
+        const err = new Error(data.message || data.errors?.[Object.keys(data.errors)[0]]?.[0] || 'Erro de comunicação');
+        err.status = res.status;
+        throw err;
+    }
     return data;
 }
 
@@ -172,9 +180,16 @@ document.addEventListener('input', (ev) => {
 });
 
 function persistir() {
-    if (STATE.token) localStorage.setItem('fp_token', STATE.token); else localStorage.removeItem('fp_token');
-    if (STATE.cliente) localStorage.setItem('fp_cliente', JSON.stringify(STATE.cliente)); else localStorage.removeItem('fp_cliente');
-    if (STATE.empresa) localStorage.setItem('fp_empresa', JSON.stringify(STATE.empresa)); else localStorage.removeItem('fp_empresa');
+    try {
+        if (STATE.token) localStorage.setItem('fp_token', STATE.token); else localStorage.removeItem('fp_token');
+        if (STATE.cliente) localStorage.setItem('fp_cliente', JSON.stringify(STATE.cliente)); else localStorage.removeItem('fp_cliente');
+        if (STATE.empresa) localStorage.setItem('fp_empresa', JSON.stringify(STATE.empresa)); else localStorage.removeItem('fp_empresa');
+    } catch (e) {
+        // QuotaExceededError (Safari modo privativo, storage cheio) ou
+        // SecurityError (cookies bloqueados). App continua funcionando
+        // em memória — só perde persistência entre reloads.
+        console.warn('[persistir] localStorage indisponível:', e?.name || e);
+    }
 }
 
 function aplicarTemaEmpresa() {
@@ -243,7 +258,10 @@ async function showScreen(nome, params = {}) {
         await fns[nome](params);
     } catch (e) {
         toast(e.message, 'error');
-        if (e.message.toLowerCase().includes('unauthenticated') || e.message.includes('401')) {
+        // Match por status code (propagado em api()) — antes era match por
+        // string da msg que falhava com lang/pt_BR ativo (não tem mais
+        // "Unauthenticated"). Status 401 = sessão expirou; força logout.
+        if (e.status === 401 || e.message.toLowerCase().includes('unauthenticated') || e.message.includes('401')) {
             STATE.token = null; STATE.cliente = null; persistir();
             showScreen('escolherEmpresa');
         }
@@ -426,6 +444,12 @@ async function telaLogin() {
     </div>`;
     $('#form-login').addEventListener('submit', async (ev) => {
         ev.preventDefault();
+        // Desabilita botão pra evitar múltiplos POST em duplo clique.
+        // Sem isso, cliente impaciente clicava 3x e gerava 3 logs/3 toasts
+        // (backend tem rate limit mas o UX ficava confuso).
+        const btn = ev.target.querySelector('button[type="submit"]');
+        if (btn?.disabled) return;
+        if (btn) btn.disabled = true;
         const fd = Object.fromEntries(new FormData(ev.target));
         try {
             const res = await api('/auth/login', {
@@ -437,13 +461,19 @@ async function telaLogin() {
             STATE.empresa = res.empresa;
             persistir();
             aplicarTemaEmpresa();
-            toast('Bem-vindo, '+ res.cliente.nome.split(' ')[0] + '!', 'success');
+            // ?? guarda contra nome null vindo do backend (raro mas
+            // possível em registros legados antes da validação de nome).
+            toast('Bem-vindo, '+ ((res.cliente.nome ?? '').split(' ')[0] || '') + '!', 'success');
             if (res.cliente.senha_temporaria) {
                 showScreen('trocarSenha');
             } else {
                 showScreen('home');
             }
-        } catch (e) { toast(e.message, 'error'); }
+        } catch (e) {
+            toast(e.message, 'error');
+        } finally {
+            if (btn) btn.disabled = false;
+        }
     });
 }
 

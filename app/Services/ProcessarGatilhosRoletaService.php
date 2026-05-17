@@ -77,37 +77,54 @@ class ProcessarGatilhosRoletaService
         };
     }
 
+    /**
+     * Tamanho do chunk em batch. 500 é equilíbrio entre roundtrips ao DB
+     * e memory peak por iteração.
+     */
+    private const CHUNK_SIZE = 500;
+
     private function aniversario(Roleta $roleta, RoletaGatilho $g): int
     {
         $hoje = now();
-        $clientes = Cliente::where('empresa_id', $roleta->empresa_id)
+        $ref = 'aniversario:'.$hoje->format('Y-m-d');
+        $n = 0;
+
+        // chunkById pra evitar OOM em empresa com 50k+ aniversariantes
+        // (improvável no mesmo dia, mas o padrão é o mesmo dos outros
+        // métodos que sim podem ter volume).
+        Cliente::where('empresa_id', $roleta->empresa_id)
             ->where('ativo', true)
             ->whereNotNull('data_nascimento')
             ->whereRaw('DATE_FORMAT(data_nascimento, "%m-%d") = ?', [$hoje->format('m-d')])
-            ->get();
+            ->chunkById(self::CHUNK_SIZE, function ($chunk) use ($roleta, $g, $ref, &$n) {
+                foreach ($chunk as $c) {
+                    if ($this->disparar($roleta, $c, 'aniversario', $ref, $g->giros)) $n++;
+                }
+            });
 
-        $ref = 'aniversario:'.$hoje->format('Y-m-d');
-        $n = 0;
-        foreach ($clientes as $c) {
-            if ($this->disparar($roleta, $c, 'aniversario', $ref, $g->giros)) $n++;
-        }
         return $n;
     }
 
     private function indicacao(Roleta $roleta, RoletaGatilho $g): int
     {
-        $indicacoes = Indicacao::where('empresa_id', $roleta->empresa_id)
+        $n = 0;
+
+        // Eager load 'clienteIndicador' pra eliminar N+1 (`Cliente::find`
+        // em loop antes). chunkById protege OOM em empresa com milhares
+        // de indicações pendentes.
+        Indicacao::where('empresa_id', $roleta->empresa_id)
             ->whereIn('status', ['cadastrado', 'convertido'])
             ->whereNotNull('cliente_indicador_id')
-            ->get();
+            ->with('clienteIndicador')
+            ->chunkById(self::CHUNK_SIZE, function ($chunk) use ($roleta, $g, &$n) {
+                foreach ($chunk as $ind) {
+                    $cliente = $ind->clienteIndicador;
+                    if (!$cliente) continue;
+                    $ref = 'indicacao:'.$ind->id;
+                    if ($this->disparar($roleta, $cliente, 'indicacao', $ref, $g->giros)) $n++;
+                }
+            });
 
-        $n = 0;
-        foreach ($indicacoes as $ind) {
-            $cliente = Cliente::find($ind->cliente_indicador_id);
-            if (!$cliente) continue;
-            $ref = 'indicacao:'.$ind->id;
-            if ($this->disparar($roleta, $cliente, 'indicacao', $ref, $g->giros)) $n++;
-        }
         return $n;
     }
 
@@ -115,19 +132,23 @@ class ProcessarGatilhosRoletaService
     {
         $valorMin = (float) ($g->valor ?? 0);
         if ($valorMin <= 0) return 0;
+        $n = 0;
 
-        $compras = Compra::where('empresa_id', $roleta->empresa_id)
+        // Eager load 'cliente' — antes `Cliente::find($c->cliente_id)`
+        // dentro do loop fazia N+1.
+        Compra::where('empresa_id', $roleta->empresa_id)
             ->where('valor', '>=', $valorMin)
             ->whereDate('created_at', now()->toDateString())
-            ->get();
+            ->with('cliente')
+            ->chunkById(self::CHUNK_SIZE, function ($chunk) use ($roleta, $g, $valorMin, &$n) {
+                foreach ($chunk as $compra) {
+                    $cliente = $compra->cliente;
+                    if (!$cliente) continue;
+                    $ref = 'compra_acima:'.((int) $valorMin).':'.$compra->id;
+                    if ($this->disparar($roleta, $cliente, 'compra_acima', $ref, $g->giros)) $n++;
+                }
+            });
 
-        $n = 0;
-        foreach ($compras as $compra) {
-            $cliente = Cliente::find($compra->cliente_id);
-            if (!$cliente) continue;
-            $ref = 'compra_acima:'.((int) $valorMin).':'.$compra->id;
-            if ($this->disparar($roleta, $cliente, 'compra_acima', $ref, $g->giros)) $n++;
-        }
         return $n;
     }
 
@@ -135,18 +156,19 @@ class ProcessarGatilhosRoletaService
     {
         $dias = (int) ($g->valor ?? 0);
         if ($dias <= 0) return 0;
+        $n = 0;
 
-        $clientes = Cliente::where('empresa_id', $roleta->empresa_id)
+        Cliente::where('empresa_id', $roleta->empresa_id)
             ->where('ativo', true)
             ->whereNotNull('ultima_compra')
             ->whereDate('ultima_compra', now()->subDays($dias)->toDateString())
-            ->get();
+            ->chunkById(self::CHUNK_SIZE, function ($chunk) use ($roleta, $g, $dias, &$n) {
+                foreach ($chunk as $c) {
+                    $ref = 'inativo_dias:'.$dias.':'.optional($c->ultima_compra)->format('Y-m-d');
+                    if ($this->disparar($roleta, $c, 'inativo_dias', $ref, $g->giros)) $n++;
+                }
+            });
 
-        $n = 0;
-        foreach ($clientes as $c) {
-            $ref = 'inativo_dias:'.$dias.':'.optional($c->ultima_compra)->format('Y-m-d');
-            if ($this->disparar($roleta, $c, 'inativo_dias', $ref, $g->giros)) $n++;
-        }
         return $n;
     }
 
@@ -154,17 +176,18 @@ class ProcessarGatilhosRoletaService
     {
         $minimo = (int) ($g->valor ?? 0);
         if ($minimo <= 0) return 0;
+        $n = 0;
 
-        $clientes = Cliente::where('empresa_id', $roleta->empresa_id)
+        Cliente::where('empresa_id', $roleta->empresa_id)
             ->where('ativo', true)
             ->where('pontos_atual', '>=', $minimo)
-            ->get();
+            ->chunkById(self::CHUNK_SIZE, function ($chunk) use ($roleta, $g, $minimo, &$n) {
+                $ref = 'atingiu_pontos:'.$minimo;
+                foreach ($chunk as $c) {
+                    if ($this->disparar($roleta, $c, 'atingiu_pontos', $ref, $g->giros)) $n++;
+                }
+            });
 
-        $n = 0;
-        foreach ($clientes as $c) {
-            $ref = 'atingiu_pontos:'.$minimo;
-            if ($this->disparar($roleta, $c, 'atingiu_pontos', $ref, $g->giros)) $n++;
-        }
         return $n;
     }
 
@@ -172,17 +195,18 @@ class ProcessarGatilhosRoletaService
     {
         $minimo = (float) ($g->valor ?? 0);
         if ($minimo <= 0) return 0;
+        $n = 0;
 
-        $clientes = Cliente::where('empresa_id', $roleta->empresa_id)
+        Cliente::where('empresa_id', $roleta->empresa_id)
             ->where('ativo', true)
             ->where('total_gasto', '>=', $minimo)
-            ->get();
+            ->chunkById(self::CHUNK_SIZE, function ($chunk) use ($roleta, $g, $minimo, &$n) {
+                $ref = 'vip_gasto:'.((int) $minimo);
+                foreach ($chunk as $c) {
+                    if ($this->disparar($roleta, $c, 'vip_gasto', $ref, $g->giros)) $n++;
+                }
+            });
 
-        $n = 0;
-        foreach ($clientes as $c) {
-            $ref = 'vip_gasto:'.((int) $minimo);
-            if ($this->disparar($roleta, $c, 'vip_gasto', $ref, $g->giros)) $n++;
-        }
         return $n;
     }
 
@@ -190,17 +214,18 @@ class ProcessarGatilhosRoletaService
     {
         $minimo = (int) ($g->valor ?? 0);
         if ($minimo <= 0) return 0;
+        $n = 0;
 
-        $clientes = Cliente::where('empresa_id', $roleta->empresa_id)
+        Cliente::where('empresa_id', $roleta->empresa_id)
             ->where('ativo', true)
             ->where('total_compras', '>=', $minimo)
-            ->get();
+            ->chunkById(self::CHUNK_SIZE, function ($chunk) use ($roleta, $g, $minimo, &$n) {
+                $ref = 'recorrente_compras:'.$minimo;
+                foreach ($chunk as $c) {
+                    if ($this->disparar($roleta, $c, 'recorrente_compras', $ref, $g->giros)) $n++;
+                }
+            });
 
-        $n = 0;
-        foreach ($clientes as $c) {
-            $ref = 'recorrente_compras:'.$minimo;
-            if ($this->disparar($roleta, $c, 'recorrente_compras', $ref, $g->giros)) $n++;
-        }
         return $n;
     }
 
@@ -231,15 +256,17 @@ class ProcessarGatilhosRoletaService
         $diasFracos = $contagem->take($bottomN)->keys()->map(fn ($d) => (int) $d);
         if (!$diasFracos->contains($diaSemanaHoje)) return 0;
 
-        $clientes = Cliente::where('empresa_id', $roleta->empresa_id)
-            ->where('ativo', true)
-            ->get();
-
         $ref = 'dia_fraco:'.$hoje->toDateString();
         $n = 0;
-        foreach ($clientes as $c) {
-            if ($this->disparar($roleta, $c, 'dia_fraco', $ref, $g->giros)) $n++;
-        }
+
+        Cliente::where('empresa_id', $roleta->empresa_id)
+            ->where('ativo', true)
+            ->chunkById(self::CHUNK_SIZE, function ($chunk) use ($roleta, $g, $ref, &$n) {
+                foreach ($chunk as $c) {
+                    if ($this->disparar($roleta, $c, 'dia_fraco', $ref, $g->giros)) $n++;
+                }
+            });
+
         return $n;
     }
 }

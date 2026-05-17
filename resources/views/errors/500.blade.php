@@ -1,0 +1,5 @@
+@extends('errors.layout')
+@section('codigo', '500')
+@section('icone', 'ri-bug-line')
+@section('titulo', 'Erro inesperado')
+@section('mensagem', 'Tivemos um problema interno. Já fomos notificados e estamos investigando. Tente novamente em alguns minutos.')

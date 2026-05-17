@@ -1,0 +1,5 @@
+@extends('errors.layout')
+@section('codigo', '419')
+@section('icone', 'ri-time-line')
+@section('titulo', 'Sessão expirou')
+@section('mensagem', 'Sua sessão ficou inativa por muito tempo. Atualize a página e faça login de novo.')

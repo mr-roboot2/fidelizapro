@@ -1,0 +1,5 @@
+@extends('errors.layout')
+@section('codigo', '404')
+@section('icone', 'ri-compass-3-line')
+@section('titulo', 'Página não encontrada')
+@section('mensagem', 'O link que você acessou não existe ou foi removido. Volte ao início e tente de novo.')

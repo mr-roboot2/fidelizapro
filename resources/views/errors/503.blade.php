@@ -1,0 +1,5 @@
+@extends('errors.layout')
+@section('codigo', '503')
+@section('icone', 'ri-tools-line')
+@section('titulo', 'Em manutenção')
+@section('mensagem', 'Estamos fazendo um ajuste rápido pra melhorar o sistema. Volte em alguns minutos.')
