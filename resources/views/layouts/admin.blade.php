@@ -61,6 +61,7 @@
                 ['admin.meu-plano.index', 'ri-vip-crown-line', 'Meu plano', null],
                 ['admin.setup.index', 'ri-rocket-2-line', 'Setup inicial', '__setup__'],
                 ['admin.importacao.index', 'ri-plug-line', 'Importação / PDV', null],
+                ['admin.equipe.index', 'ri-team-line', 'Equipe', '__admin_gerente__'],
                 ['admin.ajuda.index', 'ri-question-answer-line', 'Central de ajuda', null],
                 ['admin.configuracoes.edit', 'ri-settings-3-line', 'Configurações', null],
             ];
@@ -68,6 +69,8 @@
         @foreach ($itens as [$rota, $icone, $rotulo, $modulo])
             @if ($modulo === '__setup__')
                 @if (!isset($empresaAtiva) || $empresaAtiva->setup_concluido) @continue @endif
+            @elseif ($modulo === '__admin_gerente__')
+                @if (!isset($userAtivo) || !$userAtivo->hasRole('admin', 'gerente')) @continue @endif
             @elseif ($modulo && isset($empresaAtiva) && !$empresaAtiva->temModulo($modulo)) @continue @endif
             @php $ativo = request()->routeIs(str_replace('.index','.*',$rota)) || request()->routeIs($rota); @endphp
             <a href="{{ route($rota) }}"

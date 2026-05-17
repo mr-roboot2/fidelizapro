@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\ResgateController;
 use App\Http\Controllers\Admin\TransacaoController;
 use App\Http\Controllers\Admin\CashbackController;
 use App\Http\Controllers\Admin\ConfiguracaoController;
+use App\Http\Controllers\Admin\EquipeController;
 use App\Http\Controllers\Admin\CaixaController;
 use App\Http\Controllers\Admin\ImportacaoController;
 use App\Http\Controllers\Admin\WhatsappController;
@@ -176,6 +177,11 @@ Route::middleware(['admin.auth', 'empresa.scope', 'verifica.pagamento'])->prefix
 
         Route::get('importacao', [ImportacaoController::class, 'index'])->name('importacao.index');
         Route::post('importacao', [ImportacaoController::class, 'processar'])->name('importacao.processar');
+
+        // Equipe: CRUD limitado a roles gerente/atendente (escopado por empresa).
+        // Controller bloqueia mexer em role 'admin' / 'super_admin' — só super
+        // pode promover/demitir esses.
+        Route::resource('equipe', EquipeController::class)->except(['show'])->parameters(['equipe' => 'usuario']);
     });
 
     // AI Growth: relatórios/insights (config + visualização sensível) — só admin/gerente.
