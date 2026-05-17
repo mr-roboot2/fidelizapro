@@ -88,7 +88,12 @@ class AssinaturaService
     {
         DB::transaction(function () use ($cobranca, $gatewayChargeId) {
             $lockada = Cobranca::lockForUpdate()->find($cobranca->id);
-            if (!$lockada || $lockada->status === 'pago') {
+            // Só transiciona de 'pendente' pra 'pago'. Bug anterior: o early-
+            // return testava só 'pago', então cobrança em 'cancelado',
+            // 'estornado' ou 'vencido' virava 'pago' e disparava
+            // AplicarUpgradePlano — super-admin clicava "Marcar paga" em
+            // cobrança cancelada e a empresa ganhava upgrade sem ter pago.
+            if (!$lockada || $lockada->status !== 'pendente') {
                 return;
             }
 

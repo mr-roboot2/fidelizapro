@@ -84,11 +84,16 @@ class OtpController extends Controller
             $textoFallback
         );
 
+        // codigo_dev SÓ em ambiente local — facilita teste sem WhatsApp real.
+        // Bug crítico anterior: lógica lia $empresa->whatsapp_ativo (campo
+        // legado, default false após a config global ter migrado pra
+        // ConfiguracaoSistema). Em produção real, !$empresa->whatsapp_ativo
+        // era true → response vazava o OTP em texto puro pra qualquer um
+        // que conhecia o telefone, bypassando o 2FA completamente.
         return response()->json([
             'message' => 'Código enviado via WhatsApp.',
             'expira_em_segundos' => 300,
-            // em modo mock, devolve o código pra facilitar dev
-            'codigo_dev' => $empresa->whatsapp_provider === 'mock' || !$empresa->whatsapp_ativo ? $codigo : null,
+            'codigo_dev' => app()->environment('local') ? $codigo : null,
         ]);
     }
 

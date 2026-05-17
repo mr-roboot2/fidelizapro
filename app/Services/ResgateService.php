@@ -106,6 +106,14 @@ class ResgateService
 
     public function aprovar(Resgate $resgate, User $aprovador): Resgate
     {
+        // Defesa em profundidade: controller já valida empresa_id via
+        // autorizar(), mas se o service for chamado de cron/job/script
+        // sem essa guarda, aprovador de outra empresa marcava resgate
+        // como aprovado_por=user_X com empresa_id != resgate.empresa_id.
+        if ($aprovador->empresa_id !== null && $aprovador->empresa_id !== $resgate->empresa_id) {
+            throw new \DomainException('Aprovador não pertence à empresa do resgate.');
+        }
+
         if ($resgate->status !== 'pendente') {
             throw new \DomainException('Resgate não está pendente.');
         }
@@ -148,8 +156,20 @@ class ResgateService
 
     public function entregar(Resgate $resgate, ?User $entregador = null): Resgate
     {
+        if ($entregador && $entregador->empresa_id !== null
+            && $entregador->empresa_id !== $resgate->empresa_id) {
+            throw new \DomainException('Entregador não pertence à empresa do resgate.');
+        }
+
         if (!in_array($resgate->status, ['aprovado', 'pendente'])) {
             throw new \DomainException('Resgate não pode ser entregue.');
+        }
+
+        // Resgate expirado não deve ser entregue. Antes o service aceitava
+        // entregar mesmo após `expira_em` — operador entregava brinde de
+        // resgate vencido (roleta cria resgates com expira_em curto).
+        if ($resgate->expira_em && $resgate->expira_em->isPast()) {
+            throw new \DomainException('Resgate expirado.');
         }
 
         $resgate->update([
@@ -166,24 +186,33 @@ class ResgateService
         if ($resgate->status === 'entregue') {
             throw new \DomainException('Resgate já entregue não pode ser cancelado.');
         }
+        // Idempotência: cancelar() em resgate já cancelado creditava pontos
+        // e incrementava estoque DE NOVO — admin clicando 2x no botão
+        // inflava saldo do cliente. lockForUpdate + recheck dentro da
+        // transaction fecha race entre 2 cliques paralelos.
 
         DB::transaction(function () use ($resgate, $motivo) {
-            $this->pontuacaoService->creditar(
-                $resgate->cliente,
-                $resgate->pontos_usados,
-                'manual',
-                $resgate,
-                "Estorno do resgate #{$resgate->codigo}"
-            );
-
-            if ($resgate->recompensa->estoque !== null) {
-                $resgate->recompensa->increment('estoque');
+            $lockado = Resgate::lockForUpdate()->find($resgate->id);
+            if (!$lockado || $lockado->status === 'cancelado') {
+                return;
             }
 
-            $resgate->update([
+            $this->pontuacaoService->creditar(
+                $lockado->cliente,
+                $lockado->pontos_usados,
+                'manual',
+                $lockado,
+                "Estorno do resgate #{$lockado->codigo}"
+            );
+
+            if ($lockado->recompensa->estoque !== null) {
+                $lockado->recompensa->increment('estoque');
+            }
+
+            $lockado->update([
                 'status' => 'cancelado',
                 'cancelado_em' => now(),
-                'observacao' => trim(($resgate->observacao ?? '')."\nCancelado: ".$motivo),
+                'observacao' => trim(($lockado->observacao ?? '')."\nCancelado: ".$motivo),
             ]);
         });
 

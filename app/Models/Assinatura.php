@@ -23,7 +23,12 @@ class Assinatura extends Model
         'inicio' => 'date',
         'proximo_vencimento' => 'date',
         'cancelada_em' => 'date',
-        'trial_ate' => 'date',
+        // Datetime (não date): trial_ate é setado com addDays(7)->setTime()
+        // ou now()->addDays(N) em AssinaturaService/EmpresaObserver, ambos
+        // com hora exata. Cast 'date' truncava pra 00:00:00 — empresa criada
+        // 09/05 14h pra 7 dias trial ficava expirada em 16/05 às 14h em vez
+        // do esperado 23:59:59 de 16/05 (perdia até 24h de trial).
+        'trial_ate' => 'datetime',
         'meta' => 'array',
     ];
 

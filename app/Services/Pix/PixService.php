@@ -76,7 +76,10 @@ class PixService
     {
         DB::transaction(function () use ($cobranca) {
             $lockada = Cobranca::lockForUpdate()->find($cobranca->id);
-            if (!$lockada || $lockada->status === 'pago') {
+            // Só transiciona de 'pendente' pra 'pago'. Webhook PIX atrasado
+            // pra cobrança já cancelada/estornada NÃO deve reativar a
+            // cobrança — mesmo padrão de AssinaturaService::marcarPaga.
+            if (!$lockada || $lockada->status !== 'pendente') {
                 return;
             }
 

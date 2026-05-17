@@ -38,7 +38,10 @@ class Recompensa extends Model
     public function disponivel(): bool
     {
         if (!$this->ativo) return false;
-        if ($this->valido_ate && $this->valido_ate->isPast()) return false;
+        // "Válido até 16/05" significa "até o fim do dia 16/05" — sem
+        // endOfDay() a recompensa expirava em 16/05 00:00:01 e o cliente
+        // perdia o dia inteiro de validade.
+        if ($this->valido_ate && $this->valido_ate->copy()->endOfDay()->isPast()) return false;
         if ($this->estoque !== null && $this->estoque <= 0) return false;
         return true;
     }

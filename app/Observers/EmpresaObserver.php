@@ -22,9 +22,13 @@ class EmpresaObserver
             if (!$plano) return;
 
             $trialDias = (int) ($cfg->trial_dias_padrao ?? 7);
+            // trial=0 significa "cobra desde o cadastro" — proximo_vencimento
+            // = hoje pra que o cron `assinaturas:gerar-cobrancas` gere a 1ª
+            // cobrança na próxima execução. Antes o fallback dava 7 dias
+            // grátis silenciosamente, ignorando a config explícita do super.
             $proximoVencimento = $trialDias > 0
                 ? now()->addDays($trialDias)
-                : now()->addDays(7); // 7 dias pra pagar a primeira
+                : now();
 
             Assinatura::create([
                 'empresa_id'         => $empresa->id,

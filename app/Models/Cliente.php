@@ -20,16 +20,23 @@ class Cliente extends Authenticatable
      * de mass-assignment via endpoints como `atualizarPerfil`. Campos
      * sensíveis só podem ser alterados explicitamente via services.
      *
-     * Nota: `senha_temporaria` NÃO está guarded pq services precisam mover
-     * a flag em fluxos legítimos (criar cliente loja com flag=true em
-     * LojaController::criarCliente, e zerar em OtpController::recuperarSenha
-     * e ClienteController::alterarSenha). Endpoints de input do cliente
-     * (atualizarPerfil) não incluem `senha_temporaria` no $request->validate,
-     * então não há vetor de mass-assignment externo.
+     * Notas:
+     *   - `empresa_id` NÃO está guarded pq 6 caminhos legítimos fazem
+     *     `Cliente::create(['empresa_id' => X, ...])` (AuthController,
+     *     LojaController, PdvController, Admin\ClienteController,
+     *     Admin\CaixaController, Admin\ImportacaoController). Com strict
+     *     mode (MariaDB default) o insert quebrava com "empresa_id
+     *     doesn't have a default value". Defesa de tenant é feita nos
+     *     controllers (validate() não inclui empresa_id em endpoints
+     *     de input do cliente, e admin/loja sempre sobrescrevem com o
+     *     empresa_id da sessão autenticada).
+     *   - `senha_temporaria` NÃO está guarded pq services precisam mover
+     *     a flag em fluxos legítimos (criar cliente loja com flag=true em
+     *     LojaController::criarCliente, e zerar em OtpController::recuperarSenha
+     *     e ClienteController::alterarSenha).
      */
     protected $guarded = [
         'id',
-        'empresa_id',
         'pontos_atual',
         'cashback_atual',
         'cashback_pendente',
