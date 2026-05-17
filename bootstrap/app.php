@@ -9,6 +9,7 @@ use App\Http\Middleware\EmpresaScope;
 use App\Http\Middleware\EmpresaThrottle;
 use App\Http\Middleware\ForceJsonAccept;
 use App\Http\Middleware\RequireCaptcha;
+use App\Http\Middleware\RequireCliente;
 use App\Http\Middleware\RequireModulo;
 use App\Http\Middleware\RequireUser;
 use App\Http\Middleware\SuperAdminAuth;
@@ -47,6 +48,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'senha.definitiva' => RequirePasswordChanged::class,
             'captcha' => RequireCaptcha::class,
             'sanctum.user' => RequireUser::class,
+            'sanctum.cliente' => RequireCliente::class,
         ]);
 
         // Confia em proxies pra Request::ip() retornar IP real do cliente

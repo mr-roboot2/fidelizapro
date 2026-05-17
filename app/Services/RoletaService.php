@@ -371,7 +371,12 @@ class RoletaService
                     'recompensa_id' => $premio->recompensa_id,
                     'premio_label' => $premio->label,
                 ]);
-                $giro->premio_id = null;
+                // Coluna correta é `roleta_premio_id`. Antes referenciava
+                // `premio_id` (inexistente), gerando SQLSTATE 42S22 e
+                // crashando o request — cliente ficava sem feedback no path
+                // de race condition (estoque esgotou entre sorteio e lock).
+                $giro->roleta_premio_id = null;
+                $giro->tipo_resultado   = 'sem_premio';
                 $giro->save();
                 return [
                     'tipo_resultado'    => 'sem_premio',

@@ -59,9 +59,15 @@ Route::prefix('v1')->group(function () {
 Route::middleware(['auth:sanctum', 'throttle:api-cliente'])->prefix('v1')->group(function () {
     // Whitelist do RequirePasswordChanged — rotas que SEMPRE funcionam mesmo
     // com senha_temporaria=true, porque são necessárias pra completar a troca.
-    Route::get('auth/me', [AuthController::class, 'me']);
-    Route::post('auth/logout', [AuthController::class, 'logout']);
-    Route::put('cliente/senha', [ClienteController::class, 'alterarSenha']);
+    // sanctum.cliente: defesa em profundidade. Sem isso, token `pwa-loja`
+    // (User) autenticava em /auth/me e /cliente/senha — User não tem campos
+    // de Cliente, então a maioria das respostas ficava com lixo/erro 500,
+    // mas era confusão de identidade que abria caminho pra mais bugs.
+    Route::middleware('sanctum.cliente')->group(function () {
+        Route::get('auth/me', [AuthController::class, 'me']);
+        Route::post('auth/logout', [AuthController::class, 'logout']);
+        Route::put('cliente/senha', [ClienteController::class, 'alterarSenha']);
+    });
 
     // Rotas do operador da loja (User da empresa). `sanctum.user` rejeita
     // token de Cliente — sem isso, Cliente token autenticava em /loja/* e
@@ -84,7 +90,9 @@ Route::middleware(['auth:sanctum', 'throttle:api-cliente'])->prefix('v1')->group
     // recebe 403 password_change_required — PWA já lê a flag em /auth/me e
     // redireciona pra tela de troca, então em uso legítimo isso nunca dispara;
     // o middleware fecha o caminho pra atacante que pula o redirect.
-    Route::middleware('senha.definitiva')->group(function () {
+    // sanctum.cliente: garante que User (operador da loja) não acessa rotas
+    // de cliente — token tipos não se misturam mesmo dentro do mesmo guard.
+    Route::middleware(['sanctum.cliente', 'senha.definitiva'])->group(function () {
         Route::get('cliente/dashboard', [ClienteController::class, 'dashboard']);
         Route::get('cliente/compras', [ClienteController::class, 'historicoCompras']);
         Route::get('cliente/extrato', [ClienteController::class, 'extrato']);

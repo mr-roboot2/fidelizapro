@@ -110,6 +110,28 @@ class Empresa extends Model
     }
 
     /**
+     * Última assinatura criada pela empresa, INCLUINDO canceladas. A
+     * relação `assinatura()` filtra `cancelada` pq quase todos os usos
+     * dela esperam um plano ativo (PixDriver, módulos, MeuPlano UI).
+     * statusInadimplencia/diasAtraso, ao contrário, precisam enxergar a
+     * cancelada pra retornar `bloqueio_total` em vez de `sem_assinatura`.
+     * Cache simples em memória pra não repetir a query no mesmo request.
+     */
+    private ?Assinatura $assinaturaMaisRecenteCache = null;
+    private bool $assinaturaMaisRecenteResolvida = false;
+
+    public function assinaturaMaisRecente(): ?Assinatura
+    {
+        if (!$this->assinaturaMaisRecenteResolvida) {
+            $this->assinaturaMaisRecenteCache = Assinatura::where('empresa_id', $this->id)
+                ->latest('id')
+                ->first();
+            $this->assinaturaMaisRecenteResolvida = true;
+        }
+        return $this->assinaturaMaisRecenteCache;
+    }
+
+    /**
      * Status financeiro pra controle de bloqueio gradual:
      *   em_dia         → tudo liberado
      *   trial          → tudo liberado, banner informativo
@@ -120,7 +142,7 @@ class Empresa extends Model
      */
     public function statusInadimplencia(): string
     {
-        $a = $this->assinatura;
+        $a = $this->assinaturaMaisRecente();
         if (!$a) return 'sem_assinatura';
 
         if (in_array($a->status, ['cancelada', 'pausada'], true)) return 'bloqueio_total';
@@ -139,7 +161,7 @@ class Empresa extends Model
 
     public function diasAtraso(): int
     {
-        $a = $this->assinatura;
+        $a = $this->assinaturaMaisRecente();
         if (!$a || !$a->proximo_vencimento) return 0;
         $venc = $a->proximo_vencimento->startOfDay();
         $hoje = now()->startOfDay();

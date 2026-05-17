@@ -19,6 +19,13 @@ class Cliente extends Authenticatable
      * Usamos $guarded em vez de $fillable para proteger saldos/contadores
      * de mass-assignment via endpoints como `atualizarPerfil`. Campos
      * sensíveis só podem ser alterados explicitamente via services.
+     *
+     * Nota: `senha_temporaria` NÃO está guarded pq services precisam mover
+     * a flag em fluxos legítimos (criar cliente loja com flag=true em
+     * LojaController::criarCliente, e zerar em OtpController::recuperarSenha
+     * e ClienteController::alterarSenha). Endpoints de input do cliente
+     * (atualizarPerfil) não incluem `senha_temporaria` no $request->validate,
+     * então não há vetor de mass-assignment externo.
      */
     protected $guarded = [
         'id',
@@ -34,7 +41,6 @@ class Cliente extends Authenticatable
         'codigo_qr',
         'codigo_indicacao',
         'indicado_por_id',
-        'senha_temporaria',
         // Coluna pre-computed mantida pelo ClienteObserver. Sem proteção aqui,
         // atacante mass-assignable setava telefone_digits=X (≠ do telefone real)
         // e burlava o whereTelefone scope.
