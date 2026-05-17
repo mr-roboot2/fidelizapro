@@ -356,6 +356,11 @@
                         $atual = $planoAtual && $planoAtual->id === $p->id;
                         $pendente = $planoPendente && $planoPendente->id === $p->id;
                         $superior = $planoAtual && $p->preco_mensal > $planoAtual->preco_mensal;
+                        $inferior = $planoAtual && $p->preco_mensal < $planoAtual->preco_mensal;
+                        $compat = $inferior && !$atual && !$pendente
+                            ? app(\App\Services\PlanoLimiteService::class)->avisosCompatibilidade($empresa, $p)
+                            : ['bloqueadores' => [], 'informativos' => []];
+                        $bloqueado = !empty($compat['bloqueadores']);
                     @endphp
                     <div @class([
                         'border-2 rounded-xl p-4 transition',
@@ -373,6 +378,8 @@
                                 </span>
                             @elseif ($superior)
                                 <span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Upgrade</span>
+                            @elseif ($inferior)
+                                <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">Downgrade</span>
                             @endif
                         </div>
                         <p class="text-2xl font-bold mt-1">
@@ -394,13 +401,47 @@
                         </ul>
 
                         @if (!$atual && !$pendente)
-                            <form action="{{ route('admin.meu-plano.upgrade', $p) }}" method="POST" class="mt-3"
-                                  onsubmit="return confirm('Mudar pra plano {{ $p->nome }}? Uma cobrança será gerada e o plano só ativa após o pagamento.')">
-                                @csrf
-                                <button class="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-sm font-semibold">
-                                    {{ $superior ? 'Fazer upgrade' : 'Mudar pra esse plano' }}
-                                </button>
-                            </form>
+                            @if ($inferior)
+                                @if ($bloqueado)
+                                    <div class="mt-3 p-2 bg-rose-50 border border-rose-200 rounded text-[11px] text-rose-800">
+                                        <p class="font-semibold mb-1"><i class="ri-close-circle-line"></i> Não dá pra descer agora:</p>
+                                        <ul class="list-disc list-inside space-y-0.5">
+                                            @foreach ($compat['bloqueadores'] as $av)
+                                                <li>{{ $av }}</li>
+                                            @endforeach
+                                        </ul>
+                                    </div>
+                                    <button disabled class="mt-3 w-full py-2 bg-slate-100 text-slate-400 rounded-lg text-sm font-semibold cursor-not-allowed">
+                                        Indisponível
+                                    </button>
+                                @else
+                                    @if (!empty($compat['informativos']))
+                                        <div class="mt-3 p-2 bg-amber-50 border border-amber-200 rounded text-[11px] text-amber-800">
+                                            <p class="font-semibold mb-1"><i class="ri-alert-line"></i> Atenção:</p>
+                                            <ul class="list-disc list-inside space-y-0.5">
+                                                @foreach ($compat['informativos'] as $av)
+                                                    <li>{{ $av }}</li>
+                                                @endforeach
+                                            </ul>
+                                        </div>
+                                    @endif
+                                    <form action="{{ route('admin.meu-plano.downgrade', $p) }}" method="POST" class="mt-3"
+                                          onsubmit="return confirm('Descer pra {{ $p->nome }} (R$ {{ number_format($p->preco_mensal, 2, ',', '.') }}/mês)?\n\nMudança imediata. Próxima cobrança virá com esse valor. O valor pago do mês atual NÃO é estornado.')">
+                                        @csrf
+                                        <button class="w-full py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-sm font-semibold">
+                                            Mudar pra esse plano
+                                        </button>
+                                    </form>
+                                @endif
+                            @else
+                                <form action="{{ route('admin.meu-plano.upgrade', $p) }}" method="POST" class="mt-3"
+                                      onsubmit="return confirm('Mudar pra plano {{ $p->nome }}? Uma cobrança será gerada e o plano só ativa após o pagamento.')">
+                                    @csrf
+                                    <button class="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-sm font-semibold">
+                                        Fazer upgrade
+                                    </button>
+                                </form>
+                            @endif
                         @elseif ($pendente)
                             <p class="mt-3 text-xs text-amber-700 text-center font-medium">
                                 <i class="ri-information-line"></i> Pague a cobrança pendente pra ativar

@@ -53,7 +53,9 @@ class MeuPlanoController extends Controller
 
         DB::transaction(function () use ($empresa, $plano, &$cobranca, &$erro) {
             $assinatura = Assinatura::where('empresa_id', $empresa->id)
+                ->whereNotIn('status', ['cancelada'])
                 ->lockForUpdate()
+                ->latest('id')
                 ->first();
 
             if ($assinatura) {
@@ -111,6 +113,86 @@ class MeuPlanoController extends Controller
 
         return redirect()->route('admin.meu-plano.index')
             ->with('success', "Cobrança gerada! Após o pagamento, o plano {$plano->nome} será ativado automaticamente.");
+    }
+
+    /**
+     * Downgrade: troca pra um plano de preço MENOR que o atual. Diferente
+     * do upgrade, NÃO gera cobrança nova — efetiva imediatamente e o
+     * próximo ciclo regular já cobra o valor do plano menor.
+     *
+     * Limites: se a empresa tem mais clientes/recompensas/parceiros/etc
+     * que o plano alvo aceita, o downgrade ainda acontece, mas o sistema
+     * passa a bloquear NOVOS cadastros via PlanoLimiteService::garantirCapacidade
+     * até o consumo cair. O view do confirmar mostra os avisos antes.
+     *
+     * Módulos avançados perdidos somem na hora — empresa que estava usando
+     * roleta num plano que não inclui mais já recebe redirect pra
+     * /meu-plano via middleware modulo:roleta.
+     */
+    public function downgrade(Request $request, Plano $plano, PlanoLimiteService $limites)
+    {
+        $empresa = Auth::user()->empresa->loadMissing('plano', 'assinatura');
+
+        if (!$plano->ativo) {
+            return back()->with('error', 'Plano indisponível.');
+        }
+        $planoAtual = $empresa->plano;
+        if (!$planoAtual) {
+            // Sem plano atual, qualquer mudança é "upgrade" (passa pelo fluxo de cobrança)
+            return redirect()->route('admin.meu-plano.upgrade', $plano);
+        }
+        if ((int) $plano->id === (int) $planoAtual->id) {
+            return back()->with('error', 'Você já está nesse plano.');
+        }
+        if ($plano->preco_mensal >= $planoAtual->preco_mensal) {
+            // Trata como upgrade — preço maior ou igual passa pelo fluxo
+            // de cobrança pra cobrar a diferença/valor cheio do alvo.
+            return redirect()->route('admin.meu-plano.upgrade', $plano);
+        }
+
+        // Bloqueia se consumo persistente excede o limite do alvo. Sem
+        // isso, empresa com 150 clientes descia pra plano de 100 e
+        // ficava trancada (PlanoLimiteService::garantirCapacidade impede
+        // novos cadastros, mas os 150 existentes ficavam "excedendo"
+        // indefinidamente — UX confusa e operação inconsistente).
+        $compat = $limites->avisosCompatibilidade($empresa, $plano);
+        if (!empty($compat['bloqueadores'])) {
+            return back()->with('error',
+                'Não dá pra descer pra '.$plano->nome.' agora: '
+                .implode(' ', $compat['bloqueadores'])
+            );
+        }
+
+        DB::transaction(function () use ($empresa, $plano) {
+            $assinatura = Assinatura::where('empresa_id', $empresa->id)
+                ->whereNotIn('status', ['cancelada'])
+                ->lockForUpdate()
+                ->latest('id')
+                ->first();
+
+            // Cancela cobranças de upgrade pendentes pra outros planos —
+            // cliente decidiu descer, não faz sentido manter cobrança pra
+            // subir. Cobranças regulares (não-upgrade) seguem ativas.
+            if ($assinatura) {
+                Cobranca::where('assinatura_id', $assinatura->id)
+                    ->where('status', 'pendente')
+                    ->whereJsonContains('meta->upgrade', ['plano_alvo_id' => $assinatura->plano_id_pendente])
+                    ->update(['status' => 'cancelado']);
+
+                $assinatura->update([
+                    'plano_id'          => $plano->id,
+                    'plano_id_pendente' => null,
+                    'valor_mensal'      => $plano->preco_mensal,
+                ]);
+            }
+
+            $empresa->update(['plano_id' => $plano->id]);
+        });
+
+        return redirect()->route('admin.meu-plano.index')
+            ->with('success', "Plano alterado pra {$plano->nome} (R$ "
+                .number_format($plano->preco_mensal, 2, ',', '.')
+                ."/mês). A próxima cobrança virá com esse valor — o valor pago do mês atual não é estornado.");
     }
 
     /**

@@ -86,6 +86,65 @@ class PlanoLimiteService
         return (bool) ($plano->{$flag} ?? false);
     }
 
+    /**
+     * Verifica compatibilidade da empresa com o plano alvo. Retorna:
+     *   - bloqueadores: consumo atual EXCEDE o limite do plano alvo. Esses
+     *     itens devem impedir o downgrade (cliente precisa reduzir antes).
+     *     Ex: empresa tem 150 clientes mas alvo aceita só 100.
+     *   - informativos: o que vai mudar mas não bloqueia (módulos que
+     *     ela perde, mas cliente pode aceitar perder).
+     *
+     * Recursos "mês" (compras_mes, campanhas_mes) NÃO bloqueiam: como o
+     * contador zera no mês seguinte, segurar downgrade por isso seria
+     * injusto (cliente esperaria o mês virar).
+     */
+    public function avisosCompatibilidade(Empresa $empresa, \App\Models\Plano $planoAlvo): array
+    {
+        $consumo = $this->consumo($empresa);
+
+        // Recursos persistentes que EXCEDIDOS bloqueiam o downgrade
+        $bloqueantes = [
+            'clientes'    => ['campo' => 'limite_clientes',    'label' => 'clientes'],
+            'recompensas' => ['campo' => 'limite_recompensas', 'label' => 'recompensas ativas'],
+            'parceiros'   => ['campo' => 'limite_parceiros',   'label' => 'parceiros ativos'],
+            'users'       => ['campo' => 'limite_users',       'label' => 'operadores'],
+        ];
+
+        // Recursos "do mês" — só avisa, não bloqueia
+        $informativos = [
+            'compras_mes'   => ['campo' => 'limite_compras_mes',   'label' => 'compras este mês'],
+            'campanhas_mes' => ['campo' => 'limite_campanhas_mes', 'label' => 'campanhas este mês'],
+        ];
+
+        $resultado = ['bloqueadores' => [], 'informativos' => []];
+
+        foreach ($bloqueantes as $chave => $info) {
+            $limiteAlvo = $planoAlvo->{$info['campo']} ?? null;
+            $atual = $consumo[$chave]['atual'] ?? 0;
+            if ($limiteAlvo !== null && $atual > $limiteAlvo) {
+                $resultado['bloqueadores'][] = "{$atual} {$info['label']} (limite do plano: {$limiteAlvo}). Reduza antes de mudar.";
+            }
+        }
+
+        foreach ($informativos as $chave => $info) {
+            $limiteAlvo = $planoAlvo->{$info['campo']} ?? null;
+            $atual = $consumo[$chave]['atual'] ?? 0;
+            if ($limiteAlvo !== null && $atual > $limiteAlvo) {
+                $resultado['informativos'][] = "{$atual} {$info['label']} (limite do plano: {$limiteAlvo}). Próximo mês zera.";
+            }
+        }
+
+        // Módulos perdidos: informativo (cliente aceita perder feature)
+        $modulosAtuais = $empresa->plano?->modulos ?? [];
+        $modulosAlvo = $planoAlvo->modulos ?? [];
+        foreach (array_diff($modulosAtuais, $modulosAlvo) as $mod) {
+            $rotulo = \App\Models\Plano::MODULOS_DISPONIVEIS[$mod] ?? $mod;
+            $resultado['informativos'][] = "Perderá acesso: {$rotulo}";
+        }
+
+        return $resultado;
+    }
+
     protected function pct(int $atual, ?int $limite): ?float
     {
         if ($limite === null || $limite === 0) return null;

@@ -194,6 +194,7 @@ Route::middleware(['admin.auth', 'empresa.scope', 'verifica.pagamento'])->prefix
         Route::get('atividade-suspeita', [AtividadeSuspeitaController::class, 'index'])->name('atividade.suspeita');
         Route::get('meu-plano', [MeuPlanoController::class, 'index'])->name('meu-plano.index');
         Route::post('meu-plano/upgrade/{plano}', [MeuPlanoController::class, 'upgrade'])->name('meu-plano.upgrade');
+        Route::post('meu-plano/downgrade/{plano}', [MeuPlanoController::class, 'downgrade'])->name('meu-plano.downgrade');
         Route::post('meu-plano/cobrancas/{cobranca}/cancelar', [MeuPlanoController::class, 'cancelarCobranca'])->name('meu-plano.cobrancas.cancelar');
 
         Route::prefix('setup')->name('setup.')->group(function () {

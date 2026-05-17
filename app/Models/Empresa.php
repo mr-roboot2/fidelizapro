@@ -94,7 +94,13 @@ class Empresa extends Model
 
     public function assinatura()
     {
-        return $this->hasOne(Assinatura::class)->whereNotIn('status', ['cancelada']);
+        // hasOne sem ordering pegava a 1ª por ordem do MySQL — empresa
+        // com múltiplas assinaturas (EmpresaObserver cria uma trial +
+        // super admin cria outra manual) ficava com a "errada". latest
+        // garante que vem sempre a mais recente.
+        return $this->hasOne(Assinatura::class)
+            ->whereNotIn('status', ['cancelada'])
+            ->latest('id');
     }
 
     /**
