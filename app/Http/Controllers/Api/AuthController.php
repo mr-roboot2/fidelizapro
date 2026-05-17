@@ -19,21 +19,30 @@ class AuthController extends Controller
 {
     public function login(Request $request)
     {
+        // empresa_slug é REQUIRED. Antes era nullable e quando ausente o login
+        // caía num whereTelefone global — se o mesmo telefone existia em N
+        // empresas, a query devolvia a primeira pela ordem do MySQL (ordem
+        // indeterminada). Agora a query usa o índice composto
+        // (empresa_id, telefone_digits) e o cliente sempre loga na empresa
+        // certa. PWA já envia empresa_slug em todas as chamadas
+        // (public/app/app.js:433) — mudança backend-only.
         $dados = $request->validate([
-            'telefone' => 'required|string',
-            'password' => 'required|string',
-            'empresa_slug' => 'nullable|string',
+            'telefone'     => 'required|string',
+            'password'     => 'required|string',
+            'empresa_slug' => 'required|string',
         ]);
 
-        $query = Cliente::whereTelefone($dados['telefone'])->where('ativo', true);
-
-        if (!empty($dados['empresa_slug'])) {
-            $empresa = Empresa::where('slug', $dados['empresa_slug'])->first();
-            if (!$empresa) throw ValidationException::withMessages(['empresa_slug' => 'Empresa não encontrada.']);
-            $query->where('empresa_id', $empresa->id);
+        $empresa = Empresa::where('slug', $dados['empresa_slug'])->where('ativo', true)->first();
+        if (!$empresa) {
+            // Mensagem genérica no campo telefone pra não enumerar empresas
+            // existentes via comparação de tempo / payload de erro.
+            throw ValidationException::withMessages(['telefone' => 'Telefone ou senha inválidos.']);
         }
 
-        $cliente = $query->first();
+        $cliente = Cliente::whereTelefone($dados['telefone'])
+            ->where('empresa_id', $empresa->id)
+            ->where('ativo', true)
+            ->first();
 
         // Anti-timing: Hash::check é caro (~200ms bcrypt). Se rodávamos só
         // quando cliente existe, atacante mede tempo de resposta e enumera
