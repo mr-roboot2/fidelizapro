@@ -86,6 +86,34 @@ class PdvController extends Controller
             $clienteCriado = true;
         }
 
+        // Idempotency key: se o PDV mandar `codigo` (id da venda na ERP) e
+        // já existir compra com mesmo (empresa_id, codigo), devolve a
+        // existente em vez de duplicar. Sem isso, retry/timeout do PDV
+        // (cliente faz retry sem saber que primeiro chegou) gerava N
+        // compras pra mesma venda, creditando pontos/cashback várias
+        // vezes. Defesa em profundidade: unique parcial no banco
+        // (migration 2026_05_17_000002) e check aqui pra retornar 200
+        // amigável ao invés de QueryException 500.
+        if (!empty($dados['codigo'])) {
+            $existente = \App\Models\Compra::where('empresa_id', $empresa->id)
+                ->where('codigo', $dados['codigo'])
+                ->first();
+            if ($existente) {
+                return response()->json([
+                    'message' => 'Compra com este código já foi registrada anteriormente.',
+                    'cliente_criado' => false,
+                    'idempotent_replay' => true,
+                    'compra' => [
+                        'id' => $existente->id,
+                        'valor' => (float) $existente->valor,
+                        'pontos_gerados' => (float) $existente->pontos_gerados,
+                        'cashback_gerado' => (float) $existente->cashback_gerado,
+                        'created_at' => $existente->created_at->toIso8601String(),
+                    ],
+                ], 200);
+            }
+        }
+
         $compra = $compraService->registrar($cliente, [
             'valor' => $dados['valor'],
             'desconto' => $dados['desconto'] ?? 0,

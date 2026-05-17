@@ -110,16 +110,22 @@ class CompraService
 
             // Dispara automação pós-compra (se configurada). Side-effect: nunca
             // pode derrubar o registro da compra se o WhatsApp falhar.
-            try {
-                $this->automacaoService->disparar($empresa, 'pos_compra', $cliente->fresh(), [
-                    '{valor_compra}' => 'R$ '.number_format($valor, 2, ',', '.'),
-                    '{pontos_ganhos}' => number_format($pontos, 0, ',', '.'),
-                ]);
-            } catch (Throwable $e) {
-                Log::warning('[Compra] Falha ao disparar automação pos_compra: '.$e->getMessage(), [
-                    'compra_id' => $compra->id,
-                    'cliente_id' => $cliente->id,
-                ]);
+            // origem=import: importação CSV em massa NÃO dispara WhatsApp
+            // pra cada linha (10k linhas = 10k mensagens "obrigado" em
+            // sequência, flood pro cliente + lentidão da importação).
+            $origem = $dados['origem'] ?? 'manual';
+            if ($origem !== 'import') {
+                try {
+                    $this->automacaoService->disparar($empresa, 'pos_compra', $cliente->fresh(), [
+                        '{valor_compra}' => 'R$ '.number_format($valor, 2, ',', '.'),
+                        '{pontos_ganhos}' => number_format($pontos, 0, ',', '.'),
+                    ]);
+                } catch (Throwable $e) {
+                    Log::warning('[Compra] Falha ao disparar automação pos_compra: '.$e->getMessage(), [
+                        'compra_id' => $compra->id,
+                        'cliente_id' => $cliente->id,
+                    ]);
+                }
             }
 
             return $compra;

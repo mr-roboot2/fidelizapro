@@ -87,7 +87,7 @@ class WebhookPagamentoController extends Controller
             // vazar nome de coluna/tabela, path, env var. Mensagem genérica
             // (e Asaas re-tenta webhook 500 igual).
             Log::error("[Webhook {$gateway}] Erro: ".$e->getMessage(), [
-                'trace' => $e->getTraceAsString(),
+                'trace' => \App\Support\LogScrubber::scrub($e->getTraceAsString()),
             ]);
             return response()->json(['error' => 'internal_error'], 500);
         }

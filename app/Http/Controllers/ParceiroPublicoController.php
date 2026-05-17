@@ -56,7 +56,7 @@ class ParceiroPublicoController extends Controller
         } catch (\Throwable $e) {
             // Catch-all: log do trace + mensagem genérica.
             \Log::error('[ParceiroPublico] Falha ao validar cupom: '.$e->getMessage(), [
-                'trace' => $e->getTraceAsString(),
+                'trace' => \App\Support\LogScrubber::scrub($e->getTraceAsString()),
             ]);
             return view('parceiro_publico.validar', [
                 'parceiro' => $parceiro,

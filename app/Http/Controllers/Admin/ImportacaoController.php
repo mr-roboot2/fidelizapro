@@ -192,11 +192,14 @@ class ImportacaoController extends Controller
                 }
 
                 try {
+                    // origem='import' faz CompraService pular o disparo
+                    // de WhatsApp pos_compra (10k linhas não viram 10k
+                    // mensagens "obrigado" enfileiradas no provider).
                     $compraService->registrar($cliente, [
                         'valor' => $valor,
                         'codigo' => $linhaDados['codigo'] ?? null,
                         'descricao' => $descricao,
-                        'origem' => 'manual',
+                        'origem' => 'import',
                         'user_id' => Auth::id(),
                     ]);
                     $sucesso++;

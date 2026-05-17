@@ -86,8 +86,21 @@ class UserController extends Controller
         // Revoga tokens PRIMEIRO (antes do update). Se algo falhar no update,
         // os tokens já foram invalidados — estado conservador. Antes a
         // revogação rodava depois → race se o update lançasse exception.
+        // Além de Sanctum tokens, derruba sessões web do user: atacante
+        // com cookie roubado mantinha sessão ativa mesmo após admin
+        // trocar a senha. Funciona com session driver=database (default
+        // após instalação); em outros drivers o middleware AdminAuth
+        // ainda derruba na próxima request (ativo=false ou senha
+        // diferente em re-auth periódico), mas DB é o caminho rápido.
         if ($precisaRevogar) {
             $user->tokens()->delete();
+            try {
+                \Illuminate\Support\Facades\DB::table('sessions')
+                    ->where('user_id', $user->id)
+                    ->delete();
+            } catch (\Throwable $e) {
+                // session driver pode não ser 'database' — ignorar silencioso
+            }
         }
 
         // Aplica senha + rotaciona remember_token em UM ÚNICO save antes do

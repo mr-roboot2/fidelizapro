@@ -27,6 +27,7 @@ class ConfiguracaoSistema extends Model
         'cobranca_avisos_antes', 'cobranca_avisos_depois',
         'trial_dias_padrao', 'plano_padrao_id', 'cadastro_publico_ativo',
         'captcha_provider', 'captcha_site_key', 'captcha_secret_key',
+        'antifraude_resgates_24h', 'antifraude_ips_compartilhados', 'antifraude_cadastros_dia_ip',
     ];
 
     /**
@@ -70,6 +71,9 @@ class ConfiguracaoSistema extends Model
         'otp_max_por_telefone' => 'integer',
         'otp_max_tentativas' => 'integer',
         'max_resgates_24h' => 'integer',
+        'antifraude_resgates_24h' => 'integer',
+        'antifraude_ips_compartilhados' => 'integer',
+        'antifraude_cadastros_dia_ip' => 'integer',
         'instalado_em' => 'datetime',
         // captcha_site_key fica plain (é exposta no frontend mesmo).
         // captcha_secret_key é cifrada — só sai do banco quando o

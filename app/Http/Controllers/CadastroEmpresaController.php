@@ -178,9 +178,12 @@ class CadastroEmpresaController extends Controller
                 return ['empresa' => $empresa, 'user' => $user];
             });
         } catch (Throwable $e) {
+            // Scrub: trace pode conter argumentos de função com PII (cpf,
+            // email, senha mass-assigned). admin_email vai mascarado pra
+            // ser ainda investigável sem expor cru.
             Log::error('[CadastroEmpresa] Falha ao criar empresa: '.$e->getMessage(), [
-                'trace' => $e->getTraceAsString(),
-                'admin_email' => $dados['admin_email'] ?? null,
+                'trace' => \App\Support\LogScrubber::scrub($e->getTraceAsString()),
+                'admin_email' => \App\Support\LogScrubber::scrub($dados['admin_email'] ?? null),
             ]);
             return back()->withInput()->withErrors([
                 'nome' => 'Não foi possível concluir o cadastro. Tente novamente em alguns minutos.',

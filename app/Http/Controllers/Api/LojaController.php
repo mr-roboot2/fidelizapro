@@ -203,7 +203,7 @@ class LojaController extends Controller
             Log::error('[Loja PWA] Falha ao lançar compra: '.$e->getMessage(), [
                 'cliente_id' => $cliente->id,
                 'valor'      => $valorBruto,
-                'trace'      => $e->getTraceAsString(),
+                'trace'      => \App\Support\LogScrubber::scrub($e->getTraceAsString()),
             ]);
             // Mensagem genérica pro cliente — não vaza nome de coluna,
             // SQL state, etc. Detalhes ficam no log.

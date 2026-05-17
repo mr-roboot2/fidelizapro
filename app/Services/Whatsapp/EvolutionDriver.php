@@ -26,7 +26,7 @@ class EvolutionDriver implements WhatsappDriverInterface
             ])->timeout(15)->post(
                 rtrim($config->whatsapp_api_url, '/').'/message/sendText/'.$config->whatsapp_instance,
                 [
-                    'number' => $this->normalizar($telefone),
+                    'number' => \App\Support\PhoneNormalizer::normalize($telefone),
                     'text' => $mensagem,
                 ]
             );
@@ -80,11 +80,4 @@ class EvolutionDriver implements WhatsappDriverInterface
         return implode("\n\n", array_filter($partes));
     }
 
-    protected function normalizar(string $telefone): string
-    {
-        $apenas = preg_replace('/\D/', '', $telefone);
-        if (strlen($apenas) === 11) $apenas = '55'.$apenas;
-        if (strlen($apenas) === 10) $apenas = '55'.$apenas;
-        return $apenas;
-    }
 }

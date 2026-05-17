@@ -43,7 +43,7 @@ class PixWebhookController extends Controller
             return response()->json(['ok' => true, 'cobranca_id' => $cobranca->id]);
         } catch (\Throwable $e) {
             Log::error('[PIX webhook] Erro: '.$e->getMessage(), [
-                'trace' => $e->getTraceAsString(),
+                'trace' => \App\Support\LogScrubber::scrub($e->getTraceAsString()),
             ]);
             return response()->json(['error' => 'internal_error'], 500);
         }

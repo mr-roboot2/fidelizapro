@@ -27,7 +27,7 @@ class MetaCloudDriver implements WhatsappDriverInterface
                 ->timeout(15)
                 ->post("https://graph.facebook.com/v18.0/{$config->whatsapp_phone_id}/messages", [
                     'messaging_product' => 'whatsapp',
-                    'to'   => $this->normalizar($telefone),
+                    'to'   => \App\Support\PhoneNormalizer::normalize($telefone),
                     'type' => 'text',
                     'text' => ['body' => $mensagem],
                 ]);
@@ -57,7 +57,7 @@ class MetaCloudDriver implements WhatsappDriverInterface
                 ->timeout(15)
                 ->post("https://graph.facebook.com/v18.0/{$config->whatsapp_phone_id}/messages", [
                     'messaging_product' => 'whatsapp',
-                    'to'   => $this->normalizar($telefoneDestino),
+                    'to'   => \App\Support\PhoneNormalizer::normalize($telefoneDestino),
                     'type' => 'template',
                     'template' => [
                         'name'     => 'hello_world',
@@ -120,7 +120,7 @@ class MetaCloudDriver implements WhatsappDriverInterface
                 ->timeout(15)
                 ->post("https://graph.facebook.com/v18.0/{$config->whatsapp_phone_id}/messages", [
                     'messaging_product' => 'whatsapp',
-                    'to'   => $this->normalizar($telefone),
+                    'to'   => \App\Support\PhoneNormalizer::normalize($telefone),
                     'type' => 'template',
                     'template' => array_filter([
                         'name'       => $nomeTemplate,
@@ -170,11 +170,4 @@ class MetaCloudDriver implements WhatsappDriverInterface
         return implode("\n\n", array_filter($partes));
     }
 
-    protected function normalizar(string $telefone): string
-    {
-        $apenas = preg_replace('/\D/', '', $telefone);
-        if (strlen($apenas) === 11) $apenas = '55'.$apenas;
-        if (strlen($apenas) === 10) $apenas = '55'.$apenas;
-        return $apenas;
-    }
 }

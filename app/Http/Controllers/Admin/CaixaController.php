@@ -131,7 +131,7 @@ class CaixaController extends Controller
                 'cliente_id' => $cliente->id,
                 'valor' => $valorBruto,
                 'usar_cashback' => $usarCashback,
-                'trace' => $e->getTraceAsString(),
+                'trace' => \App\Support\LogScrubber::scrub($e->getTraceAsString()),
             ]);
             return response()->json([
                 'message' => 'Erro ao registrar compra: '.$e->getMessage(),

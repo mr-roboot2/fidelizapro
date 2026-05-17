@@ -30,7 +30,7 @@ class ZapiDriver implements WhatsappDriverInterface
             ])->timeout(15)->post(
                 rtrim($base, '/')."/instances/{$config->whatsapp_instance}/token/{$config->whatsapp_api_token}/send-text",
                 [
-                    'phone' => $this->normalizar($telefone),
+                    'phone' => \App\Support\PhoneNormalizer::normalize($telefone),
                     'message' => $mensagem,
                 ]
             );
@@ -98,7 +98,7 @@ class ZapiDriver implements WhatsappDriverInterface
             ])->timeout(15)->post(
                 rtrim($base, '/')."/instances/{$config->whatsapp_instance}/token/{$config->whatsapp_api_token}/send-button-actions",
                 [
-                    'phone'         => $this->normalizar($telefone),
+                    'phone'         => \App\Support\PhoneNormalizer::normalize($telefone),
                     'message'       => $mensagem,
                     'buttonActions' => $buttonActions,
                 ]
@@ -136,11 +136,4 @@ class ZapiDriver implements WhatsappDriverInterface
         return implode("\n\n", array_filter($partes));
     }
 
-    protected function normalizar(string $telefone): string
-    {
-        $apenas = preg_replace('/\D/', '', $telefone);
-        if (strlen($apenas) === 11) $apenas = '55'.$apenas;
-        if (strlen($apenas) === 10) $apenas = '55'.$apenas;
-        return $apenas;
-    }
 }
