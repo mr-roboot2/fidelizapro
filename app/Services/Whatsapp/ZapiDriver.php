@@ -40,7 +40,10 @@ class ZapiDriver implements WhatsappDriverInterface
                     'tel'  => \App\Support\LogScrubber::scrub($telefone),
                     'body' => \App\Support\LogScrubber::scrub($response->body()),
                 ]);
-                return ['ok' => false, 'external_id' => null, 'erro' => 'HTTP '.$response->status()];
+                // Extrai message do JSON Z-API (formato: {"error":"...","value":"..."})
+                // pra propagar erro real (instância desconectada, token errado, etc).
+                $msg = $response->json('message') ?? $response->json('error') ?? $response->json('value') ?? mb_substr($response->body(), 0, 200);
+                return ['ok' => false, 'external_id' => null, 'erro' => 'HTTP '.$response->status().': '.$msg];
             }
             // Z-API retorna messageId ou id no payload — varia por versão
             return [
@@ -57,9 +60,15 @@ class ZapiDriver implements WhatsappDriverInterface
     public function testar(ConfiguracaoSistema $config, string $telefoneDestino): array
     {
         $r = $this->enviar($config, $telefoneDestino, "[Teste de conexão WhatsApp via Z-API - {$config->nome_sistema}]");
+        if ($r['ok']) {
+            return ['ok' => true, 'mensagem' => 'Mensagem de teste enviada!'];
+        }
+        // Mostra o erro real (HTTP code + corpo da resposta Z-API) direto
+        // na tela pra o super não precisar abrir SSH e tailar log toda vez.
+        $erro = $r['erro'] ?? 'erro desconhecido';
         return [
-            'ok' => $r['ok'],
-            'mensagem' => $r['ok'] ? 'Mensagem de teste enviada!' : 'Falha — confira instance ID e token nos logs.',
+            'ok' => false,
+            'mensagem' => "Falha ({$erro}). Verifique: 1) Instance ID e Token bater com o painel Z-API → Instâncias; 2) Client-Token vir de Painel Z-API → Segurança → Token da conta (NÃO confundir com token da instância); 3) Instância estar conectada (QR code escaneado).",
         ];
     }
 
